@@ -1,0 +1,35 @@
+[
+  {
+    "url": "http://www.radioeins.de/archiv/podcast/hoerbar_rust.feed.podcast.xml",
+    "title": "Hörbar Rust",
+    "author": "radioeins (Rundfunk Berlin-Brandenburg)",
+    "description": "Jeden Sonntag von 14.00 bis 16.00 Uhr ladt Bettina Rust einen prominenten Gast\nin die Horbar Rust ein. Dieser stellt sich in der Sendung vor und die Musik,\ndie in seinem Leben von Bedeutung war und erzahlt dazu die passenden\nGeschichten zum Soundtrack seines Lebens - alte Mixtapes werden rausgekramt -\ndie erste Platte - intime Tone oder peinliche Songs mit personlichen\nErinnerungen des jeweiligen Gastes. Zwei Stunden voller Musik und toller\nGeschichten - Promis privat in der Horbar Rust - immer sonntags von 14.00 -\n16.00 Uhr. Die Highlights der jeweiligen Sendung konnen Sie hier downloaden.\nDieser Podcast steht unter der Creative Commons Lizenz CC BY-NC-ND 4.0.",
+    "subscribers": 15,
+    "logo_url": "https://www.rbb-online.de/content/dam/rbb/rad/image_bilder/Podcast21/r1_Podcast_Rust_1_1.jpg.jpg/rendition%3Dard.jpg.jpg",
+    "scaled_logo_url": "http://gpodder.net/logo/64/d24/d240b1a93771d2b802af36804ee6cf1f9c4bf800",
+    "website": "https://www.radioeins.de/archiv/podcast/hoerbar_rust.html",
+    "mygpo_link": "http://gpodder.net/podcast/horbar-rust-1"
+  },
+  {
+    "url": "https://rusty-spike.blubrry.net/feed/podcast/",
+    "title": "Rusty Spike Podcast – News on all things Rust",
+    "author": "jonathan.d.turner@gmail.com (Jonathan Turner)",
+    "description": "A weekly news podcast covering the Rust programming language and the Servo\nbrowser engine.",
+    "subscribers": 0,
+    "logo_url": "http://rusty-spike.blubrry.net/wp-content/uploads/powerpress/rusty_spike_3000.png",
+    "scaled_logo_url": "http://gpodder.net/logo/64/be0/be0cf9cc6b0ab68416d7807afb83c9b7df8f304b",
+    "website": "https://rusty-spike.blubrry.net",
+    "mygpo_link": "http://gpodder.net/podcast/rusty-spike-podcast-a-podcast-for-rust-and-servo"
+  },
+  {
+    "url": "https://www.radioeins.de/rss.xml?beitrag_110178",
+    "title": "Hörbar Rust",
+    "author": "radioeins (Rundfunk Berlin-Brandenburg)",
+    "description": "Jeden Sonntag von 14.00 bis 16.00 Uhr ladt Bettina Rust einen prominenten Gast\nin die Horbar Rust ein. Dieser stellt sich in der Sendung vor und die Musik,\ndie in seinem Leben von Bedeutung war und erzahlt dazu die passenden\nGeschichten zum Soundtrack seines Lebens - alte Mixtapes werden rausgekramt -\ndie erste Platte - intime Tone oder peinliche Songs mit personlichen\nErinnerungen des jeweiligen Gastes. Zwei Stunden voller Musik und toller\nGeschichten - Promis privat in der Horbar Rust - immer sonntags von 14.00 -\n16.00 Uhr. Die Highlights der jeweiligen Sendung konnen Sie hier downloaden.\nDieser Podcast steht unter der Creative Commons Lizenz CC BY-NC-ND 4.0.",
+    "subscribers": 0,
+    "logo_url": "https://www.rbb-online.de/content/dam/rbb/rad/image_bilder/Podcast21/r1_Podcast_Rust_1_1.jpg.jpg/rendition%3Dard.jpg.jpg",
+    "scaled_logo_url": "http://gpodder.net/logo/64/d24/d240b1a93771d2b802af36804ee6cf1f9c4bf800",
+    "website": "https://www.radioeins.de/archiv/podcast/hoerbar_rust.html",
+    "mygpo_link": "http://gpodder.net/podcast/horbar-rust-radioeins-1"
+  }
+]

@@ -1,0 +1,56 @@
+# Keep the Docker build context small + reproducible. The images regenerate all
+# build artifacts themselves (cargo build, npm ci, dx bundle, tailwind).
+.git/
+target/
+**/target/
+node_modules/
+**/node_modules/
+
+# Generated frontend bundle — rebuilt by `just ui-bundle` inside the image.
+# The .gitkeep keeper must stay in the context: without it dist/ is empty and
+# COPY . . drops the dir entirely, breaking the rust_embed compile.
+dist/*
+!dist/.gitkeep
+
+# Local dev state (DB, media, logs) — never belongs in an image. EXCEPT
+# data/tests: the server's unit tests read RSS + mp3 fixtures from there (tracked
+# in git), resolved at /workspace/data/tests inside the testing image. Without
+# this the rss/polling/download tests panic "test fixture not found".
+data/*
+!data/tests
+**/*.log
+
+# Secrets: the repo-root .env (TART_FORGEJO_TOKEN, signing config) and Apple signing
+# material must NEVER be baked into an image by COPY . . .
+.env
+.env.local
+**/*.p12
+**/*.mobileprovision
+**/*.pem
+
+# Big local build outputs (host-side; CI checkouts don't have them, but local
+# `just image-*` builds would drag in GBs).
+artifacts/
+.sccache/
+
+# The images build the server + web frontend only — CI definitions, docs, and
+# the mobile app source trees (plus their build state: Gradle caches, staged
+# .so/APKs, generated bindings, Xcode output) never belong in the context.
+# The ONE in-context file the toolchain image copies is re-included.
+ci/
+!ci/docker/toolchain/
+.forgejo/
+docs/
+android/
+ios/
+README.md
+AGENTS.md
+
+# Editor / agent / OS cruft.
+.idea/
+.vscode/
+.zed/
+.claude/
+.opencode/
+CLAUDE.md
+.DS_Store

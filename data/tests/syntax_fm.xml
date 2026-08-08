@@ -1,0 +1,2881 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Trimmed test fixture: a real-world capture cut to the first 12 of 1008
+     <item>s. The full back catalogue only made the debug-build parse+insert
+     tests take ~30s each; nothing asserts on the tail. Chaptered items (if any)
+     are inside the kept window. -->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <atom:link href="https://feeds.megaphone.fm/FSI1483080183" rel="self" type="application/rss+xml"/>
+    <title>Syntax - Tasty Web Development Treats</title>
+    <link>https://syntax.fm</link>
+    <language>en</language>
+    <copyright></copyright>
+    <description>Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.</description>
+    <image>
+      <url>https://megaphone.imgix.net/podcasts/5197fe5a-42f7-11f0-affd-87d9985a1760/image/c86a54acd72683732c4773e25bf0ae14.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress</url>
+      <title>Syntax - Tasty Web Development Treats</title>
+      <link>https://syntax.fm</link>
+    </image>
+    <itunes:explicit>no</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
+    <itunes:subtitle/>
+    <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+    <itunes:summary>Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.</itunes:summary>
+    <content:encoded>
+      <![CDATA[Full Stack Developers Wes Bos and Scott Tolinski dive deep into web development topics, explaining how they work and talking about their own experiences. They cover from JavaScript frameworks like React, to the latest advancements in CSS to simplifying web tooling.]]>
+    </content:encoded>
+    <itunes:owner>
+      <itunes:name>Wes Bos</itunes:name>
+      <itunes:email>wes@wesbos.com</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://megaphone.imgix.net/podcasts/5197fe5a-42f7-11f0-affd-87d9985a1760/image/c86a54acd72683732c4773e25bf0ae14.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+    <itunes:category text="Technology">
+    </itunes:category>
+    <itunes:category text="News">
+      <itunes:category text="Tech News"/>
+    </itunes:category>
+    <item>
+      <title>Diffs, Trees, and VS Code 2.0</title>
+      <link>https://syntax.fm/1008</link>
+      <description>Scott and Wes sit down with Alex Sexton and Amadeus De Marzi from Pierre Computer to dig into the gnarly performance challenges behind building blazing-fast code review tools, covering virtualization, progressive rendering, and why GitHub’s UI feels so sluggish. They also chat about how major AI coding tools like Claude, Codex, and Cursor are adopting Pierre’s diffs library, plus the role of web components, benchmarking, and what it takes to build “VS Code 2.0.”
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+04:00 The Need for Better Infrastructure
+
+
+05:53 Understanding Diffs and Trees
+
+diffs.com
+
+Trees by the Pierre Computer Co
+
+
+
+
+
+08:16 Performance Challenges in Code Review
+
+
+10:49 Virtualization Techniques for Smooth Scrolling
+
+
+15:04 In-Page Find and Virtualization Limitations
+
+
+17:00 Browser Limitations and Content Visibility
+
+
+19:29 Progressive Rendering and Syntax Highlighting
+
+
+23:05 Tools and Techniques for Performance Testing
+
+
+33:35 Optimizing Performance with AI
+
+
+36:31 Mastering Auto Research for Efficiency
+
+
+42:00 Exploring Web Components and State Management
+
+
+44:05 Innovations in Rendering and Virtualization
+
+
+49:12 Business Insights and Future Directions
+
+
+53:58 Sick Picks
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 27 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/05cf99cc-5932-11f1-8090-0362f2fc8a50/image/3a89cfd2ff3d404ea5562ee275636fb0.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes sit down with Alex Sexton and Amadeus De Marzi from Pierre Computer to dig into the gnarly performance challenges behind building blazing-fast code review tools, covering virtualization, progressive rendering, and why GitHub’s UI feels so sluggish. They also chat about how major AI coding tools like Claude, Codex, and Cursor are adopting Pierre’s diffs library, plus the role of web components, benchmarking, and what it takes to build “VS Code 2.0.”
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+04:00 The Need for Better Infrastructure
+
+
+05:53 Understanding Diffs and Trees
+
+diffs.com
+
+Trees by the Pierre Computer Co
+
+
+
+
+
+08:16 Performance Challenges in Code Review
+
+
+10:49 Virtualization Techniques for Smooth Scrolling
+
+
+15:04 In-Page Find and Virtualization Limitations
+
+
+17:00 Browser Limitations and Content Visibility
+
+
+19:29 Progressive Rendering and Syntax Highlighting
+
+
+23:05 Tools and Techniques for Performance Testing
+
+
+33:35 Optimizing Performance with AI
+
+
+36:31 Mastering Auto Research for Efficiency
+
+
+42:00 Exploring Web Components and State Management
+
+
+44:05 Innovations in Rendering and Virtualization
+
+
+49:12 Business Insights and Future Directions
+
+
+53:58 Sick Picks
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes sit down with Alex Sexton and Amadeus De Marzi from Pierre Computer to dig into the gnarly performance challenges behind building blazing-fast code review tools, covering virtualization, progressive rendering, and why GitHub’s UI feels so sluggish. They also chat about how major AI coding tools like Claude, Codex, and Cursor are adopting Pierre’s diffs library, plus the role of web components, benchmarking, and what it takes to build “VS Code 2.0.”</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=04:00">04:00</a></strong> The Need for Better Infrastructure</li>
+<li class="has-line-data">
+<strong><a href="#t=05:53">05:53</a></strong> Understanding Diffs and Trees
+<ul>
+<li class="has-line-data"><a href="https://diffs.com/">diffs.com</a></li>
+<li class="has-line-data"><a href="https://trees.software/">Trees by the Pierre Computer Co</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=08:16">08:16</a></strong> Performance Challenges in Code Review</li>
+<li class="has-line-data">
+<strong><a href="#t=10:49">10:49</a></strong> Virtualization Techniques for Smooth Scrolling</li>
+<li class="has-line-data">
+<strong><a href="#t=15:04">15:04</a></strong> In-Page Find and Virtualization Limitations</li>
+<li class="has-line-data">
+<strong><a href="#t=17:00">17:00</a></strong> Browser Limitations and Content Visibility</li>
+<li class="has-line-data">
+<strong><a href="#t=19:29">19:29</a></strong> Progressive Rendering and Syntax Highlighting</li>
+<li class="has-line-data">
+<strong><a href="#t=23:05">23:05</a></strong> Tools and Techniques for Performance Testing</li>
+<li class="has-line-data">
+<strong><a href="#t=33:35">33:35</a></strong> Optimizing Performance with AI</li>
+<li class="has-line-data">
+<strong><a href="#t=36:31">36:31</a></strong> Mastering Auto Research for Efficiency</li>
+<li class="has-line-data">
+<strong><a href="#t=42:00">42:00</a></strong> Exploring Web Components and State Management</li>
+<li class="has-line-data">
+<strong><a href="#t=44:05">44:05</a></strong> Innovations in Rendering and Virtualization</li>
+<li class="has-line-data">
+<strong><a href="#t=49:12">49:12</a></strong> Business Insights and Future Directions</li>
+<li class="has-line-data">
+<strong><a href="#t=53:58">53:58</a></strong> Sick Picks</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>3596</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[05cf99cc-5932-11f1-8090-0362f2fc8a50]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI2518666780.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1007: 8 Tech Choices to Lock In Before Agentmaxxing</title>
+      <link>https://syntax.fm/1007</link>
+      <description>Wes and Scott talk about the foundational decisions that make AI-assisted coding actually work—database schemas, validation, routing, CSS structure, and more. They explore why consistency matters more than specific tools, and how a little upfront planning can keep agents from turning your codebase into chaos.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+03:19 Planning your database schema before AI touches it
+
+
+06:08 Picking a validation strategy that won’t drift
+
+
+07:18 Mapping your routing structure and auth flow
+
+
+08:48 Brought to you by Sentry.io
+
+
+
+10:52 Locking in your CSS methodology and UI framework
+
+
+13:31 Choosing how your client and server communicate
+
+
+15:03 Creating a folder structure agents can follow
+
+
+16:16 Don’t be afraid to switch up your AI setup later
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 25 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/d4b1a3be-5466-11f1-acd2-f3380effaa91/image/126e5ec7a5c1a9275a0df7aa7004416d.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Wes and Scott talk about the foundational decisions that make AI-assisted coding actually work—database schemas, validation, routing, CSS structure, and more. They explore why consistency matters more than specific tools, and how a little upfront planning can keep agents from turning your codebase into chaos.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+03:19 Planning your database schema before AI touches it
+
+
+06:08 Picking a validation strategy that won’t drift
+
+
+07:18 Mapping your routing structure and auth flow
+
+
+08:48 Brought to you by Sentry.io
+
+
+
+10:52 Locking in your CSS methodology and UI framework
+
+
+13:31 Choosing how your client and server communicate
+
+
+15:03 Creating a folder structure agents can follow
+
+
+16:16 Don’t be afraid to switch up your AI setup later
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Wes and Scott talk about the foundational decisions that make AI-assisted coding actually work—database schemas, validation, routing, CSS structure, and more. They explore why consistency matters more than specific tools, and how a little upfront planning can keep agents from turning your codebase into chaos.</p>
+<h3 class="code-line has-line-data">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=03:19">03:19</a></strong> Planning your database schema before AI touches it</li>
+<li class="has-line-data">
+<strong><a href="#t=06:08">06:08</a></strong> Picking a validation strategy that won’t drift</li>
+<li class="has-line-data">
+<strong><a href="#t=07:18">07:18</a></strong> Mapping your routing structure and auth flow</li>
+<li class="has-line-data">
+<strong><a href="#t=08:48">08:48</a></strong> Brought to you by <a href="https://sentry.io/syntax/">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=10:52">10:52</a></strong> Locking in your CSS methodology and UI framework</li>
+<li class="has-line-data">
+<strong><a href="#t=13:31">13:31</a></strong> Choosing how your client and server communicate</li>
+<li class="has-line-data">
+<strong><a href="#t=15:03">15:03</a></strong> Creating a folder structure agents can follow</li>
+<li class="has-line-data">
+<strong><a href="#t=16:16">16:16</a></strong> Don’t be afraid to switch up your AI setup later</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>1021</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <guid isPermaLink="false"><![CDATA[d4b1a3be-5466-11f1-acd2-f3380effaa91]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI8645958362.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1006: Can AI Make Good Design?</title>
+      <link>https://syntax.fm/1006</link>
+      <description>Wes and Scott talk about whether AI can actually create good design, or if it just remixes the same patterns over and over. They dig into AI-generated UX, design systems, YouTube thumbnails, Google’s design.md spec, programmatic design, and the tools designers are actually using today.
+
+Show Notes
+
+
+  
+00:00 Welcome to Syntax!
+
+  
+03:20 Can AI actually make you creative?
+
+  
+08:52 Why AI-generated YouTube thumbnails all look the same
+
+  
+10:34 Can good design be extrapolated from patterns?
+
+  
+13:46 Google’s design.md and AI steering documents
+
+  
+16:57 Can AI make good UX?
+
+  
+19:37 Brought to you by Sentry.io
+
+
+  
+21:03 Can good design be programmatic?
+
+  
+23:57 Can AI optimize design for outcomes and conversions?
+
+  
+27:40 Should designers use AI to enhance their work?
+
+  
+32:41 The AI design tools people are actually using
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 20 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/9d56a000-4e2f-11f1-943d-e7ea21e65dc1/image/0bb1937d98a7e8e71c1f8a27498cf34b.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Wes and Scott talk about whether AI can actually create good design, or if it just remixes the same patterns over and over. They dig into AI-generated UX, design systems, YouTube thumbnails, Google’s design.md spec, programmatic design, and the tools designers are actually using today.
+
+Show Notes
+
+
+  
+00:00 Welcome to Syntax!
+
+  
+03:20 Can AI actually make you creative?
+
+  
+08:52 Why AI-generated YouTube thumbnails all look the same
+
+  
+10:34 Can good design be extrapolated from patterns?
+
+  
+13:46 Google’s design.md and AI steering documents
+
+  
+16:57 Can AI make good UX?
+
+  
+19:37 Brought to you by Sentry.io
+
+
+  
+21:03 Can good design be programmatic?
+
+  
+23:57 Can AI optimize design for outcomes and conversions?
+
+  
+27:40 Should designers use AI to enhance their work?
+
+  
+32:41 The AI design tools people are actually using
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p>Wes and Scott talk about whether AI can actually create good design, or if it just remixes the same patterns over and over. They dig into AI-generated UX, design systems, YouTube thumbnails, Google’s design.md spec, programmatic design, and the tools designers are actually using today.</p>
+<p>Show Notes</p>
+<ul>
+  <li>
+<a href="#t=00:00">00:00</a> Welcome to Syntax!</li>
+  <li>
+<a href="#t=03:20">03:20</a> Can AI actually make you creative?</li>
+  <li>
+<a href="#t=08:52">08:52</a> Why AI-generated YouTube thumbnails all look the same</li>
+  <li>
+<a href="#t=10:34">10:34</a> Can good design be extrapolated from patterns?</li>
+  <li>
+<a href="#t=13:46">13:46</a> Google’s design.md and AI steering documents</li>
+  <li>
+<a href="#t=16:57">16:57</a> Can AI make good UX?</li>
+  <li>
+<a href="#t=19:37">19:37</a> Brought to you by <a href="https://sentry.io/syntax/">Sentry.io</a>
+</li>
+  <li>
+<a href="#t=21:03">21:03</a> Can good design be programmatic?</li>
+  <li>
+<a href="#t=23:57">23:57</a> Can AI optimize design for outcomes and conversions?</li>
+  <li>
+<a href="#t=27:40">27:40</a> Should designers use AI to enhance their work?</li>
+  <li>
+<a href="#t=32:41">32:41</a> The AI design tools people are actually using</li>
+</ul>
+<p>Hit us up on Socials!</p>
+<p>Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p>Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p>Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p>Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>2104</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <guid isPermaLink="false"><![CDATA[9d56a000-4e2f-11f1-943d-e7ea21e65dc1]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI8719347240.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1005: Programatic and Skill based Video Creation with Remotion</title>
+      <link>https://syntax.fm/1005</link>
+      <description>Scott and Wes are joined by Jonny Burger, creator of Remotion, to talk about the explosion of programmatic video, going from 125k to 800k installs per day, and how AI and a new HTML-in-Canvas Chrome spec are changing the game. They dig into monetization, the wild world of video slop, motion graphics workflows, and the new Media Bunny tool.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Remotion has skills!
+
+
+
+
+
+02:20 Monetization Strategies and Sustainability
+
+Remotion Pro
+
+
+
+
+
+04:40 The Impact of AI on Video Creation
+
+
+07:46 User Demographics and Use Cases
+
+
+09:49 The Future of Video Editing Workflows
+
+
+13:14 HTML in Canvas: A Game Changer
+
+
+16:17 Technical Challenges and Innovations
+
+
+18:44 Brought to you by Sentry.io
+
+
+
+19:09 The Future of Remotion and Community Feedback
+
+
+22:59 Rendering CSS Animations and Performance Optimization
+
+
+27:05 The Underworld of Video Slop
+
+
+29:12 Transition to Media Bunny
+
+remotion.dev/docs/mediabunny/
+
+
+
+
+
+33:50 Motion Graphics Workflow
+
+
+39:42 Sick Picks + Shameless Plugs
+
+
+
+Sick Picks
+
+
+Jonny: ENTTEC DMX to USB Interface
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 18 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/cad406c4-4eef-11f1-8b64-37af6572b862/image/56a566c5e93cb4b16e374875788a7d2e.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes are joined by Jonny Burger, creator of Remotion, to talk about the explosion of programmatic video, going from 125k to 800k installs per day, and how AI and a new HTML-in-Canvas Chrome spec are changing the game. They dig into monetization, the wild world of video slop, motion graphics workflows, and the new Media Bunny tool.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Remotion has skills!
+
+
+
+
+
+02:20 Monetization Strategies and Sustainability
+
+Remotion Pro
+
+
+
+
+
+04:40 The Impact of AI on Video Creation
+
+
+07:46 User Demographics and Use Cases
+
+
+09:49 The Future of Video Editing Workflows
+
+
+13:14 HTML in Canvas: A Game Changer
+
+
+16:17 Technical Challenges and Innovations
+
+
+18:44 Brought to you by Sentry.io
+
+
+
+19:09 The Future of Remotion and Community Feedback
+
+
+22:59 Rendering CSS Animations and Performance Optimization
+
+
+27:05 The Underworld of Video Slop
+
+
+29:12 Transition to Media Bunny
+
+remotion.dev/docs/mediabunny/
+
+
+
+
+
+33:50 Motion Graphics Workflow
+
+
+39:42 Sick Picks + Shameless Plugs
+
+
+
+Sick Picks
+
+
+Jonny: ENTTEC DMX to USB Interface
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes are joined by Jonny Burger, creator of Remotion, to talk about the explosion of programmatic video, going from 125k to 800k installs per day, and how AI and a new HTML-in-Canvas Chrome spec are changing the game. They dig into monetization, the wild world of video slop, motion graphics workflows, and the new Media Bunny tool.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!
+<ul>
+<li class="has-line-data"><a href="https://github.com/remotion-dev/skills">Remotion has skills!</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=02:20">02:20</a></strong> Monetization Strategies and Sustainability
+<ul>
+<li class="has-line-data"><a href="https://www.remotion.pro/">Remotion Pro</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=04:40">04:40</a></strong> The Impact of AI on Video Creation</li>
+<li class="has-line-data">
+<strong><a href="#t=07:46">07:46</a></strong> User Demographics and Use Cases</li>
+<li class="has-line-data">
+<strong><a href="#t=09:49">09:49</a></strong> The Future of Video Editing Workflows</li>
+<li class="has-line-data">
+<strong><a href="#t=13:14">13:14</a></strong> HTML in Canvas: A Game Changer</li>
+<li class="has-line-data">
+<strong><a href="#t=16:17">16:17</a></strong> Technical Challenges and Innovations</li>
+<li class="has-line-data">
+<strong><a href="#t=18:44">18:44</a></strong> Brought to you by <a href="https://sentry.io/syntax">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=19:09">19:09</a></strong> The Future of Remotion and Community Feedback</li>
+<li class="has-line-data">
+<strong><a href="#t=22:59">22:59</a></strong> Rendering CSS Animations and Performance Optimization</li>
+<li class="has-line-data">
+<strong><a href="#t=27:05">27:05</a></strong> The Underworld of Video Slop</li>
+<li class="has-line-data">
+<strong><a href="#t=29:12">29:12</a></strong> Transition to Media Bunny
+<ul>
+<li class="has-line-data"><a href="http://remotion.dev/docs/mediabunny/">remotion.dev/docs/mediabunny/</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=33:50">33:50</a></strong> Motion Graphics Workflow</li>
+<li class="has-line-data">
+<strong><a href="#t=39:42">39:42</a></strong> Sick Picks + Shameless Plugs</li>
+</ul>
+<h3 class="code-line">
+<a></a>Sick Picks</h3>
+<ul>
+<li class="has-line-data">Jonny: <a href="https://www.enttec.com/product/dmx-usb-interfaces/dmx-usb-pro-professional-1u-usb-to-dmx512-converter/">ENTTEC DMX to USB Interface</a>
+</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>2613</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[cad406c4-4eef-11f1-8b64-37af6572b862]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI1805655428.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1004: TanHacked</title>
+      <link>https://syntax.fm/1004</link>
+      <description>Scott and Wes break down the “Mini Shai-Hulud” supply chain attack that compromised TanStack and other popular npm packages through a clever GitHub Actions cache poisoning exploit; a self-propagating worm that stole credentials and persisted through Claude Code hooks and VS Code tasks. They also cover how developers can protect themselves using pnpm’s security defaults, dev containers, and other practical defenses.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+00:25 Understanding the Shai-Hulud Worm
+
+Post Mortem of Shai Hulud Attack
+
+
+
+
+
+02:47 Mechanics of the Attack: GitHub Actions and Cache
+
+How the attack happened
+
+Who Was Involved in the Attack
+
+Several npm latest releases are compromised
+
+Socket.dev
+
+Step Security
+
+
+
+
+
+05:44 Brought to you by Sentry.io
+
+
+
+06:09 Propagation and Impact of the Worm
+
+
+09:30 Preventative Measures for Developers
+
+Dead Man’s Switch
+
+
+
+
+
+12:33 The Role of Package Managers in Security
+
+Block Exotic Subdeps
+
+
+
+
+
+18:39 Using Dev Containers
+
+Why You Should Use Dev Containers
+
+Scott Tolinski’s Security Review
+
+
+
+
+
+20:57 Conclusion and Final Thoughts
+
+Sentry has Skills!
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 13 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/a2187b7c-4e2a-11f1-a565-a3423295d7a6/image/3772c890ff5f0c004303533049e6acf0.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes break down the “Mini Shai-Hulud” supply chain attack that compromised TanStack and other popular npm packages through a clever GitHub Actions cache poisoning exploit; a self-propagating worm that stole credentials and persisted through Claude Code hooks and VS Code tasks. They also cover how developers can protect themselves using pnpm’s security defaults, dev containers, and other practical defenses.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+00:25 Understanding the Shai-Hulud Worm
+
+Post Mortem of Shai Hulud Attack
+
+
+
+
+
+02:47 Mechanics of the Attack: GitHub Actions and Cache
+
+How the attack happened
+
+Who Was Involved in the Attack
+
+Several npm latest releases are compromised
+
+Socket.dev
+
+Step Security
+
+
+
+
+
+05:44 Brought to you by Sentry.io
+
+
+
+06:09 Propagation and Impact of the Worm
+
+
+09:30 Preventative Measures for Developers
+
+Dead Man’s Switch
+
+
+
+
+
+12:33 The Role of Package Managers in Security
+
+Block Exotic Subdeps
+
+
+
+
+
+18:39 Using Dev Containers
+
+Why You Should Use Dev Containers
+
+Scott Tolinski’s Security Review
+
+
+
+
+
+20:57 Conclusion and Final Thoughts
+
+Sentry has Skills!
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes break down the “Mini Shai-Hulud” supply chain attack that compromised TanStack and other popular npm packages through a clever GitHub Actions cache poisoning exploit; a self-propagating worm that stole credentials and persisted through Claude Code hooks and VS Code tasks. They also cover how developers can protect themselves using pnpm’s security defaults, dev containers, and other practical defenses.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=00:25">00:25</a></strong> Understanding the <a href="https://www.wiz.io/blog/shai-hulud-npm-supply-chain-attack">Shai-Hulud Worm</a>
+<ul>
+<li class="has-line-data"><a href="https://posthog.com/blog/nov-24-shai-hulud-attack-post-mortem">Post Mortem of Shai Hulud Attack</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=02:47">02:47</a></strong> Mechanics of the Attack: GitHub Actions and Cache
+<ul>
+<li class="has-line-data"><a href="https://x.com/sebastienlorber/status/2054108973352038618?s=20">How the attack happened</a></li>
+<li class="has-line-data"><a href="https://x.com/hetmehtaa/status/2054158511073116266">Who Was Involved in the Attack</a></li>
+<li class="has-line-data"><a href="https://github.com/TanStack/router/issues/7383#issuecomment-4424629798">Several npm latest releases are compromised</a></li>
+<li class="has-line-data"><a href="https://socket.dev/blog/tanstack-npm-packages-compromised-mini-shai-hulud-supply-chain-attack">Socket.dev</a></li>
+<li class="has-line-data"><a href="https://www.stepsecurity.io/blog/mini-shai-hulud-is-back-a-self-spreading-supply-chain-attack-hits-the-npm-ecosystem">Step Security</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=05:44">05:44</a></strong> Brought to you by <a href="https://sentry.io/syntax">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=06:09">06:09</a></strong> Propagation and Impact of the Worm</li>
+<li class="has-line-data">
+<strong><a href="#t=09:30">09:30</a></strong> Preventative Measures for Developers
+<ul>
+<li class="has-line-data"><a href="https://x.com/dabit3/status/2053956743621648789">Dead Man’s Switch</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=12:33">12:33</a></strong> The Role of Package Managers in Security
+<ul>
+<li class="has-line-data"><a href="https://pnpm.io/settings#blockexoticsubdeps">Block Exotic Subdeps</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=18:39">18:39</a></strong> Using Dev Containers
+<ul>
+<li class="has-line-data"><a href="https://www.youtube.com/watch?v=kPMA9cnpScU">Why You Should Use Dev Containers</a></li>
+<li class="has-line-data"><a href="https://github.com/stolinski/s-stack/tree/main/skills/security-review">Scott Tolinski’s Security Review</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=20:57">20:57</a></strong> Conclusion and Final Thoughts
+<ul>
+<li class="has-line-data"><a href="https://github.com/getsentry/skills">Sentry has Skills!</a></li>
+</ul>
+</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>1396</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[a2187b7c-4e2a-11f1-a565-a3423295d7a6]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI1796633736.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1003: Skills Skills Skills</title>
+      <link>https://syntax.fm/1003</link>
+      <description>Scott and Wes chat all things agent skills for web developers, sharing their favorites for everything from CSS animations and HTML generation to logo extraction, marketing copy, and video creation. Whether you’re just getting started with AI-powered development or looking to level up your workflow, this episode is packed with practical skills you can put to use today.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:33 Hot Tip Skill
+
+
+
+05:55 CSS Motion Systems
+
+
+
+08:17 Agent Browser Skill
+
+
+
+09:30 HTML Skill
+
+
+
+12:01 Extract Logos Skill
+
+
+13:34 Dex Task Skill
+
+
+
+14:50 Remotion and Hyper Frames Skills
+
+Syntax Episode 550 with Remotion
+
+
+
+
+
+16:22 Discussion on AI and Design Skills
+
+
+18:50 Marketing Skills and Copywriting
+
+
+
+23:01 Final Thoughts and Resources
+
+
+24:10 Brought to you by Sentry.io
+
+Sentry Skills
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 11 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/69b4ae12-4afc-11f1-86ba-83911c8e8dea/image/ed6b2c937d0b19279abc22170d269351.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes chat all things agent skills for web developers, sharing their favorites for everything from CSS animations and HTML generation to logo extraction, marketing copy, and video creation. Whether you’re just getting started with AI-powered development or looking to level up your workflow, this episode is packed with practical skills you can put to use today.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:33 Hot Tip Skill
+
+
+
+05:55 CSS Motion Systems
+
+
+
+08:17 Agent Browser Skill
+
+
+
+09:30 HTML Skill
+
+
+
+12:01 Extract Logos Skill
+
+
+13:34 Dex Task Skill
+
+
+
+14:50 Remotion and Hyper Frames Skills
+
+Syntax Episode 550 with Remotion
+
+
+
+
+
+16:22 Discussion on AI and Design Skills
+
+
+18:50 Marketing Skills and Copywriting
+
+
+
+23:01 Final Thoughts and Resources
+
+
+24:10 Brought to you by Sentry.io
+
+Sentry Skills
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes chat all things agent skills for web developers, sharing their favorites for everything from CSS animations and HTML generation to logo extraction, marketing copy, and video creation. Whether you’re just getting started with AI-powered development or looking to level up your workflow, this episode is packed with practical skills you can put to use today.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=01:33">01:33</a></strong> <a href="https://wesbos.com/tips">Hot Tip Skill</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=05:55">05:55</a></strong> <a href="https://github.com/stolinski/s-stack/tree/main/skills/css-motion-systems">CSS Motion Systems</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=08:17">08:17</a></strong> <a href="https://agent-browser.dev/skills">Agent Browser Skill</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=09:30">09:30</a></strong> <a href="https://github.com/stolinski/s-stack/blob/main/skills/html/SKILL.md">HTML Skill</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=12:01">12:01</a></strong> Extract Logos Skill</li>
+<li class="has-line-data">
+<strong><a href="#t=13:34">13:34</a></strong> <a href="https://github.com/stolinski/s-stack/tree/main/skills/dex">Dex Task Skill</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=14:50">14:50</a></strong> Remotion and Hyper Frames Skills
+<ul>
+<li class="has-line-data"><a href="https://syntax.fm/show/550/supper-club-remotion-react-video-with-jonny-burger">Syntax Episode 550 with Remotion</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=16:22">16:22</a></strong> Discussion on AI and Design Skills</li>
+<li class="has-line-data">
+<strong><a href="#t=18:50">18:50</a></strong> <a href="https://github.com/coreyhaines31/marketingskills">Marketing Skills</a> and <a href="https://github.com/stolinski/s-stack/blob/main/skills/copywriting/SKILL.md">Copywriting</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=23:01">23:01</a></strong> Final Thoughts and Resources</li>
+<li class="has-line-data">
+<strong><a href="#t=24:10">24:10</a></strong> Brought to you by <a href="https://sentry.io/syntax">Sentry.io</a>
+<ul>
+<li class="has-line-data"><a href="https://github.com/getsentry/skills">Sentry Skills</a></li>
+</ul>
+</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>1534</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[69b4ae12-4afc-11f1-86ba-83911c8e8dea]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI2257806790.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1002: The Real Pricing of LLMs</title>
+      <link>https://syntax.fm/1002</link>
+      <description>In this potluck episode of Syntax, Wes and Scott answer your questions about LLM usage-based pricing, security risks from malicious code in interviews, staying current in a fast-moving dev landscape, a new CSS linter, managing Node environments and tooling without losing your mind, and more!
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:17 Copilot’s new usage-based pricing and the end of cheap AI
+
+Model multipliers for annual Copilot Pro and Copilot Pro+ subscribers
+
+
+
+
+
+08:53 Why Syntax dropped clever ad transitions
+
+
+10:33 Debugging issues on the Syntax website with Sentry
+
+
+12:51 Brought to you by Sentry.io
+
+
+
+13:01 Getting hacked through a fake recruiter and malicious repos
+
+Adib Hanna’s hacking story
+
+scammer.md
+
+DeskPad
+
+
+
+
+
+17:57 How to catch up after stepping away from dev
+
+
+25:10 React components vs native browser APIs
+
+
+32:41 New CSS linting tools and Project Wallace updates
+
+csskit
+
+
+
+
+
+36:06 How to interview developers in the age of AI
+
+
+41:21 Managing Node, package managers, and dev environments
+
+
+46:59 Sick picks + shameless plugs
+
+
+
+Sick Picks
+
+
+Scott:
+
+ZEISS Lens Care
+
+KeyboardCleanTool
+
+
+
+
+Wes: Amaran Halo 100x
+
+
+
+
+Shameless Plugs
+
+
+Syntax YouTube Channel
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 06 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/eccf36cc-48c3-11f1-bc1d-afadc646a6f7/image/f3779087844cbba9b64b8270fc9882e9.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>In this potluck episode of Syntax, Wes and Scott answer your questions about LLM usage-based pricing, security risks from malicious code in interviews, staying current in a fast-moving dev landscape, a new CSS linter, managing Node environments and tooling without losing your mind, and more!
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:17 Copilot’s new usage-based pricing and the end of cheap AI
+
+Model multipliers for annual Copilot Pro and Copilot Pro+ subscribers
+
+
+
+
+
+08:53 Why Syntax dropped clever ad transitions
+
+
+10:33 Debugging issues on the Syntax website with Sentry
+
+
+12:51 Brought to you by Sentry.io
+
+
+
+13:01 Getting hacked through a fake recruiter and malicious repos
+
+Adib Hanna’s hacking story
+
+scammer.md
+
+DeskPad
+
+
+
+
+
+17:57 How to catch up after stepping away from dev
+
+
+25:10 React components vs native browser APIs
+
+
+32:41 New CSS linting tools and Project Wallace updates
+
+csskit
+
+
+
+
+
+36:06 How to interview developers in the age of AI
+
+
+41:21 Managing Node, package managers, and dev environments
+
+
+46:59 Sick picks + shameless plugs
+
+
+
+Sick Picks
+
+
+Scott:
+
+ZEISS Lens Care
+
+KeyboardCleanTool
+
+
+
+
+Wes: Amaran Halo 100x
+
+
+
+
+Shameless Plugs
+
+
+Syntax YouTube Channel
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">In this potluck episode of Syntax, Wes and Scott answer your questions about LLM usage-based pricing, security risks from malicious code in interviews, staying current in a fast-moving dev landscape, a new CSS linter, managing Node environments and tooling without losing your mind, and more!</p>
+<h3 class="code-line has-line-data">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=01:17">01:17</a></strong> Copilot’s new usage-based pricing and the end of cheap AI
+<ul>
+<li class="has-line-data"><a href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing?utm_campaign=FY26APR-WW-LCM-BLA-ProPP-IND-Dev-TX-USGCHGMTH&amp;utm_medium=email&amp;utm_source=github#model-multipliers-for-annual-copilot-pro-and-copilot-pro-subscribers">Model multipliers for annual Copilot Pro and Copilot Pro+ subscribers</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=08:53">08:53</a></strong> Why Syntax dropped clever ad transitions</li>
+<li class="has-line-data">
+<strong><a href="#t=10:33">10:33</a></strong> Debugging issues on the Syntax website with Sentry</li>
+<li class="has-line-data">
+<strong><a href="#t=12:51">12:51</a></strong> Brought to you by <a href="https://sentry.io/syntax/">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=13:01">13:01</a></strong> Getting hacked through a fake recruiter and malicious repos
+<ul>
+<li class="has-line-data"><a href="https://x.com/adibhanna/status/2046988777789555191">Adib Hanna’s hacking story</a></li>
+<li class="has-line-data"><a href="https://gist.github.com/adibhanna/6c66552b94577951bc4cce877fcf7729">scammer.md</a></li>
+<li class="has-line-data"><a href="https://github.com/Stengo/DeskPad">DeskPad</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=17:57">17:57</a></strong> How to catch up after stepping away from dev</li>
+<li class="has-line-data">
+<strong><a href="#t=25:10">25:10</a></strong> React components vs native browser APIs</li>
+<li class="has-line-data">
+<strong><a href="#t=32:41">32:41</a></strong> New CSS linting tools and Project Wallace updates
+<ul>
+<li class="has-line-data"><a href="https://csskit.rs/">csskit</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=36:06">36:06</a></strong> How to interview developers in the age of AI</li>
+<li class="has-line-data">
+<strong><a href="#t=41:21">41:21</a></strong> Managing Node, package managers, and dev environments</li>
+<li class="has-line-data">
+<strong><a href="#t=46:59">46:59</a></strong> Sick picks + shameless plugs</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Sick Picks</h3>
+<ul>
+<li class="has-line-data">Scott:
+<ul>
+<li class="has-line-data"><a href="https://amzn.to/4eOF5No">ZEISS Lens Care</a></li>
+<li class="has-line-data"><a href="https://folivora.ai/keyboardcleantool">KeyboardCleanTool</a></li>
+</ul>
+</li>
+<li class="has-line-data">Wes: <a href="https://amzn.to/41X69Tb">Amaran Halo 100x</a>
+</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Shameless Plugs</h3>
+<ul>
+<li class="has-line-data"><a href="https://www.youtube.com/@syntaxfm">Syntax YouTube Channel</a></li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>3159</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <guid isPermaLink="false"><![CDATA[eccf36cc-48c3-11f1-bc1d-afadc646a6f7]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI8404638140.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1001: Managing Deadlines + Stress</title>
+      <link>https://syntax.fm/1001</link>
+      <description>Scott and Wes tackle the all-too-real stress of crunch time as a web developer—how to handle looming deadlines, avoid sloppy shortcuts, and stay methodical when everything feels like it’s falling apart. They share practical tips on planning, communicating, cutting scope, asking for help, and preventing the chaos from happening again next time.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+02:53 The Importance of Planning and Organization.
+
+
+05:16 Slow Down, Take a Step Back.
+
+
+06:05 Identifying and Managing Tasks.
+
+
+08:35 The Role of Communication in Project Management.
+
+
+11:24 Cutting Features and Managing Expectations.
+
+
+14:52 The Balance Between Perfectionism and Productivity.
+
+
+16:42 Getting To Work.
+
+
+19:31 Updating Tools and Issues As You Go.
+
+
+22:34 Asking for Help.
+
+
+25:29 Prevention.
+
+
+30:22 Communicate Clearly.
+
+
+32:57 Brought to you by Sentry.io.
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 04 May 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/2f06e2a0-424e-11f1-b458-ffc0a7bdb224/image/e73c1ef2b939f96dd9bfe847379705ff.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes tackle the all-too-real stress of crunch time as a web developer—how to handle looming deadlines, avoid sloppy shortcuts, and stay methodical when everything feels like it’s falling apart. They share practical tips on planning, communicating, cutting scope, asking for help, and preventing the chaos from happening again next time.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+02:53 The Importance of Planning and Organization.
+
+
+05:16 Slow Down, Take a Step Back.
+
+
+06:05 Identifying and Managing Tasks.
+
+
+08:35 The Role of Communication in Project Management.
+
+
+11:24 Cutting Features and Managing Expectations.
+
+
+14:52 The Balance Between Perfectionism and Productivity.
+
+
+16:42 Getting To Work.
+
+
+19:31 Updating Tools and Issues As You Go.
+
+
+22:34 Asking for Help.
+
+
+25:29 Prevention.
+
+
+30:22 Communicate Clearly.
+
+
+32:57 Brought to you by Sentry.io.
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes tackle the all-too-real stress of crunch time as a web developer—how to handle looming deadlines, avoid sloppy shortcuts, and stay methodical when everything feels like it’s falling apart. They share practical tips on planning, communicating, cutting scope, asking for help, and preventing the chaos from happening again next time.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=02:53">02:53</a></strong> The Importance of Planning and Organization.</li>
+<li class="has-line-data">
+<strong><a href="#t=05:16">05:16</a></strong> Slow Down, Take a Step Back.</li>
+<li class="has-line-data">
+<strong><a href="#t=06:05">06:05</a></strong> Identifying and Managing Tasks.</li>
+<li class="has-line-data">
+<strong><a href="#t=08:35">08:35</a></strong> The Role of Communication in Project Management.</li>
+<li class="has-line-data">
+<strong><a href="#t=11:24">11:24</a></strong> Cutting Features and Managing Expectations.</li>
+<li class="has-line-data">
+<strong><a href="#t=14:52">14:52</a></strong> The Balance Between Perfectionism and Productivity.</li>
+<li class="has-line-data">
+<strong><a href="#t=16:42">16:42</a></strong> Getting To Work.</li>
+<li class="has-line-data">
+<strong><a href="#t=19:31">19:31</a></strong> Updating Tools and Issues As You Go.</li>
+<li class="has-line-data">
+<strong><a href="#t=22:34">22:34</a></strong> Asking for Help.</li>
+<li class="has-line-data">
+<strong><a href="#t=25:29">25:29</a></strong> Prevention.</li>
+<li class="has-line-data">
+<strong><a href="#t=30:22">30:22</a></strong> Communicate Clearly.</li>
+<li class="has-line-data">
+<strong><a href="#t=32:57">32:57</a></strong> Brought to you by <a href="https://sentry.io/syntax">Sentry.io</a>.</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>1998</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[2f06e2a0-424e-11f1-b458-ffc0a7bdb224]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI6198109364.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>1000: Syntax Episode 1,000!</title>
+      <link>https://syntax.fm/1000</link>
+      <description>Wes and Scott celebrate 1000 episodes of Syntax, reflecting on how the podcast started, the team behind it, memorable moments, listener stats, inside jokes, and how the show has evolved over time—from early recordings and sponsors to supercuts, spooky episodes, and what’s next.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+02:01 Intro to Kaitlin
+
+
+03:08 Intro to Randy
+
+
+06:16 Intro to CJ
+
+
+09:01 Intro to Niki
+
+
+10:08 Who “yaps” more, Wes or Scott?
+
+
+10:28 Brought to you by Sentry.io
+
+
+
+18:37 Wes’ supercuts app
+
+
+24:04 How Syntax got started
+
+
+28:04 Joining Sentry
+
+
+29:47 The 6-7 compilation
+
+
+30:42 The original Syntax doc
+
+
+38:44 Dead Nuts supercut
+
+
+38:58 Kaitlin’s journey from Level Up to Syntax
+
+
+45:30 Where new listeners should start
+
+
+46:41 The Wordle episode and viral moments
+
+
+48:24 Most popular Syntax episodes
+
+
+48:40 The Halloween episodes and spooky stories tradition
+
+
+50:57 Listener stats by country
+
+
+55:22 First sponsors and early monetization
+
+
+57:30 Who edited the early Syntax episodes?
+
+
+59:25 Will there be a Syntax conference?
+
+
+01:01:33 How many guests have been on Syntax?
+
+
+01:02:58 Evolution of Syntax intros
+
+
+01:07:54 More Syntax supercuts
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 29 Apr 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/35f2f2e0-433c-11f1-aab4-a7106c84183d/image/eacf69ee086158a492c832cd79c1b1b7.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Wes and Scott celebrate 1000 episodes of Syntax, reflecting on how the podcast started, the team behind it, memorable moments, listener stats, inside jokes, and how the show has evolved over time—from early recordings and sponsors to supercuts, spooky episodes, and what’s next.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+02:01 Intro to Kaitlin
+
+
+03:08 Intro to Randy
+
+
+06:16 Intro to CJ
+
+
+09:01 Intro to Niki
+
+
+10:08 Who “yaps” more, Wes or Scott?
+
+
+10:28 Brought to you by Sentry.io
+
+
+
+18:37 Wes’ supercuts app
+
+
+24:04 How Syntax got started
+
+
+28:04 Joining Sentry
+
+
+29:47 The 6-7 compilation
+
+
+30:42 The original Syntax doc
+
+
+38:44 Dead Nuts supercut
+
+
+38:58 Kaitlin’s journey from Level Up to Syntax
+
+
+45:30 Where new listeners should start
+
+
+46:41 The Wordle episode and viral moments
+
+
+48:24 Most popular Syntax episodes
+
+
+48:40 The Halloween episodes and spooky stories tradition
+
+
+50:57 Listener stats by country
+
+
+55:22 First sponsors and early monetization
+
+
+57:30 Who edited the early Syntax episodes?
+
+
+59:25 Will there be a Syntax conference?
+
+
+01:01:33 How many guests have been on Syntax?
+
+
+01:02:58 Evolution of Syntax intros
+
+
+01:07:54 More Syntax supercuts
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Wes and Scott celebrate 1000 episodes of Syntax, reflecting on how the podcast started, the team behind it, memorable moments, listener stats, inside jokes, and how the show has evolved over time—from early recordings and sponsors to supercuts, spooky episodes, and what’s next.</p>
+<h3 class="code-line has-line-data">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=02:01">02:01</a></strong> Intro to Kaitlin</li>
+<li class="has-line-data">
+<strong><a href="#t=03:08">03:08</a></strong> Intro to Randy</li>
+<li class="has-line-data">
+<strong><a href="#t=06:16">06:16</a></strong> Intro to CJ</li>
+<li class="has-line-data">
+<strong><a href="#t=09:01">09:01</a></strong> Intro to Niki</li>
+<li class="has-line-data">
+<strong><a href="#t=10:08">10:08</a></strong> Who “yaps” more, Wes or Scott?</li>
+<li class="has-line-data">
+<strong><a href="#t=10:28">10:28</a></strong> Brought to you by <a href="https://sentry.io/syntax/">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=18:37">18:37</a></strong> Wes’ supercuts app</li>
+<li class="has-line-data">
+<strong><a href="#t=24:04">24:04</a></strong> How Syntax got started</li>
+<li class="has-line-data">
+<strong><a href="#t=28:04">28:04</a></strong> Joining Sentry</li>
+<li class="has-line-data">
+<strong><a href="#t=29:47">29:47</a></strong> The 6-7 compilation</li>
+<li class="has-line-data">
+<strong><a href="#t=30:42">30:42</a></strong> The original Syntax doc</li>
+<li class="has-line-data">
+<strong><a href="#t=38:44">38:44</a></strong> Dead Nuts supercut</li>
+<li class="has-line-data">
+<strong><a href="#t=38:58">38:58</a></strong> Kaitlin’s journey from Level Up to Syntax</li>
+<li class="has-line-data">
+<strong><a href="#t=45:30">45:30</a></strong> Where new listeners should start</li>
+<li class="has-line-data">
+<strong><a href="#t=46:41">46:41</a></strong> The Wordle episode and viral moments</li>
+<li class="has-line-data">
+<strong><a href="#t=48:24">48:24</a></strong> Most popular Syntax episodes</li>
+<li class="has-line-data">
+<strong><a href="#t=48:40">48:40</a></strong> The Halloween episodes and spooky stories tradition</li>
+<li class="has-line-data">
+<strong><a href="#t=50:57">50:57</a></strong> Listener stats by country</li>
+<li class="has-line-data">
+<strong><a href="#t=55:22">55:22</a></strong> First sponsors and early monetization</li>
+<li class="has-line-data">
+<strong><a href="#t=57:30">57:30</a></strong> Who edited the early Syntax episodes?</li>
+<li class="has-line-data">
+<strong><a href="#t=59:25">59:25</a></strong> Will there be a Syntax conference?</li>
+<li class="has-line-data">
+<strong><a href="#t=01:01:33">01:01:33</a></strong> How many guests have been on Syntax?</li>
+<li class="has-line-data">
+<strong><a href="#t=01:02:58">01:02:58</a></strong> Evolution of Syntax intros</li>
+<li class="has-line-data">
+<strong><a href="#t=01:07:54">01:07:54</a></strong> More Syntax supercuts</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>4370</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <guid isPermaLink="false"><![CDATA[35f2f2e0-433c-11f1-aab4-a7106c84183d]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI9958347805.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>999: Writing Maintainable CSS</title>
+      <link>https://syntax.fm/999</link>
+      <description>Scott and Wes break down what makes CSS truly manageable—from preventing style leaks and embracing fluid layouts to choosing the right methodology, whether that’s utility CSS, component-scoped styles, or CSS modules. They also dive into practical tips like leveraging CSS variables, layers, scoping, and tooling to keep your stylesheets clean and scalable.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:31 Understanding CSS Manageability
+
+
+01:44 This CSS doesn’t leak to other parts of website.
+
+
+03:41 This CSS is easy to maintain.
+
+
+05:54 This CSS is reusable.
+
+
+06:10 Global Solutions Instead of Local Solutions.
+
+
+07:12 Flexibility and Adaptability in CSS
+
+
+09:36 Fluid Typography and Responsive Design
+
+fluid-type
+
+
+
+
+
+12:09 Variables and Consistency in CSS
+
+
+13:40 Brought to you by Sentry.io.
+
+
+14:14 Values vs Variables.
+
+
+Project Wallace.
+
+
+
+
+
+18:19 Choosing the Right CSS Methodology
+
+
+18:48 Utility CSS and Atomic CSS
+
+
+22:35 Exploring StyleX and Other Approaches
+
+
+Syntax Ep 650.
+
+
+
+
+
+25:14 Panda CSS.
+
+
+25:37 Component Scoped CSS: A Preferred Approach
+
+
+29:08 The Evolution of CSS Modules
+
+
+34:03 Global CSS: Best Practices
+
+
+Josh Comeau’s CSS Reset.
+
+
+Scott’s Graffiti UI.
+
+
+
+
+
+38:22 Harnessing CSS Variables
+
+
+41:33 Understanding CSS Layers
+
+
+43:52 The Power of CSS Scoping
+
+
+46:16 Enforcing CSS Standards with Tools
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 27 Apr 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/81d68708-399b-11f1-ba1d-abe6c928a4e6/image/2899611f891c60c408a45691d0ce9750.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes break down what makes CSS truly manageable—from preventing style leaks and embracing fluid layouts to choosing the right methodology, whether that’s utility CSS, component-scoped styles, or CSS modules. They also dive into practical tips like leveraging CSS variables, layers, scoping, and tooling to keep your stylesheets clean and scalable.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+
+01:31 Understanding CSS Manageability
+
+
+01:44 This CSS doesn’t leak to other parts of website.
+
+
+03:41 This CSS is easy to maintain.
+
+
+05:54 This CSS is reusable.
+
+
+06:10 Global Solutions Instead of Local Solutions.
+
+
+07:12 Flexibility and Adaptability in CSS
+
+
+09:36 Fluid Typography and Responsive Design
+
+fluid-type
+
+
+
+
+
+12:09 Variables and Consistency in CSS
+
+
+13:40 Brought to you by Sentry.io.
+
+
+14:14 Values vs Variables.
+
+
+Project Wallace.
+
+
+
+
+
+18:19 Choosing the Right CSS Methodology
+
+
+18:48 Utility CSS and Atomic CSS
+
+
+22:35 Exploring StyleX and Other Approaches
+
+
+Syntax Ep 650.
+
+
+
+
+
+25:14 Panda CSS.
+
+
+25:37 Component Scoped CSS: A Preferred Approach
+
+
+29:08 The Evolution of CSS Modules
+
+
+34:03 Global CSS: Best Practices
+
+
+Josh Comeau’s CSS Reset.
+
+
+Scott’s Graffiti UI.
+
+
+
+
+
+38:22 Harnessing CSS Variables
+
+
+41:33 Understanding CSS Layers
+
+
+43:52 The Power of CSS Scoping
+
+
+46:16 Enforcing CSS Standards with Tools
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes break down what makes CSS truly manageable—from preventing style leaks and embracing fluid layouts to choosing the right methodology, whether that’s utility CSS, component-scoped styles, or CSS modules. They also dive into practical tips like leveraging CSS variables, layers, scoping, and tooling to keep your stylesheets clean and scalable.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!</li>
+<li class="has-line-data">
+<strong><a href="#t=01:31">01:31</a></strong> Understanding CSS Manageability</li>
+<li class="has-line-data">
+<strong><a href="#t=01:44">01:44</a></strong> This CSS doesn’t leak to other parts of website.</li>
+<li class="has-line-data">
+<strong><a href="#t=03:41">03:41</a></strong> This CSS is easy to maintain.</li>
+<li class="has-line-data">
+<strong><a href="#t=05:54">05:54</a></strong> This CSS is reusable.</li>
+<li class="has-line-data">
+<strong><a href="#t=06:10">06:10</a></strong> Global Solutions Instead of Local Solutions.</li>
+<li class="has-line-data">
+<strong><a href="#t=07:12">07:12</a></strong> Flexibility and Adaptability in CSS</li>
+<li class="has-line-data">
+<strong><a href="#t=09:36">09:36</a></strong> Fluid Typography and Responsive Design
+<ul>
+<li class="has-line-data"><a href="https://fluid-type.tolin.ski/">fluid-type</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=12:09">12:09</a></strong> Variables and Consistency in CSS</li>
+<li class="has-line-data">
+<strong><a href="#t=13:40">13:40</a></strong> <a href="https://sentry.io/syntax">Brought to you by Sentry.io</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=14:14">14:14</a></strong> Values vs Variables.
+<ul>
+<li class="has-line-data">
+<a href="https://www.projectwallace.com/">Project Wallace</a>.</li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=18:19">18:19</a></strong> Choosing the Right CSS Methodology</li>
+<li class="has-line-data">
+<strong><a href="#t=18:48">18:48</a></strong> Utility CSS and Atomic CSS</li>
+<li class="has-line-data">
+<strong><a href="#t=22:35">22:35</a></strong> Exploring StyleX and Other Approaches
+<ul>
+<li class="has-line-data">
+<a href="https://syntax.fm/650">Syntax Ep 650</a>.</li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=25:14">25:14</a></strong> <a href="https://panda-css.com/">Panda CSS</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=25:37">25:37</a></strong> Component Scoped CSS: A Preferred Approach</li>
+<li class="has-line-data">
+<strong><a href="#t=29:08">29:08</a></strong> The Evolution of CSS Modules</li>
+<li class="has-line-data">
+<strong><a href="#t=34:03">34:03</a></strong> Global CSS: Best Practices
+<ul>
+<li class="has-line-data">
+<a href="https://www.joshwcomeau.com/css/custom-css-reset/">Josh Comeau’s CSS Reset</a>.</li>
+<li class="has-line-data">
+<a href="https://graffiti-ui.com/">Scott’s Graffiti UI</a>.</li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=38:22">38:22</a></strong> Harnessing CSS Variables</li>
+<li class="has-line-data">
+<strong><a href="#t=41:33">41:33</a></strong> Understanding CSS Layers</li>
+<li class="has-line-data">
+<strong><a href="#t=43:52">43:52</a></strong> The Power of CSS Scoping</li>
+<li class="has-line-data">
+<strong><a href="#t=46:16">46:16</a></strong> Enforcing CSS Standards with Tools</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>3008</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[81d68708-399b-11f1-ba1d-abe6c928a4e6]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI5518908653.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>998: How to Fix Vibe Coding</title>
+      <link>https://syntax.fm/998</link>
+      <description>Wes and Scott talk about making AI coding more reliable using deterministic tools like fallow, knip, ESLint, StyleLint, and Sentry. They cover code quality analysis, linting strategies, headless browsers, task workflows, and how to enforce better patterns so AI stops guessing and starts producing maintainable, predictable code.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Losing two clients in one week
+
+
+
+
+
+04:49 Code quality tools
+
+jscpd.dev
+
+knip.dev
+
+fallow.tools
+
+wallace
+
+
+
+
+
+14:11 Finding and using components
+
+Storybook AI
+
+
+
+
+
+17:28 Brought to you by Sentry.io
+
+
+
+17:42 Finding bugs
+
+Sentry CLI
+
+Spotlight
+
+
+
+
+
+19:55 Formatting and linting
+
+Vite+
+
+ESLint
+
+StyleLint
+
+clint
+
+
+
+
+
+25:41 Headless browsers
+
+agent-browser
+
+chrome-devtools-mcp
+
+Lightpanda
+
+
+
+
+
+32:11 Tasks and todos
+
+dex
+
+beads
+
+
+
+
+
+33:32 Docs
+
+Context7
+
+
+
+
+
+34:22 TanStack Code Mode
+
+
+
+36:01 Getting AI to use these tools
+
+
+38:18 Sick Picks + Shameless Plugs
+
+
+
+Sick Picks
+
+
+Scott: Leaf Two Razor
+
+
+Wes: Puzzles
+
+
+
+
+Shameless Plugs
+
+
+Phases.fm Podcast
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Wed, 22 Apr 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/c3f96a3a-3dbd-11f1-8c0f-efaf351328f6/image/fc0d57f494ffe572db63e4c7ecec10d0.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Wes and Scott talk about making AI coding more reliable using deterministic tools like fallow, knip, ESLint, StyleLint, and Sentry. They cover code quality analysis, linting strategies, headless browsers, task workflows, and how to enforce better patterns so AI stops guessing and starts producing maintainable, predictable code.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Losing two clients in one week
+
+
+
+
+
+04:49 Code quality tools
+
+jscpd.dev
+
+knip.dev
+
+fallow.tools
+
+wallace
+
+
+
+
+
+14:11 Finding and using components
+
+Storybook AI
+
+
+
+
+
+17:28 Brought to you by Sentry.io
+
+
+
+17:42 Finding bugs
+
+Sentry CLI
+
+Spotlight
+
+
+
+
+
+19:55 Formatting and linting
+
+Vite+
+
+ESLint
+
+StyleLint
+
+clint
+
+
+
+
+
+25:41 Headless browsers
+
+agent-browser
+
+chrome-devtools-mcp
+
+Lightpanda
+
+
+
+
+
+32:11 Tasks and todos
+
+dex
+
+beads
+
+
+
+
+
+33:32 Docs
+
+Context7
+
+
+
+
+
+34:22 TanStack Code Mode
+
+
+
+36:01 Getting AI to use these tools
+
+
+38:18 Sick Picks + Shameless Plugs
+
+
+
+Sick Picks
+
+
+Scott: Leaf Two Razor
+
+
+Wes: Puzzles
+
+
+
+
+Shameless Plugs
+
+
+Phases.fm Podcast
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Wes and Scott talk about making AI coding more reliable using deterministic tools like fallow, knip, ESLint, StyleLint, and Sentry. They cover code quality analysis, linting strategies, headless browsers, task workflows, and how to enforce better patterns so AI stops guessing and starts producing maintainable, predictable code.</p>
+<h3 class="code-line has-line-data">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!
+<ul>
+<li class="has-line-data"><a href="https://x.com/wesbos/status/2044060210503778319">Losing two clients in one week</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=04:49">04:49</a></strong> Code quality tools
+<ul>
+<li class="has-line-data"><a href="https://jscpd.dev/">jscpd.dev</a></li>
+<li class="has-line-data"><a href="https://knip.dev/">knip.dev</a></li>
+<li class="has-line-data"><a href="https://fallow.tools/">fallow.tools</a></li>
+<li class="has-line-data"><a href="https://github.com/projectwallace/wallace-cli">wallace</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=14:11">14:11</a></strong> Finding and using components
+<ul>
+<li class="has-line-data"><a href="https://storybook.js.org/ai">Storybook AI</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=17:28">17:28</a></strong> Brought to you by <a href="https://sentry.io/syntax/">Sentry.io</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=17:42">17:42</a></strong> Finding bugs
+<ul>
+<li class="has-line-data"><a href="https://cli.sentry.dev/">Sentry CLI</a></li>
+<li class="has-line-data"><a href="https://spotlightjs.com/">Spotlight</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=19:55">19:55</a></strong> Formatting and linting
+<ul>
+<li class="has-line-data"><a href="https://viteplus.dev/">Vite+</a></li>
+<li class="has-line-data"><a href="https://eslint.org/">ESLint</a></li>
+<li class="has-line-data"><a href="https://stylelint.io/">StyleLint</a></li>
+<li class="has-line-data"><a href="https://github.com/stolinski/clint">clint</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=25:41">25:41</a></strong> Headless browsers
+<ul>
+<li class="has-line-data"><a href="https://github.com/vercel-labs/agent-browser">agent-browser</a></li>
+<li class="has-line-data"><a href="https://github.com/ChromeDevTools/chrome-devtools-mcp">chrome-devtools-mcp</a></li>
+<li class="has-line-data"><a href="https://lightpanda.io/">Lightpanda</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=32:11">32:11</a></strong> Tasks and todos
+<ul>
+<li class="has-line-data"><a href="https://dex.rip/">dex</a></li>
+<li class="has-line-data"><a href="https://github.com/gastownhall/beads">beads</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=33:32">33:32</a></strong> Docs
+<ul>
+<li class="has-line-data"><a href="https://context7.com/">Context7</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=34:22">34:22</a></strong> <a href="https://tanstack.com/blog/tanstack-ai-code-mode">TanStack Code Mode</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=36:01">36:01</a></strong> Getting AI to use these tools</li>
+<li class="has-line-data">
+<strong><a href="#t=38:18">38:18</a></strong> Sick Picks + Shameless Plugs</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Sick Picks</h3>
+<ul>
+<li class="has-line-data">Scott: <a href="https://leafshave.com/products/leaf-two-razor">Leaf Two Razor</a>
+</li>
+<li class="has-line-data">Wes: <a href="https://www.amazon.com/s?k=puzzles">Puzzles</a>
+</li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Shameless Plugs</h3>
+<ul>
+<li class="has-line-data"><a href="http://phases.fm/">Phases.fm Podcast</a></li>
+</ul>
+<h3 class="code-line has-line-data">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>2675</itunes:duration>
+      <itunes:explicit>no</itunes:explicit>
+      <guid isPermaLink="false"><![CDATA[c3f96a3a-3dbd-11f1-8c0f-efaf351328f6]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI3956472750.mp3" length="0" type="audio/mpeg"/>
+    </item>
+<item>
+      <title>997: Rating and Roasting Your Projects</title>
+      <link>https://syntax.fm/997</link>
+      <description>Scott and Wes dig into a huge batch of community-submitted projects, from JSON tools and CSS editors to AI agents, view transitions, and everything in between. It’s a rapid-fire showcase of what developers have been building, including picks like Arrow JS, Sugar High, Drift, and a whole lot more.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Wes’ Bluesky Post
+
+Wes’ X Post
+
+
+
+
+
+01:20 JSON-Alexander.
+
+
+02:43 FFF - Fastest File Search.
+
+
+04:44 View Transitions Toolkit.
+
+
+08:06 Agentation and Svelte Agentation.
+
+
+11:21 CSS Studio.
+
+
+13:12 Peon Ping
+
+
+
+14:26 Peekdown.
+
+
+16:03 Dex.
+
+
+20:22 Content Copilot.
+
+
+22:16 Opencode Sentry Monitor.
+
+
+pi-sentry-monitor.
+
+
+
+
+
+24:56 Arrow JS.
+
+
+29:20 Comark.
+
+
+33:19 Silly Software Club.
+
+
+34:05 Sugar High.
+
+
+36:04 Drift.
+
+
+37:19 Fallow.
+
+
+41:20 Edit Mind.
+
+
+44:46 Clint.
+
+
+47:18 Honorable mentions.
+
+
+47:21 Artemisapp.
+
+
+49:53 Open Screen.
+
+
+50:14 CanvidHQ.
+
+
+52:02 Proxybox Zero.
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</description>
+      <pubDate>Mon, 20 Apr 2026 11:00:00 -0000</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:author>Wes Bos &amp; Scott Tolinski - Full Stack JavaScript Web Developers</itunes:author>
+      <itunes:image href="https://megaphone.imgix.net/podcasts/534d2050-3828-11f1-a8de-37609b406c6b/image/048228b3c97186d5c2686d46d3b5d583.png?ixlib=rails-4.3.1&amp;max-w=3000&amp;max-h=3000&amp;fit=crop&amp;auto=format,compress"/>
+      <itunes:subtitle></itunes:subtitle>
+      <itunes:summary>Scott and Wes dig into a huge batch of community-submitted projects, from JSON tools and CSS editors to AI agents, view transitions, and everything in between. It’s a rapid-fire showcase of what developers have been building, including picks like Arrow JS, Sugar High, Drift, and a whole lot more.
+
+
+Show Notes
+
+
+
+00:00 Welcome to Syntax!
+
+Wes’ Bluesky Post
+
+Wes’ X Post
+
+
+
+
+
+01:20 JSON-Alexander.
+
+
+02:43 FFF - Fastest File Search.
+
+
+04:44 View Transitions Toolkit.
+
+
+08:06 Agentation and Svelte Agentation.
+
+
+11:21 CSS Studio.
+
+
+13:12 Peon Ping
+
+
+
+14:26 Peekdown.
+
+
+16:03 Dex.
+
+
+20:22 Content Copilot.
+
+
+22:16 Opencode Sentry Monitor.
+
+
+pi-sentry-monitor.
+
+
+
+
+
+24:56 Arrow JS.
+
+
+29:20 Comark.
+
+
+33:19 Silly Software Club.
+
+
+34:05 Sugar High.
+
+
+36:04 Drift.
+
+
+37:19 Fallow.
+
+
+41:20 Edit Mind.
+
+
+44:46 Clint.
+
+
+47:18 Honorable mentions.
+
+
+47:21 Artemisapp.
+
+
+49:53 Open Screen.
+
+
+50:14 CanvidHQ.
+
+
+52:02 Proxybox Zero.
+
+
+
+
+
+
+Hit us up on Socials!
+
+Syntax: X Instagram Tiktok LinkedIn Threads
+
+Wes: X Instagram Tiktok LinkedIn Threads
+
+Scott: X Instagram Tiktok LinkedIn Threads
+
+Randy: X Instagram YouTube Threads</itunes:summary>
+      <content:encoded>
+        <![CDATA[<p class="has-line-data">Scott and Wes dig into a huge batch of community-submitted projects, from JSON tools and CSS editors to AI agents, view transitions, and everything in between. It’s a rapid-fire showcase of what developers have been building, including picks like Arrow JS, Sugar High, Drift, and a whole lot more.</p>
+<h3 class="code-line">
+<a></a>Show Notes</h3>
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=00:00">00:00</a></strong> Welcome to Syntax!
+<ul>
+<li class="has-line-data"><a href="https://bsky.app/profile/wesbos.com/post/3miw3owtzps2q">Wes’ Bluesky Post</a></li>
+<li class="has-line-data"><a href="https://x.com/wesbos/status/2041538003345031631">Wes’ X Post</a></li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=01:20">01:20</a></strong> <a href="https://github.com/wesbos/JSON-Alexander">JSON-Alexander</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=02:43">02:43</a></strong> <a href="https://github.com/dmtrKovalenko/fff.nvim">FFF - Fastest File Search</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=04:44">04:44</a></strong> <a href="https://chrome.dev/view-transitions-toolkit/">View Transitions Toolkit</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=08:06">08:06</a></strong> <a href="https://www.agentation.com/">Agentation</a> and <a href="https://sv-agentation.com/">Svelte Agentation</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=11:21">11:21</a></strong> <a href="https://cssstudio.ai/">CSS Studio</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=13:12">13:12</a></strong> <a href="https://www.peonping.com/">Peon Ping</a>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=14:26">14:26</a></strong> <a href="https://peekdown.app/">Peekdown</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=16:03">16:03</a></strong> <a href="https://dex.rip/">Dex</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=20:22">20:22</a></strong> <a href="https://www.contentcopilot.so/">Content Copilot</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=22:16">22:16</a></strong> <a href="https://github.com/stolinski/opencode-sentry-monitor">Opencode Sentry Monitor</a>.
+<ul>
+<li class="has-line-data">
+<a href="https://github.com/sergical/pi-sentry-monitor">pi-sentry-monitor</a>.</li>
+</ul>
+</li>
+<li class="has-line-data">
+<strong><a href="#t=24:56">24:56</a></strong> <a href="https://arrow-js.com/">Arrow JS</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=29:20">29:20</a></strong> <a href="https://comark.dev/">Comark</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=33:19">33:19</a></strong> <a href="https://www.sillysoftware.club/">Silly Software Club</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=34:05">34:05</a></strong> <a href="https://github.com/huozhi/sugar-high">Sugar High</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=36:04">36:04</a></strong> <a href="https://github.com/fiberplane/drift">Drift</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=37:19">37:19</a></strong> <a href="https://github.com/fallow-rs/fallow">Fallow</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=41:20">41:20</a></strong> <a href="https://github.com/IliasHad/edit-mind">Edit Mind</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=44:46">44:46</a></strong> <a href="https://github.com/stolinski/clint">Clint</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=47:18">47:18</a></strong> Honorable mentions.
+<ul>
+<li class="has-line-data">
+<strong><a href="#t=47:21">47:21</a></strong> <a href="https://artemisapp.me/">Artemisapp</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=49:53">49:53</a></strong> <a href="https://openscreen.vercel.app/">Open Screen</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=50:14">50:14</a></strong> <a href="https://www.canvid.com/">CanvidHQ</a>.</li>
+<li class="has-line-data">
+<strong><a href="#t=52:02">52:02</a></strong> <a href="https://pbxz.io/">Proxybox Zero</a>.</li>
+</ul>
+</li>
+</ul>
+<h3 class="code-line">
+<a></a>Hit us up on Socials!</h3>
+<p class="has-line-data">Syntax: <a href="https://twitter.com/syntaxfm">X</a> <a href="https://www.instagram.com/syntax_fm/">Instagram</a> <a href="https://www.tiktok.com/@syntaxfm">Tiktok</a> <a href="https://www.linkedin.com/company/96077407/admin/feed/posts/">LinkedIn</a> <a href="https://www.threads.net/@syntax_fm">Threads</a></p>
+<p class="has-line-data">Wes: <a href="https://twitter.com/wesbos">X</a> <a href="https://www.instagram.com/wesbos/">Instagram</a> <a href="https://www.tiktok.com/@wesbos">Tiktok</a> <a href="https://www.linkedin.com/in/wesbos/">LinkedIn</a> <a href="https://www.threads.net/@wesbos">Threads</a></p>
+<p class="has-line-data">Scott: <a href="https://twitter.com/stolinski">X</a> <a href="https://www.instagram.com/stolinski/">Instagram</a> <a href="https://www.tiktok.com/@stolinski">Tiktok</a> <a href="https://www.linkedin.com/in/stolinski/">LinkedIn</a> <a href="https://www.threads.net/@stolinski">Threads</a></p>
+<p class="has-line-data">Randy: <a href="https://twitter.com/randyrektor">X</a> <a href="https://www.instagram.com/randyrektor/">Instagram</a> <a href="https://www.youtube.com/@randyrektor">YouTube</a> <a href="https://www.threads.net/@randyrektor">Threads</a></p>]]>
+      </content:encoded>
+      <itunes:duration>3225</itunes:duration>
+      <guid isPermaLink="false"><![CDATA[534d2050-3828-11f1-a8de-37609b406c6b]]></guid>
+      <enclosure url="https://traffic.megaphone.fm/FSI2715298792.mp3" length="0" type="audio/mpeg"/>
+    </item>
+
+  </channel>
+</rss>

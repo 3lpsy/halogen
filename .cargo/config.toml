@@ -1,0 +1,44 @@
+# Wrap rustc with sccache so non-incremental compiles (release/dist, clean and
+# cross-branch builds) hit a content-addressed cache. LOCAL default only — CI
+# sets RUSTC_WRAPPER/SCCACHE_DIR itself and env overrides this file. Needs
+# `sccache` on PATH; dev/test keep `incremental = true` (uncached by sccache).
+[build]
+rustc-wrapper = "sccache"
+
+# sccache cache location. Local default only — CI overrides via the SCCACHE_DIR
+# env var (env beats this file). `relative = true` resolves against the repo root
+# (the parent of .cargo/), so it's portable across hosts/VM instead of a
+# hardcoded absolute path. Point sccache elsewhere by exporting SCCACHE_DIR.
+
+
+# Native host linker only.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# Windows desktop cross-build (`just ui-windows-build`): link with mingw-w64
+# (mingw64-gcc in the toolchain image). Only consulted when
+# building --target x86_64-pc-windows-gnu; harmless everywhere else.
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+
+# wasm frontend: select getrandom 0.3's browser backend. Required alongside the
+# `getrandom` `wasm_js` feature (see crates/ui/Cargo.toml). NOTE: a global
+# RUSTFLAGS env var overrides these target rustflags — don't set RUSTFLAGS when
+# running `dx build`/`just ui-build`, or this cfg (and the build) will be lost.
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", 'getrandom_backend="wasm_js"']
+
+[profile.dev]
+incremental = true             # reuse prior compilation artifacts (default, pinned on)
+debug = "line-tables-only"     # keep backtraces, drop the rest
+split-debuginfo = "unpacked"   # faster relinks on Linux
+
+# Optimize deps (sea-orm/tokio/sqlx are heavy) once; your crates stay opt-0.
+[profile.dev.package."*"]
+opt-level = 1
+# Route ALL crates through this registry; the index URL comes ONLY from
+# CARGO_REGISTRIES_CHILLED_PROXY_INDEX (justfile derives it from .env, CI and
+# images bake it; unset → cargo fails closed). The NAME must match what the
+# build image bakes into $CARGO_HOME/config.toml — a mismatch fails every build.
+[source.crates-io]
+replace-with = "chilled-proxy"

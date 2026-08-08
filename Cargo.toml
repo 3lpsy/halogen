@@ -1,0 +1,121 @@
+[workspace]
+resolver = "2"
+members  = ["crates/api", "crates/server", "crates/wire", "crates/wire-meta", "crates/orm", "crates/migrate", "crates/fixture", "crates/net", "crates/discover", "crates/config", "crates/download", "crates/rss", "crates/polling", "crates/art", "crates/opml", "crates/embedded-server", "crates/utils", "crates/ui", "crates/ui-icons", "crates/ui-state", "crates/ui-widgets", "crates/ui-episode-list", "crates/ui-views", "crates/e2e", "crates/integ", "crates/ui-commands", "crates/ui-forms", "crates/ui-listview", "crates/ui-toast", "crates/ui-appstate", "crates/ui-platform", "crates/ui-idb", "crates/ui-logging", "crates/ui-config", "crates/ui-svc-store", "crates/ui-svc-media", "crates/ui-svc-ws", "crates/ui-cache-purge", "crates/ui-svc-sync", "crates/ui-svc-player", "crates/ui-accounts", "crates/ui-worker", "crates/tool-lighthouse", "crates/tool-screenshot", "crates/mobile-ffi"]
+
+[workspace.package]
+version = "0.1.43"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_qs = "1.1.2"
+serde_yaml = "0.9.34"
+validator = { version = "0.20", features = ["derive"] }
+# std-only: drop the heavy `perf`/`unicode` automata (regex-automata + aho-corasick
+# + the unicode tables ≈ 20s of compile). The only first-party use is one ASCII
+# pattern in halogen-utils; validator likewise needs only `regex/std`. Keeping these
+# off this critical-path crate (17 crates wait behind `wire`) is a real build win.
+regex = { version = "1", default-features = false, features = ["std"] }
+anyhow = "1"
+# Trimmed from "full": our code only uses rt/macros/time/fs/net/sync/io/signal
+# (process is via std, not tokio). Deps still activate whatever extra tokio features
+# they need (additive), so this only drops modules nothing in the graph uses.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "fs", "net", "sync", "io-util", "signal"] }
+sea-orm = { version = "2.0.0-rc.38", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"] }
+# default-features off drops `cli` (the whole sea-orm-cli binary stack) from
+# every DB-touching crate — we only use `Migrator` programmatically. Re-add
+# just the runtime: sqlite backend + tokio/rustls + chrono.
+sea-orm-migration = { version = "2.0.0-rc.38", default-features = false, features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-chrono"] }
+tracing = "0.1"
+# Android only: std's File::try_lock is unimplemented there, so the embedded
+# server's single-instance guard calls flock(2) directly.
+libc = "0.2"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+async-trait = "0.1"
+
+# ── Shared third-party deps (versions centralized here; crates add features) ───
+# rustls only — never native-tls/OpenSSL (workspace TLS invariant). Consumers add
+# the per-crate feature subset (json/gzip/stream/...).
+reqwest = { version = "0.12.23", default-features = false }
+url = "2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = "0.3"
+futures-util = "0.3.32"
+futures-channel = "0.3.32"
+bytes = "1"
+rand = "0.8"
+bcrypt = "0.16"
+rss = "2"
+roxmltree = "0.20"
+jsonwebtoken = "9"
+axum = { version = "0.8", features = ["macros"] }
+base64 = "0.22"
+wiremock = "0.6"
+# Native WebSocket client (rustls only); consumers add "connect" + TLS roots.
+tokio-tungstenite = { version = "0.29", default-features = false }
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# UI / wasm graph — versions centralized here; each split UI crate adds only the
+# per-target deps it needs. `dioxus` carries no features here so the leaf
+# `ui-icons` can take it router-free; every other UI crate adds `features=["router"]`.
+dioxus = "0.7.9"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = "0.3"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+gloo-storage = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
+gloo-net = { version = "0.6", default-features = false, features = ["websocket"] }
+idb = "0.6"
+tracing-wasm = "0.2"
+
+# Bindings (Swift + Kotlin) for the native-mobile FFI crate (crates/mobile-ffi).
+# The `tokio`/`cli` features are added per-use there.
+uniffi = "0.32"
+# No-op marker attribute read by `typeshare` (the CLI) to code-gen Swift
+# `Codable` types from the wire DTOs (`just ios-wire-types`) — the API
+# contract stays defined once, in Rust. wasm-safe (pure proc-macro).
+typeshare = "1"
+
+# Unified to "6": the UI crates were already on 6; `halogen-config` was bumped
+# from 5 to 6 when this was centralized.
+directories = "6"
+
+[profile]
+
+# Server release binary. `strip = "symbols"` drops ~6.5 MiB of symbol table;
+# panic messages still print, backtraces lose names (logs don't rely on them).
+# Deliberately NO lto: thin LTO measured net-zero here and slows CI. The wasm
+# app's [profile.wasm-release] is below — its panic="abort" must never leak here.
+[profile.release]
+strip = "symbols"
+
+# Windows cross-build (`just ui-windows-build`): its OWN profile so the exe has
+# a deterministic, never-shared cargo path the release workflow packages from.
+# NOTE it does NOT isolate dx's bundle dir (dx normalizes custom profiles to
+# `release`), so the workflow orders the windows build after all linux staging.
+[profile.windows-release]
+inherits = "release"
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+# Web release wasm — size-tuned so the browser compiles/instantiates it faster
+# (main-thread wasm compile dominates TBT). Isolated from the server profile:
+# panic="abort" is wasm-safe but must NOT reach the Axum server. dx selects it
+# via `--profile wasm-release`; drop lto to "thin" if CI link times hurt.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

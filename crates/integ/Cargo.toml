@@ -1,0 +1,53 @@
+[package]
+name    = "halogen-integ"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+# Tier-1 HTTP integration journeys: a real axum server + migrated SQLite (only
+# upstream RSS is faked via wiremock), driven through the real
+# `halogen_api::ApiClient`. Also OWNS the real-server harness (`support`) the
+# browser e2e tier reuses. Run with: `just test-integ`
+
+[dependencies]
+# The production server, driven in-process by the harness. No `test-support`
+# feature any more — the harness lives here and uses the server's public API.
+halogen-server = { path = "../server" }
+# The typed UI gateway: tests call its methods exactly as the frontend does.
+halogen-api = { path = "../api" }
+# Entities/data types for direct seeding + the shared seed helpers (`db` feature
+# matches how the server pulls it).
+halogen-wire = { path = "../wire", features = ["db"] }
+halogen-orm = { path = "../orm" }
+halogen-migrate = { path = "../migrate" }
+# db_transfer_flow: gunzip the export to inspect the snapshot.
+flate2 = "1"
+halogen-fixture = { path = "../fixture" }
+halogen-config = { path = "../config" }
+halogen-download = { path = "../download" }
+halogen-polling = { path = "../polling" }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+jsonwebtoken = { workspace = true }
+chrono = { workspace = true }
+url = { workspace = true }
+wiremock = { workspace = true }
+serde_json = { workspace = true }
+# Normal deps because `src/` uses them (dev-deps aren't visible to the library
+# build): the harness serves the router with `axum::serve`, and a few journeys
+# (media streaming, SPA-fallback routing) talk raw HTTP — binary bodies / range
+# requests / unprefixed paths that aren't typed `ApiClient` calls.
+axum = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+# Install a stderr tracing subscriber in the harness so the in-process server's
+# logs (services, polling, download, request errors) surface in nextest's
+# per-test captured output on failure.
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+# Connectivity-WebSocket journey: a real WS client drives the `/ws` upgrade over
+# loopback (plain ws://, so no TLS feature). Same 0.29 the server already uses.
+tokio-tungstenite = { workspace = true, features = ["connect"] }
+futures-util = { workspace = true }

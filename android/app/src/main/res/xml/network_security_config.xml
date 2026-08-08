@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cleartext allowed: the embedded server is loopback HTTP, and self-hosted
+     servers are user-supplied URLs (often plain-HTTP home labs) that cannot be
+     enumerated for per-domain exceptions. Mirrors the iOS ATS posture. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

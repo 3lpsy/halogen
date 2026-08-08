@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* daisyui supplies the component classes (navbar/btn/card/…) and theme colors
+   (base-100, primary, success, error, …). The app is dark, so make daisyui's
+   dark theme the default. */
+@plugin "daisyui" {
+  themes: dark --default;
+}
+
+/* Scan the Rust sources for class names, relative to THIS file, so content
+   detection is correct no matter which directory the CLI is invoked from.
+   The UI is split across sibling crates — every crate that authors rsx `class:`
+   strings (or returns class-name string literals, e.g. `ui-logging`'s
+   `Level::color()` → `text-error`/`text-warning`/…) must be scanned here, or its
+   utilities are missing from the bundle and the layout silently collapses. This
+   crate's own src is just the launch shell (no classes), but keep it for future
+   additions. The data/service crates (ui-commands, ui-config, ui-svc-*, …) carry
+   no class strings, so they're intentionally not scanned. */
+@source "./src";
+@source "../ui-state/src";
+@source "../ui-icons/src";
+@source "../ui-widgets/src";
+@source "../ui-episode-list/src";
+@source "../ui-views/src";
+@source "../ui-logging/src";
+
+/* App-specific *shell* tokens (navbar/sidebar/page chrome). These are not daisyui
+   or default-Tailwind colors, so they must be defined here or `bg-sidebar` etc.
+   produce no CSS.
+
+   They are deliberately defined as ALIASES of daisyui's theme base scale (not
+   standalone hex) so the chrome tracks the active theme and stays in step with
+   daisyui surfaces (cards/alerts = base-100/200/300). Previously these were a
+   second, frozen, *darker* dark palette that left cards rendering lighter than
+   the page behind them; aliasing folds the shell into the one theme. Swap the
+   daisyui theme (or add a light one) and the whole shell recolors with no rsx
+   edits. See plans/FEATURE_RECONCILE_UI_DESIGN.md. */
+@theme {
+  --color-background: var(--color-base-100); /* page background */
+  --color-foreground: var(--color-base-content);
+  --color-navbar: var(--color-base-200); /* raised chrome */
+  --color-sidebar: var(--color-base-200);
+  --color-sidebar-hover: var(--color-base-300);
+  --color-surface-1: var(--color-base-300); /* mini-player / raised surface */
+  --color-border: var(--color-base-300);
+
+  /* De-emphasized ("muted") text — secondary labels, timestamps, hints, helper
+     copy. Replaces the old `text-base-content/{40,50,60}` opacity trick, whose
+     blended result landed at ~2.2–3.4:1 on base-100 and FAILED WCAG AA (Lighthouse
+     color-contrast). This is a fixed value measured at ~5:1 on base-100 (the
+     lightest base surface = worst case; darker chrome only raises it), so muted
+     text passes AA while staying visibly dimmer than full base-content (~7:1).
+     Tuned for the dark theme; revisit if a light theme is added. Use `text-muted`. */
+  --color-muted: #8e95a0;
+}
+
+/* UI font size (Settings → UI) is applied as an inline font-size percentage on
+   <html> from AppLayout (see app_layout.rs). All rem-based sizing — text,
+   buttons, inputs, spacing — scales from the root font-size, so no per-size
+   classes are needed here. */
+
+/* Hide native scrollbars app-wide — scrolling still works (wheel/touch/keys),
+   the bars just don't paint. Keeps the mobile-style chrome clean, especially on
+   desktop where the gutter would otherwise show. Covers Firefox
+   (`scrollbar-width`) and Chromium/WebKit (`::-webkit-scrollbar`). */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Installed iOS PWA (Add to Home Screen): the status-bar and home-indicator
+   safe-area strips are painted by the document *canvas* (the html/body
+   background), not by the fixed app shell. In a browser tab the browser's own
+   chrome covers them; installed, they show through — as the page colour
+   (base-100), which clashes with the navbar/dock chrome (base-200) that pads
+   into those strips. Paint the canvas the chrome colour so an exposed strip
+   blends with the bars instead of flashing the page colour. The visible app
+   stays base-100: AppLayout's `bg-background` root and the auth `AuthCard` both
+   sit on top with their own base-100 background. */
+html,
+body {
+  background-color: var(--color-navbar);
+}
+
+/* Marquee (scrolling-text) animation — drives the `Marquee` component. Two
+   identical copies sit in a `w-max` track; translating it by -50% advances
+   exactly one copy + gap, so the loop is seamless. Duration is set per-instance
+   inline (scaled to text length for a constant speed); the initial pause before
+   the first scroll is the `animation-delay` here. Respects reduced-motion. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation-name: marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: 2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}

@@ -1,0 +1,30 @@
+[package]
+name    = "halogen-tool-screenshot"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+# Screenshot walkthrough (pure Rust): spawns a seeded server over dist/ (or
+# targets --base-url), drives Chrome via WebDriver, and captures every screen in
+# every reachable state (auth, lists, player, menus/modals, settings, offline,
+# 404) into data/screenshots/<datetime>/ + latest/. Run: `just screenshots`.
+[[bin]]
+name = "tool-screenshot"
+path = "src/main.rs"
+
+[dependencies]
+# Real-server harness (`support`: spawn + seed), shared with the E2E tier.
+halogen-integ = { path = "../integ" }
+# Browser tier: chromedriver lifecycle, headless connect, UI login, DOM helpers.
+halogen-e2e = { path = "../e2e" }
+# DTO enums used when seeding (e.g. DownloadStatus).
+halogen-wire = { path = "../wire" }
+# WebDriver client — drives the page + the CDP screenshot/emulation calls.
+thirtyfour = "0.37"
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+# `<datetime>` run-directory name.
+chrono = { workspace = true }
+# Decode the base64 PNG returned by CDP `Page.captureScreenshot`.
+base64 = { workspace = true }

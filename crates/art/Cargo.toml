@@ -1,0 +1,28 @@
+[package]
+name    = "halogen-art"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-orm = { path = "../orm" }
+halogen-net = { path = "../net" }
+sea-orm = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+# Pure-Rust codecs only (no C / no TLS — safe for the workspace's rustls-only
+# invariant). Default features off so we don't pull avif's libdav1d C dep; the
+# small-thumbnail path decodes/encodes the formats `fetch_art` accepts.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+tokio = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+halogen-migrate = { path = "../migrate" }
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+tokio = { workspace = true }
+wiremock = { workspace = true }

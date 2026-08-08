@@ -1,0 +1,70 @@
+[package]
+name     = "halogen-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+# DB export compression (gzip of the scrubbed snapshot).
+flate2 = "1"
+axum               = { workspace = true, features = ["ws"] }
+sea-orm            = { workspace = true }
+sea-orm-migration  = { workspace = true }
+tokio              = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+anyhow             = { workspace = true }
+chrono             = { workspace = true }
+sqlx               = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "migrate"] }
+halogen-wire       = { path = "../wire", features = ["db"] }
+halogen-orm        = { path = "../orm" }
+halogen-migrate    = { path = "../migrate" }
+halogen-fixture    = { path = "../fixture" }
+halogen-utils      = { path = "../utils" }
+halogen-api        = { path = "../api" }
+halogen-net        = { path = "../net" }
+halogen-discover   = { path = "../discover" }
+halogen-config     = { path = "../config" }
+halogen-download   = { path = "../download" }
+halogen-rss        = { path = "../rss" }
+halogen-polling    = { path = "../polling" }
+halogen-art        = { path = "../art" }
+halogen-opml       = { path = "../opml" }
+validator          = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true }
+bcrypt               = { workspace = true }
+rand                 = { workspace = true }
+roxmltree            = { workspace = true }
+jsonwebtoken = { workspace = true }
+time = "0.3.47"
+tower = "0.5.3"
+# compression-br dropped: on-the-fly brotli for dynamic responses is gone (they
+# fall back to gzip), but PRE-compressed static `.br` assets still serve via the
+# `fs` feature's `.precompressed_br()`. Saves the brotli crate from the build.
+tower-http = { version = "0.6", features = ["fs", "cors", "set-header", "compression-gzip"] }
+reqwest      = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+serde_qs = { workspace = true, features = ["axum"] }
+# `debug-embed`: bake dist/ into DEBUG builds too — without it they read dist/
+# from the compile-time path, which doesn't exist in the deployed dev container
+# ("embedded frontend not found"). `compression`: DEFLATE the embedded dist/
+# (~6.9 → ~2.5 MiB); files decompress lazily on first serve.
+rust-embed   = { version = "8", optional = true, features = ["mime-guess", "debug-embed", "compression"] }
+
+[features]
+# Bundles the prebuilt frontend (`<workspace>/dist`) into the binary and serves
+# it from memory (production single-binary + browser E2E). Build `dist/` first
+# with `just ui-build`; this feature never invokes dx.
+embed-frontend = ["dep:rust-embed"]
+# Dev seeding in a RELEASE binary — only for the e2e harness server (the
+# release pipeline's gate). Never enable for shipped builds.
+dev-seed = ["halogen-fixture/dev-seed"]
+
+[dev-dependencies]
+# Crate-internal unit tests only. The real-server HTTP harness + integration
+# journeys live in the `halogen-integ` crate now.
+tokio       = { version = "1", features = ["macros", "rt-multi-thread"] }
+reqwest     = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+wiremock    = { workspace = true }
+serde_json  = { workspace = true }
+# TestRoot + load_fixture for the crate-internal `#[cfg(test)]` suites.
+halogen-fixture = { path = "../fixture", features = ["test-support"] }

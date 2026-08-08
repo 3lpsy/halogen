@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<opml version="1.0">
+  <head>
+    <title>Halogen Test OPML</title>
+    <dateCreated>Thu May 17 2026 12:00:00 GMT-0500 (Central Daylight Time)</dateCreated>
+    <dateModified>Thu May 17 2026 12:00:00 GMT-0500 (Central Daylight Time)</dateModified>
+  </head>
+  <body>
+    <outline text="The Daily Podcast" type="rss" xmlUrl="https://feeds.simplecast.com/Sl5CSM3S" />
+    <outline text="99% Invisible" type="rss" xmlUrl="https://feeds.simplecast.com/BqbsxVfO" />
+    <outline text="Acquired" type="rss" xmlUrl="https://feeds.transistor.fm/acquired" />
+    <outline text="Embedded" type="rss" xmlUrl="https://feeds.npr.org/510311/podcast.xml" />
+    <outline text="Syntax" type="rss" xmlUrl="https://feed.syntax.fm/rss" />
+    <outline text="No Such Thing As A Fish" type="rss" xmlUrl="https://audioboom.com/channels/2399216.rss" />
+    <outline text="Developer Tea" type="rss" xmlUrl="https://feeds.simplecast.com/dLRotFGk" />
+    <outline text="Software Engineering Daily" type="rss" xmlUrl="https://softwareengineeringdaily.com/feed/podcast/" />
+    <outline text="Hanselminutes with Scott Hanselman" type="rss" xmlUrl="https://feeds.simplecast.com/gvtxUiIf" />
+    <outline text="The Vergecast" type="rss" xmlUrl="https://feeds.megaphone.fm/vergecast" />
+    <outline text="The Red Line" type="rss" xmlUrl="https://feeds.megaphone.fm/ARML4010200722" />
+    <outline text="Radiolab" type="rss" xmlUrl="https://feeds.simplecast.com/EmVW7VGp" />
+    <outline
+            text="Odd Lots"
+            type="rss"
+            xmlUrl="https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss"
+        />
+        <outline text="The 404 Media Podcast" type="rss" xmlUrl="https://feeds.megaphone.fm/TBIEA2761282490" />
+        <outline text="Critical Role" type="rss" xmlUrl="https://feeds.simplecast.com/LXz4Q9rJ" />
+
+  </body>
+</opml>

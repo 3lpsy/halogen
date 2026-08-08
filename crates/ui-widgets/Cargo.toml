@@ -1,0 +1,21 @@
+[package]
+name = "halogen-ui-widgets"
+version.workspace = true
+edition.workspace = true
+
+# The Route-free reusable component toolkit (forms, dialogs, menus, artwork, rich
+# text + the HTML AST, list controls, toast UI). Depends on the data-type crates
+# (forms/listview/config), state (hooks/commands), and icons. No Route enum/pages.
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-ui-forms = { path = "../ui-forms" }
+halogen-ui-listview = { path = "../ui-listview" }
+halogen-ui-toast = { path = "../ui-toast" }
+halogen-ui-config = { path = "../ui-config" }
+halogen-ui-platform = { path = "../ui-platform" }
+halogen-ui-state = { path = "../ui-state" }
+halogen-ui-icons = { path = "../ui-icons" }
+
+[features]
+web = ["dioxus/web", "halogen-ui-toast/web", "halogen-ui-config/web", "halogen-ui-state/web", "halogen-ui-icons/web"]
+desktop = ["dioxus/desktop", "halogen-ui-toast/desktop", "halogen-ui-config/desktop", "halogen-ui-state/desktop", "halogen-ui-icons/desktop"]

@@ -1,0 +1,30 @@
+[package]
+name    = "halogen-rss"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire     = { path = "../wire", features = ["db"] }
+halogen-orm      = { path = "../orm" }
+halogen-download = { path = "../download" }
+halogen-utils    = { path = "../utils" }
+sea-orm = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+tokio = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+futures-util = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+rss = { workspace = true }
+
+[dev-dependencies]
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+tokio = { workspace = true }
+wiremock = { workspace = true }

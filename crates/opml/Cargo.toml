@@ -1,0 +1,20 @@
+[package]
+name    = "halogen-opml"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-orm   = { path = "../orm" }
+halogen-utils = { path = "../utils" }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+halogen-migrate = { path = "../migrate" }
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+tokio = { workspace = true }

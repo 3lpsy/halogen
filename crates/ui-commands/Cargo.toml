@@ -1,0 +1,12 @@
+[package]
+name = "halogen-ui-commands"
+version.workspace = true
+edition.workspace = true
+
+# The worker-command vocabulary: `Command` (the fire-and-forget messages the UI
+# sends the sync worker) + `RedactedToken`. A leaf crate (depends only on the wire
+# DTOs) so the player/episode-list/account layers can name `Command` without
+# pulling in the heavy sync worker that consumes it.
+[dependencies]
+halogen-wire = { path = "../wire" }
+serde = { workspace = true }

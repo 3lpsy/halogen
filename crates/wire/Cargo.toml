@@ -1,0 +1,26 @@
+[package]
+name    = "halogen-wire"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-utils   = { path = "../utils" }
+halogen-wire-meta = { path = "../wire-meta" }
+serde = { workspace = true }
+typeshare = { workspace = true }
+serde_json = { workspace = true }
+validator = { workspace = true }
+chrono = { workspace = true }
+
+# Only enabled when the wire DTOs are compiled alongside the ORM (native server /
+# tests). Adds the enum `ActiveValue` conversions here and turns on the meta
+# crate's `db` feature (`DbValidationErrors`, `Paginator::from_db_paginator`, …).
+# Never enabled for the WASM UI graph.
+sea-orm = { workspace = true, optional = true }
+
+[features]
+default = []
+db = ["sea-orm", "halogen-wire-meta/db"]

@@ -1,0 +1,20 @@
+# typeshare-cli config — Swift + Kotlin codegen from the `#[typeshare]`-annotated
+# wire DTOs (`just ios-wire-types` → ios/Generated/WireTypes.swift,
+# `just android-wire-types` → android/generated/wire/WireTypes.kt). The
+# contract stays defined once, in Rust; both apps get mirrors at build time.
+[swift]
+prefix = ""
+
+[swift.type_mappings]
+# chrono serializes RFC3339 strings; decoded by the JSONDecoder configured in
+# ios/Halogen/Networking/WireJSON.swift (ISO8601 with fractional seconds).
+"DateTime" = "Date"
+
+[kotlin]
+package = "org.fgsec.halogen.wire"
+module_name = "wire"
+
+[kotlin.type_mappings]
+# chrono serializes RFC3339 strings; kept as String on the wire type and
+# parsed at the client edge (android WireJSON) — generated file stays dep-free.
+"DateTime" = "String"

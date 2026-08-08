@@ -1,0 +1,102 @@
+# XcodeGen spec — `Halogen.xcodeproj` is GENERATED; edit this file and re-run
+# `xcodegen generate` (the `just ios-*` recipes do). The Rust core comes in as
+# a staged staticlib + bridging header + UniFFI-generated Swift, all build
+# products (gitignored) — `just ios-core` must run before the first Xcode build.
+name: Halogen
+options:
+  bundleIdPrefix: org.fgsec
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    # The Rust staticlib is built arm64-only (aarch64-apple-ios-sim); drop the
+    # x86_64 simulator slice or the generic-destination link fails.
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
+# Explicit shared scheme: xcodebuild -scheme from a headless CLI needs one
+# (Xcode's scheme auto-creation only happens in the GUI).
+schemes:
+  Halogen:
+    build:
+      targets:
+        Halogen: all
+        HalogenUITests: [test]
+    run:
+      config: Debug
+    # `just ios-e2e` journeys. Strictly serial — one simulator, one journey
+    # class at a time (parallelizable stays off; compute budget).
+    test:
+      config: Debug
+      targets:
+        - name: HalogenUITests
+          parallelizable: false
+          randomExecutionOrder: false
+targets:
+  Halogen:
+    type: application
+    platform: iOS
+    sources:
+      - Halogen
+      - Generated
+    info:
+      path: Halogen/Info.plist
+      properties:
+        UILaunchScreen: {}
+        # Versions flow from build settings so `just ios-archive` can stamp
+        # the workspace version + a fresh build number (App Store Connect
+        # rejects re-uploads of the same build number).
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Self-hosted servers are user-supplied URLs (often plain-HTTP home labs)
+        # that can't be enumerated per-domain — the standard self-hosted-client ATS
+        # posture (docs/internal/IOS_APP_STORE_APPROVAL.md §1.2). Local networking
+        # stays declared for the embedded loopback server.
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+        # Keep playing when the app backgrounds (podcast audio).
+        UIBackgroundModes: [audio]
+        # iPhone-only, portrait-only (the UI is a single-column phone layout).
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        # Shown when the user connects to a server on their LAN (iOS 14+
+        # local-network privacy prompt).
+        NSLocalNetworkUsageDescription: >-
+          Halogen connects to the podcast server you configure. When that
+          server is on your local network, iOS asks for local-network access.
+        # Only standard encryption (TLS via the OS, bcrypt password hashing)
+        # — qualifies for the exemption; no French declaration filed.
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.fgsec.halogen
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Dev defaults; ios-archive overrides both on the command line.
+        MARKETING_VERSION: "0.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # Bridging header (not a modulemap): the generated Swift falls back to
+        # bare symbols when `canImport(halogen_mobileFFI)` is false — the simplest
+        # reliable way to link a Rust staticlib into an app target.
+        SWIFT_OBJC_BRIDGING_HEADER: Rust/include/halogen_mobileFFI.h
+        LIBRARY_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/Rust/lib/$(PLATFORM_NAME)"
+        OTHER_LDFLAGS:
+          - "-lhalogen_mobile"
+
+  # XCUITest journeys (`just ios-e2e`): drives the built app on the simulator
+  # against the recipe's hermetic seeded server — the iOS analog of the
+  # browser e2e tier (crates/e2e).
+  HalogenUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UITests
+    dependencies:
+      - target: Halogen
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.fgsec.halogen.uitests
+        TEST_TARGET_NAME: Halogen
+        GENERATE_INFOPLIST_FILE: YES

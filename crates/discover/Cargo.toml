@@ -1,0 +1,19 @@
+[package]
+name    = "halogen-discover"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire = { path = "../wire" }
+halogen-net  = { path = "../net" }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+serde = { workspace = true }
+futures-util = { workspace = true }
+
+[dev-dependencies]
+tokio    = { version = "1", features = ["macros", "rt-multi-thread"] }
+wiremock = { workspace = true }
+reqwest  = { workspace = true, features = ["json", "rustls-tls", "gzip"] }

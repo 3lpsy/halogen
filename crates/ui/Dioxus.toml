@@ -1,0 +1,52 @@
+[application]
+# out_dir is only consulted by `dx bundle` (nested under <out_dir>/public);
+# `dx build`/`dx serve` always emit to target/dx/<pkg>/<profile>/<platform>/public.
+# The justfile recipes copy the result into the root dist/ the server serves or embeds.
+out_dir = "../../dist"
+
+[bundle]
+
+# Stable reverse-DNS app identifier for the desktop bundles (macOS .app,
+# flatpak/AppImage metadata). Matches the native storage namespace
+# ("com", "halogen", "halogen" in halogen-ui-platform::paths). The native iOS
+# app (ios/) shares the same org.fgsec.halogen identifier.
+identifier = "org.fgsec.halogen"
+
+# Native media rides the in-process loopback proxy (ui-state's
+# WebviewMediaBridge); Apple ATS blocks cleartext http from WKWebView *web
+# content* by default, so these keys are injected into the generated macOS
+# Info.plist. NSAllowsLocalNetworking scopes the exception to local/loopback.
+[macos.plist]
+NSAppTransportSecurity = { NSAllowsLocalNetworking = true, NSAllowsArbitraryLoadsInWebContent = true }
+
+[web.app]
+
+# The web <title> is owned by the custom template crates/ui/index.html. dx APPENDS
+# this value to the template's <title> text (it doesn't replace), so it's left empty
+# to avoid "HalogenHalogen". Set the title in index.html instead.
+title = ""
+
+[web.wasm_opt]
+
+# Optimize release wasm for size (compounds with [profile.wasm-release]) —
+# smaller wasm = less main-thread compile time. `debug = false` matches the
+# justfile's --debug-symbols false (DWARF makes wasm-opt SIGABRT).
+level = "z"
+debug = false
+
+[web.resource]
+
+# `just tailwind` compiles Tailwind+daisyUI to assets/tailwind.css; dx bundles
+# the crate assets/ dir to /assets/ (names UN-hashed). Linked as a static href
+# (not a runtime asset!()) so the stylesheet is in the pre-hydration HTML — no
+# FOUC. dx does NOT serve public/ at the web root; PWA root files come via _sync-dist.
+style = ["/assets/tailwind.css"]
+
+# Additional JavaScript files
+script = []
+
+[web.resource.dev]
+
+# Javascript code file
+# serve: [dev-server] only
+script = []

@@ -1,0 +1,33 @@
+[package]
+name = "halogen-ui-worker"
+version.workspace = true
+edition.workspace = true
+
+# The Web Worker entrypoint: a wasm-bindgen cdylib running the sync graph OFF
+# the main thread. dx has no web-worker target (DioxusLabs/dioxus #3275), so
+# this is our own build — bootstrapped by crates/ui/pwa/worker.js, produced by
+# the justfile `_worker-build`. Native target = an empty crate (all wasm-gated).
+[lib]
+crate-type = ["cdylib"]
+
+# ui-svc-sync WITHOUT its `web` feature on purpose: that pulls the dioxus DOM
+# renderer, whose JS references window/document and breaks wasm instantiation
+# inside a Worker under --target no-modules. The worker needs only the sync graph.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+halogen-ui-svc-sync = { path = "../ui-svc-sync" }
+halogen-ui-svc-store = { path = "../ui-svc-store" }
+halogen-ui-svc-media = { path = "../ui-svc-media" }
+halogen-ui-commands = { path = "../ui-commands" }
+halogen-ui-appstate = { path = "../ui-appstate" }
+halogen-ui-platform = { path = "../ui-platform" }
+halogen-ui-logging = { path = "../ui-logging" }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Worker",
+    "DedicatedWorkerGlobalScope",
+    "MessageEvent",
+] }
+futures = { workspace = true }
+serde_json = { workspace = true }

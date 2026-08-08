@@ -1,0 +1,40 @@
+[package]
+name = "halogen-ui-svc-player"
+version.workspace = true
+edition.workspace = true
+
+# Playback service: the `PlayerController` state machine + `NowPlaying`/
+# `PlaybackState`/`SleepState`, the audio backend (web `HtmlAudioElement` / native),
+# OS media-session integration, queue navigation, and the sleep timer. Reads
+# `EpisodeState`, streams from the media store, and reports playback via `Command`.
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-wire = { path = "../wire" }
+halogen-ui-appstate = { path = "../ui-appstate" }
+halogen-ui-config = { path = "../ui-config" }
+halogen-ui-commands = { path = "../ui-commands" }
+halogen-ui-logging = { path = "../ui-logging" }
+halogen-ui-platform = { path = "../ui-platform" }
+halogen-ui-svc-media = { path = "../ui-svc-media" }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+# The native webview backend + media-session speak JSON over the eval channel.
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Navigator", "HtmlMediaElement", "HtmlAudioElement", "MediaError",
+    "Document", "Element", "Node", "Event", "EventTarget", "Url",
+] }
+
+[features]
+web = ["dioxus/web", "halogen-ui-config/web"]
+desktop = ["dioxus/desktop", "halogen-ui-config/desktop"]
+
+[dev-dependencies]
+tokio = { workspace = true }
+anyhow = { workspace = true }

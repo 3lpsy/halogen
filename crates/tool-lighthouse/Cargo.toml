@@ -1,0 +1,25 @@
+[package]
+name    = "halogen-tool-lighthouse"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+# Web-Vitals harness (pure Rust): spawns a seeded server over dist/ (or targets
+# --base-url), drives Chrome via WebDriver through every feature, and writes the
+# browser's own PerformanceObserver metrics (CLS/LCP/FCP/INP/long tasks) to
+# report.json/md. NOT the Lighthouse CLI (unthrottled). Run: `just lighthouse`.
+[[bin]]
+name = "tool-lighthouse"
+path = "src/main.rs"
+
+[dependencies]
+# Real-server harness (`support`: spawn + seed), shared with the E2E tier.
+halogen-integ = { path = "../integ" }
+# Browser tier: chromedriver lifecycle, headless connect, UI login, DOM helpers.
+halogen-e2e = { path = "../e2e" }
+# WebDriver client — drives the page + runs the PerformanceObserver collector.
+thirtyfour = "0.37"
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

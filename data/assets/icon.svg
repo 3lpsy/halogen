@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Halogen app icon: the landing page's waveform-in-circle mark on a
+       full-bleed dark field (iOS masks its own corners; web favicons reuse
+       the same art). -->
+  <rect width="1024" height="1024" fill="#0B0E14"/>
+  <circle cx="512" cy="512" r="352" fill="#2E7DF6"/>
+  <g fill="#FFFFFF">
+    <rect x="330" y="432" width="44" height="160" rx="22"/>
+    <rect x="410" y="368" width="44" height="288" rx="22"/>
+    <rect x="490" y="304" width="44" height="416" rx="22"/>
+    <rect x="570" y="368" width="44" height="288" rx="22"/>
+    <rect x="650" y="432" width="44" height="160" rx="22"/>
+  </g>
+</svg>

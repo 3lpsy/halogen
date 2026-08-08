@@ -1,0 +1,26 @@
+[package]
+name    = "halogen-polling"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire     = { path = "../wire", features = ["db"] }
+halogen-orm      = { path = "../orm" }
+halogen-rss      = { path = "../rss" }
+halogen-download = { path = "../download" }
+halogen-config   = { path = "../config" }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+halogen-migrate = { path = "../migrate" }
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+tokio = { workspace = true }
+wiremock = { workspace = true }
+bcrypt = { workspace = true }

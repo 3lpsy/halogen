@@ -1,0 +1,24 @@
+[package]
+name    = "halogen-wire-meta"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-utils = { path = "../utils" }
+serde = { workspace = true }
+typeshare = { workspace = true }
+validator = { workspace = true }
+chrono = { workspace = true }
+
+# Enabled when meta is compiled alongside the ORM (native server / tests): adds
+# the SeaORM-facing impls (`DbValidationErrors`, `Paginator::from_db_paginator`,
+# the order/pagination `ActiveValue` bits). Off for the WASM client graph.
+sea-orm = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+db = ["sea-orm", "tracing"]

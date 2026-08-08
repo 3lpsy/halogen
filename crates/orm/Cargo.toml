@@ -1,0 +1,19 @@
+[package]
+name    = "halogen-orm"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire    = { path = "../wire", features = ["db"] }
+halogen-utils   = { path = "../utils" }
+# NOTE: no direct `async-trait` dep — it comes transitively from
+# sea-orm-migration (used by `common.rs`); a direct dep duplicate-compiles it.
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+validator = { workspace = true }
+serde = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }

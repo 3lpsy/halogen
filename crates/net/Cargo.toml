@@ -1,0 +1,12 @@
+[package]
+name    = "halogen-net"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+# rustls only — never native-tls/OpenSSL (workspace TLS invariant).
+reqwest = { workspace = true, features = ["rustls-tls"] }
+tokio = { version = "1", features = ["net"] }

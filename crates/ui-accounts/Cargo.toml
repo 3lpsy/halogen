@@ -1,0 +1,32 @@
+[package]
+name = "halogen-ui-accounts"
+version.workspace = true
+edition.workspace = true
+
+# Multi-account support: the `Accounts` registry + `AccountsStore`, `jwt_sub`,
+# and the switch/sign-out orchestration (token re-mint, namespace flip,
+# local-data wipe). A domain layer over config/platform/cache-purge —
+# sends `Command`s, never owns the worker.
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-api = { path = "../api" }
+halogen-ui-config = { path = "../ui-config" }
+halogen-ui-platform = { path = "../ui-platform" }
+halogen-ui-idb = { path = "../ui-idb" }
+halogen-ui-commands = { path = "../ui-commands" }
+halogen-ui-toast = { path = "../ui-toast" }
+halogen-ui-logging = { path = "../ui-logging" }
+halogen-ui-cache-purge = { path = "../ui-cache-purge" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+base64 = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[features]
+web = ["dioxus/web", "halogen-ui-config/web", "halogen-ui-toast/web"]
+desktop = ["dioxus/desktop", "halogen-ui-config/desktop", "halogen-ui-toast/desktop"]

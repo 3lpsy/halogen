@@ -1,0 +1,40 @@
+[package]
+name    = "halogen-download"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire  = { path = "../wire", features = ["db"] }
+halogen-orm   = { path = "../orm" }
+halogen-net   = { path = "../net" }
+halogen-utils = { path = "../utils" }
+sea-orm = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+tokio = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+futures-util = { workspace = true }
+bytes = { workspace = true }
+url = { workspace = true }
+rand = { workspace = true }
+
+# The media-root disk-headroom guard's space query, per platform: rustix has no
+# `fs` module on windows (it broke the mingw desktop cross-build once the
+# embedded server pulled this crate into the app), so windows uses
+# GetDiskFreeSpaceExW instead.
+[target.'cfg(not(windows))'.dependencies]
+# statvfs. linux_raw backend — no C toolchain.
+rustix = { version = "1", features = ["fs"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+halogen-migrate = { path = "../migrate" }
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+tokio = { workspace = true }
+wiremock = { workspace = true }

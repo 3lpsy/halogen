@@ -1,0 +1,28 @@
+[package]
+name    = "halogen-fixture"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire    = { path = "../wire", features = ["db"] }
+halogen-orm     = { path = "../orm" }
+halogen-utils   = { path = "../utils" }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+bcrypt = { workspace = true }
+rss = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+# Exposes `test_support` (TestRoot + load_fixture) for other crates' dev-deps.
+test-support = []
+# Compiles the `dev` seed module into RELEASE builds too (it's always present
+# in debug). Only the e2e harness server opts in — shipped release binaries
+# must not carry fixture seeding.
+dev-seed = []

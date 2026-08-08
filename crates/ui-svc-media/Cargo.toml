@@ -1,0 +1,28 @@
+[package]
+name = "halogen-ui-svc-media"
+version.workspace = true
+edition.workspace = true
+
+# Device media byte store: the `MediaStore` trait + `MediaStoreHandle`, the web
+# (IndexedDB blobs -> object URLs) and native (filesystem) backends, and
+# `open_media_handle`. Renderer-agnostic; per-target backends are cfg-gated.
+[dependencies]
+halogen-ui-logging = { path = "../ui-logging" }
+halogen-ui-platform = { path = "../ui-platform" }
+halogen-ui-idb = { path = "../ui-idb" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+web-sys = { workspace = true, features = ["Blob", "BlobPropertyBag", "Url"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Halogen
+Comment=Local-first podcast player
+Exec=halogen-ui
+Icon=org.fgsec.halogen
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=podcast;audio;player;

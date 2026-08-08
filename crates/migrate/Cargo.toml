@@ -1,0 +1,20 @@
+[package]
+name    = "halogen-migrate"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+halogen-wire    = { path = "../wire", features = ["db"] }
+halogen-utils   = { path = "../utils" }
+# NOTE: no direct `async-trait` dep — it comes transitively from
+# sea-orm-migration (the `Migrator` impl); a direct dep duplicate-compiles it.
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

@@ -1,0 +1,37 @@
+[package]
+name    = "halogen-e2e"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+# Browser end-to-end tests. Heavy deps (a WebDriver client) live here so they
+# never touch the server/ui build graph. Tests are `#[ignore]` by default —
+# they need a running chromedriver + Chrome and a built `dist/`.
+# Run with: `just e2e`
+
+[dependencies]
+# The embedded frontend (the test serving path: the server serves the bundled
+# dist/ from memory, same as a release build).
+halogen-server = { path = "../server", features = ["embed-frontend"] }
+# The real-server harness (`support`: spawn + seed) lives in the integration
+# crate now; the browser tier reuses it.
+halogen-integ = { path = "../integ" }
+# Normal deps because src/lib.rs helpers use them (dev-deps aren't visible to the
+# library build). This crate is test-only (publish = false).
+thirtyfour = "0.37"
+tokio      = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+# `FutureExt::catch_unwind` — lets `finish_journey` dump browser logs and quit
+# the driver even when a test body panics on an `assert!`.
+futures    = { workspace = true }
+# `src/lib.rs` storage helpers script localStorage with JSON args (multi-account
+# namespaces the per-user config key), so this is a normal dep, not dev-only.
+serde_json = { workspace = true }
+# `ingest_feed` (src/lib.rs) mounts a mock upstream RSS feed and POSTs the server
+# poll, so these are normal deps too — dev-deps aren't visible to the lib build.
+reqwest    = { workspace = true, features = ["json", "rustls-tls"] }
+wiremock   = { workspace = true }
+
+[dev-dependencies]
+# Tests name DB enums (e.g. PlaybackStatus) when seeding episode state via the
+# support harness. `db` feature matches how the server crate pulls it.
+halogen-wire = { path = "../wire" }

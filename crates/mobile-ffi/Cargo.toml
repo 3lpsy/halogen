@@ -1,0 +1,29 @@
+[package]
+name    = "halogen-mobile-ffi"
+version.workspace = true
+edition.workspace = true
+
+# The native-mobile FFI boundary: the Rust core both native apps link, exposed
+# over UniFFI bindings (Swift for `ios/`, Kotlin for `android/`); hosts the
+# embedded server lifecycle + device-log pump. crate-type: staticlib (iOS),
+# cdylib (the Android .so + uniffi-bindgen host metadata), lib (workspace tests).
+[lib]
+name = "halogen_mobile"
+crate-type = ["lib", "staticlib", "cdylib"]
+
+# Bindings generator (host-only tool): `cargo run -p halogen-mobile-ffi
+# --features bindgen --bin uniffi-bindgen -- generate --library ...`.
+# Feature-gated so device-target builds never compile uniffi's CLI (clap etc).
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi_bindgen.rs"
+required-features = ["bindgen"]
+
+[dependencies]
+halogen-embedded-server = { path = "../embedded-server" }
+halogen-ui-logging = { path = "../ui-logging" }
+
+uniffi = { workspace = true, features = ["tokio"] }
+
+[features]
+bindgen = ["uniffi/cli"]

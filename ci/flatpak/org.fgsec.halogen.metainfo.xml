@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.fgsec.halogen</id>
+  <name>Halogen</name>
+  <summary>Local-first podcast player</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>
+      Halogen is a local-first podcast application. Episodes are downloaded to
+      the device and play from on-device bytes; a self-hosted Halogen server
+      keeps subscriptions, queue, and playback position in sync across devices.
+    </p>
+  </description>
+  <launchable type="desktop-id">org.fgsec.halogen.desktop</launchable>
+  <provides>
+    <binary>halogen-ui</binary>
+  </provides>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+</component>

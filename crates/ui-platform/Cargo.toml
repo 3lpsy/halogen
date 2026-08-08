@@ -1,0 +1,24 @@
+[package]
+name = "halogen-ui-platform"
+version.workspace = true
+edition.workspace = true
+
+# Cross-target platform glue: `time::sleep_ms`, the `kv_*` persistence macros
+# (native), the native `paths` app-dir roots, and the web database/store +
+# active-user namespaces. A dependency-light foundation; per-target deps are
+# cfg-gated (IndexedDB ceremony lives in the sibling `halogen-ui-idb`).
+[dependencies]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { workspace = true }
+js-sys = { workspace = true }
+# `weblock` (Web Locks API): closures + the oneshot that bridges the lock-grant
+# callback back into Rust async.
+wasm-bindgen = { workspace = true }
+futures-channel = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+directories = { workspace = true }
+tracing = { workspace = true }
+

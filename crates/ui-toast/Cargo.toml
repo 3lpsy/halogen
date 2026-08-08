@@ -1,0 +1,18 @@
+[package]
+name = "halogen-ui-toast"
+version.workspace = true
+edition.workspace = true
+
+# Toast notifications: the reactive `ToastQueue` + `ToastHandle` emitter plus
+# the `classify` error funnel (ApiError → ToastDecision under a ToastPolicy,
+# shared by form handlers and the sync worker so wording/severity match).
+# Pure reactive data; dioxus signals only.
+[dependencies]
+dioxus = { workspace = true }
+halogen-api = { path = "../api" }
+halogen-wire = { path = "../wire" }
+serde = { workspace = true }
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]

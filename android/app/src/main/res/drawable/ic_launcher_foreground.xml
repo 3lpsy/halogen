@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "H" monogram over a halo ring. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M54,24 a30,30 0 1,0 0.001,0 Z M54,32 a22,22 0 1,1 -0.001,0 Z"
+        android:fillColor="#7C8CF8" />
+    <path
+        android:pathData="M44,40 h6 v11 h8 v-11 h6 v28 h-6 v-11 h-8 v11 h-6 Z"
+        android:fillColor="#E8EAF6" />
+</vector>

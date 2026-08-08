@@ -1,0 +1,5 @@
+# tailwind.css is generated (`just tailwind`) and git-ignored so the tree stays
+# clean — but dx's file walk honors .gitignore and would skip it (404 on
+# /assets/tailwind.css). The `ignore` crate also reads `.ignore` files (git does
+# NOT) and they take precedence, so this re-includes the file for dx only.
+!tailwind.css

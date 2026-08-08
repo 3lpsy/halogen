@@ -1,0 +1,42 @@
+[package]
+name    = "halogen-embedded-server"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# The in-process host for the full Axum server (native desktop
+# "Embedded Server" mode). NEVER part of the wasm UI graph, and never built
+# with the server's `embed-frontend` feature (the app IS the frontend).
+[dependencies]
+halogen-server  = { path = "../server" }
+halogen-config  = { path = "../config" }
+halogen-migrate = { path = "../migrate" }
+halogen-fixture = { path = "../fixture" }
+halogen-polling = { path = "../polling" }
+halogen-download = { path = "../download" }
+halogen-net     = { path = "../net" }
+halogen-orm     = { path = "../orm" }
+
+anyhow = { workspace = true }
+axum = { workspace = true }
+bcrypt = { workspace = true }
+chrono = { workspace = true }
+rand = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+# std's File::try_lock is unimplemented on Android (see supervisor.rs).
+[target.'cfg(target_os = "android")'.dependencies]
+libc = { workspace = true }
+
+[dev-dependencies]
+halogen-api = { path = "../api" }
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+halogen-wire = { path = "../wire" }
+tracing-subscriber = { workspace = true }
+url = { workspace = true }

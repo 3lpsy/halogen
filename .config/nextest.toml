@@ -1,0 +1,27 @@
+# cargo-nextest config. See https://nexte.st/docs/configuration/
+#
+# Runs the workspace test tiers (see the justfile `test-*` recipes). nextest does
+# NOT run doctests — `just test-doc` covers those separately.
+
+[profile.default]
+# Hang guard for the fast tiers (unit + integration): warn at 60s, terminate a
+# wedged test after 2 periods (120s). These tiers run at full parallelism with no
+# retries — they're fast and deterministic, so nothing else slows them down.
+slow-timeout = { period = "60s", terminate-after = 2 }
+
+# Browser e2e tier (headless Chromium / WebDriver). Each test spawns a Chrome that
+# eats ~0.5-1GB, so cap concurrency or the renderer OOMs ("session not created:
+# Chrome instance exited"). Defined as a test-group (not a profile) so the cap
+# holds under EVERY invocation — `just test-e2e`, a workspace-wide run, an IDE.
+[test-groups.e2e]
+max-threads = 5
+
+# e2e knobs, attached to the package so they apply however e2e is launched:
+#   - retries=2: auto-retry flaky WebDriver failures.
+#   - slow-timeout: whole-test wall-clock budget (the flagship journey does several
+#     full wasm reboots); terminate a genuinely wedged run after 90s (30s × 3).
+[[profile.default.overrides]]
+filter = "package(halogen-e2e)"
+retries = 2
+slow-timeout = { period = "30s", terminate-after = 3 }
+test-group = "e2e"
