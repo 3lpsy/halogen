@@ -1,10 +1,5 @@
-//! Episode list matrix — the lazy-loading / filtering / searching / ordering
-//! contract the UI's paged episode list depends on, every case driven through
-//! `ApiClient::list_episodes` (server impl in `handlers/episode/episode_list.rs`).
-//! Each test asserts the exact returned set/sequence, not just a 200 — so a
-//! `serde_qs` round-trip regression or a wrong filter surfaces immediately.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(episode_list_flow)'`
+//! Assert exact episode sets and ordering through ApiClient::list_episodes for pagination, filters, and search,
+//! covering serde_qs round trips. Run the halogen-integ episode_list_flow binary.
 
 use chrono::{Duration, Utc};
 use halogen_integ::*;
@@ -353,12 +348,8 @@ async fn order_by_every_column_both_directions() {
     );
 }
 
-/// List-parameter rejection + characterization matrix, driven over raw HTTP so
-/// we control the exact query string (the typed client can't build invalid
-/// params). `params.validate()` in `routers/episodes/list.rs` validates
-/// pagination range and the `order_by` regex; it does NOT validate filter status
-/// values or unknown-but-well-formed order columns (those are handled in the
-/// query layer), so those are characterized as their current behavior.
+/// Use raw query strings to test invalid list parameters the typed client cannot construct. Extraction validates
+/// pagination/order syntax; the query layer handles filter statuses and unknown well-formed order columns.
 #[tokio::test]
 async fn list_param_rejections_and_characterizations() {
     let app = spawn().await;

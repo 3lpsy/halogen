@@ -1,15 +1,6 @@
-//! In-memory progress tracker for in-flight episode downloads.
-//!
-//! Mirrors `halogen_polling::jobs::JobTracker`: a
-//! thread-safe map, cheap to clone-share behind an `Arc`. An entry exists only
-//! while a download is running — [`DownloadTracker::begin`] inserts/resets it and
-//! [`DownloadTracker::finish`] removes it on any terminal state, so the read API
-//! 404s once a download is done (the durable outcome lives on
-//! `episode.download_status`). State is process memory only; lost on restart.
-//!
-//! The hot path is the chunk loop, which holds the per-entry `Arc<ProgressEntry>`
-//! and does a lock-free `downloaded.fetch_add(..)` per chunk — it never touches
-//! the map mutex after `begin`.
+//! Process-local in-flight download progress. begin inserts/resets an entry; finish removes it on every terminal
+//! outcome, so the API then returns 404 and episode.download_status holds the result. Chunk updates use the entry's
+//! atomic counter without taking the map mutex.
 
 use std::collections::HashMap;
 use std::sync::Arc;

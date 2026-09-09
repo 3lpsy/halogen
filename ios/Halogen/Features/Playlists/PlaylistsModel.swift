@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// The Playlists tab's sort vocabulary — the web offers Custom (manual
-/// position) / Name / Created (crates/ui-views playlists/controls.rs FIELDS).
+/// position) / Name / Created (webui/views playlists/controls.rs FIELDS).
 enum PlaylistSortField: String, Codable, CaseIterable {
     case custom
     case name
@@ -32,6 +32,8 @@ struct PlaylistListQuery: Codable, Equatable {
 @MainActor
 @Observable
 final class PlaylistsModel {
+    private let accountStore: LocalStore?
+
     private static let queryKey = "listquery-playlists"
 
     private unowned let core: HalogenCore
@@ -45,7 +47,7 @@ final class PlaylistsModel {
         didSet {
             guard query != oldValue else { return }
             let snapshot = query
-            Task { [store = core.store] in await store?.save(snapshot, key: Self.queryKey) }
+            Task { [store = accountStore] in await store?.save(snapshot, key: Self.queryKey) }
         }
     }
     /// Episodes awaiting a playlist choice — the native stand-in for the
@@ -55,6 +57,7 @@ final class PlaylistsModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
     }
 
     /// The rows the view renders: name search + Custom/Name/Created sort
@@ -109,7 +112,7 @@ final class PlaylistsModel {
     /// playlist toggles and by-id route resolution need the pool before the
     /// Playlists tab is ever opened. `loaded` stays false.
     func seed() async {
-        guard playlists.isEmpty, let store = core.store,
+        guard playlists.isEmpty, let store = accountStore,
             let cached = await store.load([PlaylistData].self, key: CacheKey.playlists)
         else { return }
         if playlists.isEmpty { playlists = cached }
@@ -119,13 +122,13 @@ final class PlaylistsModel {
         error = nil
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(PlaylistListQuery.self, key: Self.queryKey)
             {
                 query = saved
             }
         }
-        if let store = core.store, playlists.isEmpty,
+        if let store = accountStore, playlists.isEmpty,
             let cached = await store.load([PlaylistData].self, key: CacheKey.playlists)
         {
             playlists = cached
@@ -144,7 +147,7 @@ final class PlaylistsModel {
             return
         }
         do {
-            let fresh = try await core.playlistsList()
+            let fresh = try await core.forAccount(accountStore).playlistsList()
             // Membership-preservation at CACHE time (web data_ops.rs
             // cache_playlists): a playlist with queued add/remove/move ops
             // keeps its optimistic episode_ids — the server row predates the
@@ -161,7 +164,7 @@ final class PlaylistsModel {
             }
             playlists = merged
             error = nil
-            await core.store?.save(merged, key: CacheKey.playlists)
+            await accountStore?.save(merged, key: CacheKey.playlists)
         } catch {
             if playlists.isEmpty { self.error = FriendlyError.message(error) }
         }
@@ -172,7 +175,7 @@ final class PlaylistsModel {
         name: String, description: String?, isDefault: Bool,
         deleteServerFile: Bool, deleteClientFile: Bool
     ) async throws {
-        _ = try await core.createPlaylist(
+        _ = try await core.forAccount(accountStore).createPlaylist(
             name: name, description: description, isDefault: isDefault,
             deleteServerFile: deleteServerFile, deleteClientFile: deleteClientFile)
         await refresh()
@@ -188,24 +191,24 @@ final class PlaylistsModel {
         let moved = rows[fromIndex]
         rows.move(fromOffsets: fromOffsets, toOffset: toOffset)
         guard let finalIndex = rows.firstIndex(where: { $0.id == moved.id }) else { return }
-        playlists = rows.enumerated().map { idx, pl in
-            Self.rebuilt(pl, position: Int32(idx))
-        }
-        persistSnapshot()
-        Task {
-            await core.outbox?.enqueue(
-                .movePlaylist(playlistId: moved.id, to: Int32(finalIndex)))
+        let operation = OutboxOp.Kind.movePlaylist(playlistId: moved.id, to: Int32(finalIndex))
+        core.enqueueMutation(originStore: accountStore, operation) { [self] in
+            var ordered = displayed
+            guard let index = ordered.firstIndex(where: { $0.id == moved.id }) else { return }
+            let item = ordered.remove(at: index)
+            ordered.insert(item, at: min(finalIndex, ordered.count))
+            playlists = ordered.enumerated().map { Self.rebuilt($0.element, position: Int32($0.offset)) }
         }
     }
 
     func delete(_ playlist: PlaylistData) async {
         playlists.removeAll { $0.id == playlist.id }
         let snapshot = playlists
-        await core.store?.save(snapshot, key: CacheKey.playlists)
+        await accountStore?.save(snapshot, key: CacheKey.playlists)
         // Its episode snapshot would otherwise sit on disk forever.
-        await core.store?.remove(key: CacheKey.playlistEpisodes(playlist.id))
+        await accountStore?.remove(key: CacheKey.playlistEpisodes(playlist.id))
         do {
-            try await core.deletePlaylist(id: playlist.id)
+            try await core.forAccount(accountStore).deletePlaylist(id: playlist.id)
         } catch {
             // The refresh restores the row — without the toast that read as
             // a UI glitch, not a rejected delete.
@@ -244,15 +247,13 @@ final class PlaylistsModel {
     /// membership, so the target playlist shows the episode immediately —
     /// offline included (web: add_to_playlist_locally + persist_playlist).
     func add(_ episode: EpisodeData, to playlist: PlaylistData) {
-        Task {
-            await core.outbox?.enqueue(
-                .addToPlaylist(playlistId: playlist.id, episodeId: episode.id, position: nil))
-        }
-        patchMembership(playlistId: playlist.id) { ids in
-            ids.contains(episode.id) ? ids : ids + [episode.id]
-        }
-        patchEpisodeCache(playlistId: playlist.id) { cached in
-            cached.contains(where: { $0.id == episode.id }) ? cached : cached + [episode]
+        core.enqueueMutation(
+            originStore: accountStore,
+            .addToPlaylist(playlistId: playlist.id, episodeId: episode.id, position: nil), episode: episode
+        ) { [self] in
+            patchMembership(playlistId: playlist.id) { ids in
+                ids.contains(episode.id) ? ids : ids + [episode.id]
+            }
         }
     }
 
@@ -264,7 +265,6 @@ final class PlaylistsModel {
             playlists[idx].episode_ids != episodeIds
         else { return }
         playlists[idx] = Self.rebuilt(playlists[idx], episodeIds: episodeIds)
-        persistSnapshot()
     }
 
     /// "Remove from <playlist>" for membership toggles outside the playlist's
@@ -272,32 +272,12 @@ final class PlaylistsModel {
     /// membership/episode-cache patching as `add`, mirrored (web:
     /// episode_playlists.rs diffs into remove_from_playlist ops).
     func remove(_ episode: EpisodeData, from playlist: PlaylistData) {
-        Task {
-            await core.outbox?.enqueue(
-                .removeFromPlaylist(playlistId: playlist.id, episodeId: episode.id))
-        }
-        patchMembership(playlistId: playlist.id) { ids in
-            ids.filter { $0 != episode.id }
-        }
-        patchEpisodeCache(playlistId: playlist.id) { cached in
-            cached.filter { $0.id != episode.id }
-        }
-    }
-
-    /// Serialized read-modify-write of a playlist's episode snapshot: the bulk
-    /// picker calls add() N times, and N unchained Tasks loading the same base
-    /// array before any saves is a classic lost update.
-    private var cachePatchChain: Task<Void, Never>?
-
-    private func patchEpisodeCache(
-        playlistId: Int32, _ transform: @escaping ([EpisodeData]) -> [EpisodeData]
-    ) {
-        let store = core.store
-        cachePatchChain = Task { [previous = cachePatchChain] in
-            await previous?.value
-            let key = CacheKey.playlistEpisodes(playlistId)
-            let cached = await store?.load([EpisodeData].self, key: key) ?? []
-            await store?.save(transform(cached), key: key)
+        core.enqueueMutation(
+            originStore: accountStore, .removeFromPlaylist(playlistId: playlist.id, episodeId: episode.id)
+        ) { [self] in
+            patchMembership(playlistId: playlist.id) { ids in
+                ids.filter { $0 != episode.id }
+            }
         }
     }
 
@@ -332,13 +312,11 @@ final class PlaylistsModel {
             changed = true
         }
         guard changed else { return }
-        persistSnapshot()
     }
 
     private func patch(id: Int32, _ transform: (PlaylistData) -> PlaylistData) {
         guard let idx = playlists.firstIndex(where: { $0.id == id }) else { return }
         playlists[idx] = transform(playlists[idx])
-        persistSnapshot()
     }
 
     private func patchMembership(playlistId: Int32, _ transform: ([Int32]) -> [Int32]) {
@@ -348,12 +326,11 @@ final class PlaylistsModel {
         let newIds = transform(ids)
         guard newIds != ids else { return }
         playlists[idx] = Self.rebuilt(playlists[idx], episodeIds: newIds)
-        persistSnapshot()
     }
 
     private func persistSnapshot() {
         let snapshot = playlists
-        Task { [store = core.store] in await store?.save(snapshot, key: CacheKey.playlists) }
+        Task { [store = accountStore] in await store?.save(snapshot, key: CacheKey.playlists) }
     }
 
     /// Generated DTOs are immutable (let fields) — rebuild with changes.

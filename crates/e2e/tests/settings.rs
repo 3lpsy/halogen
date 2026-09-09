@@ -1,15 +1,5 @@
-//! Settings journey — the playback-preferences form (on the `/settings/playback`
-//! sub-page) persists to the client config and survives a reload, and the
-//! Server sub-page reflects the configured URL. `/settings` itself is a menu of
-//! links to the per-group sub-pages.
-//!
-//! Exercises the settings write path end to end: form input → `playback_prefs`
-//! signal → `ClientConfigStore::save` (the active user's namespaced
-//! `halogen.u{id}.client_config`) → re-hydration on reload. Nothing here touches
-//! the server; it's pure client state, which is exactly what was previously
-//! untested.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Verify playback preferences persist in the active account's client config across reload and Server settings show the
+//! configured URL. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     active_config_json, body_text, browser_session, click, click_button_text, login_via_ui,

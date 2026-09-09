@@ -1,0 +1,19 @@
+[package]
+name = "halogen-webui-component-widgets"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+halogen-webui-commands = { path = "../commands" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-component-forms = { path = "../component-forms" }
+halogen-webui-listview = { path = "../listview" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-component-icons = { path = "../component-icons" }
+
+[features]
+web = ["dioxus/web", "halogen-webui-commands/web", "halogen-webui-component-forms/web", "halogen-webui-component-icons/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-hooks/web", "halogen-webui-listview/web", "halogen-webui-platform/web"]
+desktop = ["dioxus/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-forms/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-hooks/desktop", "halogen-webui-listview/desktop", "halogen-webui-platform/desktop"]

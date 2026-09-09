@@ -1,0 +1,34 @@
+[package]
+name = "halogen-webui-config"
+version.workspace = true
+edition.workspace = true
+
+# Local-only client configuration + settings: `ClientConfig` + its per-user
+# namespaced store, the preference value types, the remembered list-view store,
+# `api_client_from`, and the mutate-and-persist `config_actions`. IndexedDB on
+# web / JSON files on native. A settings layer, not a service.
+[dependencies]
+dioxus = { workspace = true }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+halogen-utils = { path = "../../crates/utils" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store-idb = { path = "../store-idb" }
+halogen-webui-listview = { path = "../listview" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+
+[dev-dependencies]
+futures = { workspace = true }

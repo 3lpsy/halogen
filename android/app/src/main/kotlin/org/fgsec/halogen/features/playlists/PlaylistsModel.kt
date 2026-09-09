@@ -1,10 +1,10 @@
 package org.fgsec.halogen.features.playlists
 
+import org.fgsec.halogen.core.enqueueMutation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,7 +20,7 @@ import org.fgsec.halogen.wire.OrderDirection
 import org.fgsec.halogen.wire.PlaylistData
 
 /// The Playlists tab's sort vocabulary — the web offers Custom (manual
-/// position) / Name / Created (crates/ui-views playlists/controls.rs FIELDS).
+/// position) / Name / Created (webui/views playlists/controls.rs FIELDS).
 @Serializable
 enum class PlaylistSortField {
     @SerialName("custom") Custom,
@@ -49,6 +49,8 @@ data class PlaylistListQuery(
 /// created id anchors later offline ops — same tradeoff the web makes for
 /// playlist CRUD vs membership ops).
 class PlaylistsModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     var playlists: List<PlaylistData> by mutableStateOf(emptyList())
         private set
@@ -64,7 +66,7 @@ class PlaylistsModel(private val core: HalogenCore) {
         set(value) {
             if (value == queryState.value) return
             queryState.value = value
-            val store = core.store
+            val store = accountStore
             core.scope.launch { store?.save(value, QUERY_KEY) }
         }
 
@@ -116,7 +118,7 @@ class PlaylistsModel(private val core: HalogenCore) {
     /// Playlists tab is ever opened. `loaded` stays false.
     suspend fun seed() {
         if (playlists.isNotEmpty()) return
-        val cached = core.store?.load<List<PlaylistData>>(CacheKey.playlists) ?: return
+        val cached = accountStore?.load<List<PlaylistData>>(CacheKey.playlists) ?: return
         if (playlists.isEmpty()) playlists = cached
     }
 
@@ -124,10 +126,10 @@ class PlaylistsModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<PlaylistListQuery>(QUERY_KEY)?.let { queryState.value = it }
+            accountStore?.load<PlaylistListQuery>(QUERY_KEY)?.let { queryState.value = it }
         }
         if (playlists.isEmpty()) {
-            core.store?.load<List<PlaylistData>>(CacheKey.playlists)?.let {
+            accountStore?.load<List<PlaylistData>>(CacheKey.playlists)?.let {
                 playlists = it
                 loaded = true
             }
@@ -160,7 +162,7 @@ class PlaylistsModel(private val core: HalogenCore) {
             }
             playlists = merged
             error = null
-            core.store?.save(merged, CacheKey.playlists)
+            accountStore?.save(merged, CacheKey.playlists)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -186,25 +188,20 @@ class PlaylistsModel(private val core: HalogenCore) {
     /// `toIndex` is the row's FINAL resting index.
     fun move(fromIndex: Int, toIndex: Int) {
         if (!reorderable) return
-        val rows = displayed.toMutableList()
-        if (fromIndex !in rows.indices) return
-        val moved = rows.removeAt(fromIndex)
-        rows.add(toIndex.coerceIn(0, rows.size), moved)
-        val finalIndex = rows.indexOfFirst { it.id == moved.id }
-        if (finalIndex < 0) return
-        playlists = rows.mapIndexed { idx, pl -> pl.copy(position = idx) }
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.MovePlaylist(playlistId = moved.id, to = finalIndex))
+        val moved = displayed.getOrNull(fromIndex) ?: return
+        val finalIndex = toIndex.coerceIn(0, (displayed.size - 1).coerceAtLeast(0))
+        core.enqueueMutation(OutboxOp.Kind.MovePlaylist(playlistId = moved.id, to = finalIndex)) {
+            val rows = displayed.filterNot { it.id == moved.id }.toMutableList()
+            rows.add(finalIndex.coerceIn(0, rows.size), moved)
+            playlists = rows.mapIndexed { index, playlist -> playlist.copy(position = index) }
         }
     }
 
     suspend fun delete(playlist: PlaylistData) {
         playlists = playlists.filterNot { it.id == playlist.id }
-        core.store?.save(playlists, CacheKey.playlists)
+        accountStore?.save(playlists, CacheKey.playlists)
         // Its episode snapshot would otherwise sit on disk forever.
-        core.store?.remove(CacheKey.playlistEpisodes(playlist.id))
+        accountStore?.remove(CacheKey.playlistEpisodes(playlist.id))
         try {
             core.deletePlaylist(playlist.id)
         } catch (e: CancellationException) {
@@ -243,14 +240,8 @@ class PlaylistsModel(private val core: HalogenCore) {
     /// membership, so the target playlist shows the episode immediately —
     /// offline included (web: add_to_playlist_locally + persist_playlist).
     fun add(episode: EpisodeData, to: PlaylistData) {
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.AddToPlaylist(
-                    playlistId = to.id, episodeId = episode.id, position = null))
-        }
-        patchMembership(to.id) { ids -> if (episode.id in ids) ids else ids + episode.id }
-        patchEpisodeCache(to.id) { cached ->
-            if (cached.any { it.id == episode.id }) cached else cached + episode
+        core.enqueueMutation(OutboxOp.Kind.AddToPlaylist(playlistId = to.id, episodeId = episode.id, position = null), episode = episode) {
+            patchMembership(to.id) { ids -> if (episode.id in ids) ids else ids + episode.id }
         }
     }
 
@@ -263,7 +254,6 @@ class PlaylistsModel(private val core: HalogenCore) {
         playlists = playlists.toMutableList().also {
             it[idx] = it[idx].copy(episode_ids = episodeIds)
         }
-        persistSnapshot()
     }
 
     /// "Remove from <playlist>" for membership toggles outside the playlist's
@@ -271,29 +261,8 @@ class PlaylistsModel(private val core: HalogenCore) {
     /// membership/episode-cache patching as `add`, mirrored (web:
     /// episode_playlists.rs diffs into remove_from_playlist ops).
     fun remove(episode: EpisodeData, from: PlaylistData) {
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.RemoveFromPlaylist(playlistId = from.id, episodeId = episode.id))
-        }
-        patchMembership(from.id) { ids -> ids.filterNot { it == episode.id } }
-        patchEpisodeCache(from.id) { cached -> cached.filterNot { it.id == episode.id } }
-    }
-
-    /// Serialized read-modify-write of a playlist's episode snapshot — each patch
-    /// awaits the previous: the bulk picker calls add() N times, and N unchained
-    /// jobs loading the same base array before any saves is a classic lost update.
-    private var cachePatchChain: Job? = null
-
-    private fun patchEpisodeCache(
-        playlistId: Int, transform: (List<EpisodeData>) -> List<EpisodeData>,
-    ) {
-        val store = core.store
-        val previous = cachePatchChain
-        cachePatchChain = core.scope.launch {
-            previous?.join()
-            val key = CacheKey.playlistEpisodes(playlistId)
-            val cached = store?.load<List<EpisodeData>>(key) ?: emptyList()
-            store?.save(transform(cached), key)
+        core.enqueueMutation(OutboxOp.Kind.RemoveFromPlaylist(playlistId = from.id, episodeId = episode.id)) {
+            patchMembership(from.id) { ids -> ids.filterNot { it == episode.id } }
         }
     }
 
@@ -331,14 +300,12 @@ class PlaylistsModel(private val core: HalogenCore) {
         }
         if (!changed) return
         playlists = next
-        persistSnapshot()
     }
 
     private fun patch(id: Int, transform: (PlaylistData) -> PlaylistData) {
         val idx = playlists.indexOfFirst { it.id == id }
         if (idx < 0) return
         playlists = playlists.toMutableList().also { it[idx] = transform(it[idx]) }
-        persistSnapshot()
     }
 
     private fun patchMembership(playlistId: Int, transform: (List<Int>) -> List<Int>) {
@@ -349,12 +316,11 @@ class PlaylistsModel(private val core: HalogenCore) {
         playlists = playlists.toMutableList().also {
             it[idx] = it[idx].copy(episode_ids = newIds)
         }
-        persistSnapshot()
     }
 
     private fun persistSnapshot() {
         val snapshot = playlists
-        val store = core.store
+        val store = accountStore
         core.scope.launch { store?.save(snapshot, CacheKey.playlists) }
     }
 

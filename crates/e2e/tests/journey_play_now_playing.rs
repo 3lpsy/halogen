@@ -1,16 +1,5 @@
-//! Journey A — feed → play → now-playing → history.
-//!
-//! The end-to-end playback journey through the real UI. The feed is ingested
-//! server-side (seed + poll, not the UI subscribe form — that async round-trip
-//! doesn't reliably land in the test window); the browser then plays the newest
-//! episode from /latest (the mini player reaches the Playing state), expands to
-//! the full-screen now-playing overlay and drives its controls (seek slider,
-//! speed control, skip-forward), closes the player (the mini player disappears),
-//! then confirms the episode shows up on /history.
-//!
-//! Only upstream RSS is faked (a `wiremock` feed); the download service is the
-//! mock-download copy so play sources real bytes. `#[ignore]` by default; run
-//! via `just test-e2e`.
+//! Ingest a mocked feed, play real fixture bytes, exercise seek/speed/skip in the expanded player, close playback, and
+//! verify history. Seed and poll avoid the asynchronous subscribe form. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, ingest_feed, login_via_ui, require_dist, run_session,
@@ -50,12 +39,10 @@ async fn play_now_playing_journey() {
     )
     .await;
 
-    // The poll only ingests metadata. The UI's local-first play gating keeps the
-    // play badge DISABLED until the server actually holds the file, so stage the
-    // newest episode (the first row /latest shows) on the server — mock download
-    // copies the fixture clip into media_root. Done before the browser opens so
-    // the client's first sync pull already sees `Downloaded` and the badge is
-    // enabled on first render.
+    // The poll only ingests metadata. The UI's local-first play gating keeps the play badge DISABLED until the
+    // server actually holds the file, so stage the newest episode (the first row /latest shows) on the server —
+    // mock download copies the fixture clip into media_root. Done before the browser opens so the client's
+    // first sync pull already sees `Downloaded` and the badge is enabled on first render.
     let newest = app.newest_episode_id().await;
     app.download_on_server(newest).await;
 
@@ -165,15 +152,8 @@ async fn play_now_playing_journey() {
             .click()
             .await?;
 
-        // There is no "Stop" control in the now-playing overlay. Collapse the
-        // overlay via its Collapse button (the ChevronDown), then stop playback
-        // via the mini player's Close button (which calls `stop()`) — the mini
-        // player then disappears. Target by aria-label, not `.fixed.inset-0 button`:
-        // the app-layout root is also `fixed inset-0` and now holds the navbar's
-        // "Go Offline" toggle, which that bare selector would hit instead. Use the
-        // overlay-tolerant `click` helper: a short clip can reach its end
-        // mid-interaction, and the ended overlay can sit over the mini player,
-        // intercepting a geometric click — the helper falls back to a JS click.
+        // Collapse the overlay, then close the mini player to stop playback. Use aria-labels to avoid the app root's
+        // other fixed controls; the click helper tolerates an ended overlay intercepting a native click.
         click(&driver, "button[aria-label='Collapse player']")
             .await
             .ok();

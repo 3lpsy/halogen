@@ -11,6 +11,8 @@ import UIKit
 @MainActor
 @Observable
 final class PlayerModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
 
     private(set) var current: EpisodeData?
@@ -74,6 +76,7 @@ final class PlayerModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
         configureRemoteCommands()
         observeAudioSession()
     }
@@ -165,6 +168,9 @@ final class PlayerModel {
     /// `forceRestart` rebuilds the pipeline even when `episode` is already
     /// current — nil-ing `current` to fake this unmounts the mini player AND
     /// the presented sheet (iOS dismisses it; the e2e Up Next failure).
+    private var resolvedLocalAudio: [Int32: URL] = [:]
+    private var localResolution: Task<Void, Never>?
+
     private func start(_ episode: EpisodeData, forceStream: Bool, forceRestart: Bool = false) {
         // A failed item can't be revived by just setting rate — a retry must
         // rebuild the source (web: play() from Error routes through
@@ -206,7 +212,8 @@ final class PlayerModel {
         let strategy: ClientPrefs.PlaybackStrategy =
             forceStream ? .streamOnly : core.effectivePlaybackStrategy
         let hasDevice = core.models?.device.localURL(episodeId: episode.id) != nil
-        let onServer = core.models?.serverDownloads.isDownloaded(episode)
+        let onServer =
+            core.models?.serverDownloads.isDownloaded(episode)
             ?? (episode.download_status == .downloaded)
 
         switch strategy {
@@ -239,18 +246,43 @@ final class PlayerModel {
             }
         }
 
+        if core.isEmbeddedAccount, resolvedLocalAudio[episode.id] == nil {
+            localResolution?.cancel()
+            localResolution = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    guard let url = try await core.forAccount(accountStore).localAudioURL(episodeId: episode.id) else {
+                        failureMessage = "Episode audio is not downloaded"
+                        isPlaying = false
+                        return
+                    }
+                    guard !Task.isCancelled, current?.id == episode.id else { return }
+                    resolvedLocalAudio[episode.id] = url
+                    start(episode, forceStream: forceStream, forceRestart: true)
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    failureMessage = FriendlyError.message(error)
+                    isPlaying = false
+                }
+            }
+            return
+        }
+
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio)
         try? AVAudioSession.sharedInstance().setActive(true)
 
         // Prefer the on-device copy (works fully offline) unless the strategy
         // is stream-only; stream otherwise.
-        let local = strategy == .streamOnly
-            ? nil : core.models?.device.localURL(episodeId: episode.id)
+        let local =
+            resolvedLocalAudio[episode.id]
+            ?? (strategy == .streamOnly
+                ? nil : core.models?.device.localURL(episodeId: episode.id))
         guard var url = local ?? core.audioURL(episodeId: episode.id) else {
             // No device copy and no usable stream URL (manual offline or
             // signed out) — a silent return here mounted a dead mini player.
             isPlaying = false
-            failureMessage = core.isOffline
+            failureMessage =
+                core.isOffline
                 ? "You're offline — download the episode or reconnect to stream it."
                 : "Not signed in — can't stream this episode."
             DeviceLog.warn("player: no audio URL for episode \(episode.id)")
@@ -332,7 +364,7 @@ final class PlayerModel {
         if episode.playback == nil, core.models?.playbacks.entries[episode.id] == nil {
             Task { [weak self] in
                 guard let self,
-                    let fresh = try? await self.core.episodeDetail(id: episode.id),
+                    let fresh = try? await self.core.forAccount(self.accountStore).episodeDetail(id: episode.id),
                     let cursor = fresh.playback?.cursor, cursor > 0
                 else { return }
                 guard self.current?.id == episode.id, self.position < 5 else { return }
@@ -448,7 +480,7 @@ final class PlayerModel {
         guard streaming, let episode = current,
             Self.streamErrorFacts(error).auth
         else { return }
-        Task { _ = try? await core.episodeDetail(id: episode.id) }
+        Task { _ = try? await core.forAccount(accountStore).episodeDetail(id: episode.id) }
     }
 
     private func playbackFailureMessage(_ error: Error?) -> String {
@@ -471,10 +503,10 @@ final class PlayerModel {
     private func loadChapters(for episode: EpisodeData) {
         Task { [weak self] in
             guard let self else { return }
-            var detail = await self.core.store?.load(
+            var detail = await self.accountStore?.load(
                 EpisodeData.self, key: CacheKey.episode(episode.id))
             if detail?.chapters == nil {
-                detail = (try? await self.core.episodeDetail(id: episode.id)) ?? detail
+                detail = (try? await self.core.forAccount(self.accountStore).episodeDetail(id: episode.id)) ?? detail
             }
             guard self.current?.id == episode.id, let found = detail?.chapters else { return }
             self.chapters = found
@@ -594,6 +626,8 @@ final class PlayerModel {
     }
 
     func stop() {
+        localResolution?.cancel()
+        resolvedLocalAudio.removeAll()
         saveCursorNow()
         teardown()
         current = nil

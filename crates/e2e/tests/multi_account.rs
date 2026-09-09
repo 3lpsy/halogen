@@ -1,15 +1,5 @@
-//! Multi-account lifecycle — add a second account, prove per-account isolation,
-//! switch between them, and sign one out. Closes the coverage gap flagged as
-//! NM24 (no e2e exercised multi-account, which the account-isolation fixes
-//! NH5/NH6/NH10 depend on).
-//!
-//! Both accounts live on the SAME test server (users A = admin, B = a second
-//! loginable user). Their client state is namespaced per account (separate
-//! IndexedDB segments), so A's queued episode must NOT appear under B, and each
-//! account's state survives a switch. B is added through the real in-app
-//! "Add account" flow (Settings → Accounts → Add account → login form).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Add a second account on the same server through Settings, verify isolated queue state across switches, then sign one
+//! out. Each account uses separate IndexedDB storage. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_button_text, click_el, count, fill, login_via_ui,
@@ -134,14 +124,8 @@ async fn multi_account_isolation_switch_and_signout() {
             body_text(&driver).await
         );
 
-        // ── Switch back to A: A's queued episode survived ───────────────────
-        // Switching hot-swaps the active account: `switch_account_smart`
-        // persists the new active id to the device registry, then the whole
-        // data subtree remounts and the worker re-auths under A's namespace —
-        // all async. Rather than race the in-place remount, let the active-id
-        // write land and force a clean boot as A via a reload (the active
-        // account is read from the registry on boot), which re-hydrates A's
-        // store deterministically.
+        // Wait for the active-account registry write, then reload as A. This avoids racing the asynchronous subtree
+        // remount and worker reauthentication while checking A's persisted queue.
         click_button_text(&driver, "Switch").await?;
         tokio::time::sleep(Duration::from_secs(2)).await;
         driver.refresh().await?;
@@ -168,15 +152,8 @@ async fn multi_account_isolation_switch_and_signout() {
         // document order): the first Sign-out button that follows B's username.
         const B_SIGNOUT: &str =
             "//span[normalize-space()='bob']/following::button[normalize-space()='Sign out'][1]";
-        // Re-find immediately before each click and confirm the row actually
-        // went, because BOTH halves of this step are unsynchronized:
-        //   - the chrome re-renders when the connection chip flips Connecting →
-        //     Online, which can detach the button between find and click; a
-        //     detached node still ACCEPTS the click and fires no handler, so the
-        //     click silently no-ops (this is why `click` re-finds on staleness).
-        //   - sign-out of a NON-active account is async (registry save →
-        //     per-user config clear → the signal write that re-renders) and
-        //     never remounts, so no later wait here would block on it.
+        // Re-find each button before clicking and wait for row removal. Connection-state renders can detach targets,
+        // and non-active sign-out persists asynchronously without a subtree remount.
         let mut signed_out = false;
         for _ in 0..5 {
             let Ok(b_signout) = driver.find(By::XPath(B_SIGNOUT)).await else {

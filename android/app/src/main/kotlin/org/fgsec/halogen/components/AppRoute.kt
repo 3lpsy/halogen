@@ -106,13 +106,15 @@ fun NavGraphBuilder.appDestinations(core: HalogenCore, models: Models) {
 /// a network hit upserts into pool + snapshot so the NEXT visit renders instantly and offline.
 @Composable
 private fun PodcastScreen(id: Int, core: HalogenCore, models: Models) {
+    val accountStore = core.store
+
     var resolved by remember { mutableStateOf<PodcastData?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     suspend fun resolve() {
         // Offline snapshot (everything the library list ever fetched).
-        val cached = core.store?.load<List<PodcastData>>(CacheKey.podcasts)
+        val cached = accountStore?.load<List<PodcastData>>(CacheKey.podcasts)
         val hit = cached?.firstOrNull { it.id == id }
         if (hit != null) {
             resolved = hit
@@ -177,13 +179,15 @@ private fun PodcastScreen(id: Int, core: HalogenCore, models: Models) {
 /// the fetched row upserted for offline re-visits.
 @Composable
 private fun PlaylistScreen(id: Int, core: HalogenCore, models: Models) {
+    val accountStore = core.store
+
     var resolved by remember { mutableStateOf<PlaylistData?>(null) }
     var failure by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val navigator = LocalNavigator.current
 
     suspend fun resolve() {
-        val cached = core.store?.load<List<PlaylistData>>(CacheKey.playlists)
+        val cached = accountStore?.load<List<PlaylistData>>(CacheKey.playlists)
         val hit = cached?.firstOrNull { it.id == id }
         if (hit != null) {
             resolved = hit

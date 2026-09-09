@@ -1,0 +1,28 @@
+[package]
+name = "halogen-webui-hook-window-event"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-player = { path = "../player" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-player/web"]
+desktop = ["dioxus/desktop", "halogen-webui-player/desktop"]

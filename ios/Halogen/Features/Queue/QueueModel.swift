@@ -7,6 +7,8 @@ import Observation
 @MainActor
 @Observable
 final class QueueModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
 
     private(set) var queue: PlaylistData?
@@ -18,7 +20,7 @@ final class QueueModel {
         didSet {
             guard query != oldValue else { return }
             let snapshot = query
-            Task { [store = core.store] in await store?.save(snapshot, key: "listquery-queue") }
+            Task { [store = accountStore] in await store?.save(snapshot, key: "listquery-queue") }
         }
     }
     private var loadedQuery = false
@@ -32,19 +34,20 @@ final class QueueModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
     }
 
     func load() async {
         error = nil
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(ListQuery.self, key: "listquery-queue")
             {
                 query = saved
             }
         }
-        if let store = core.store {
+        if let store = accountStore {
             if queue == nil, let cachedQueue = await store.load(PlaylistData.self, key: CacheKey.queueMeta) {
                 queue = cachedQueue
             }
@@ -65,10 +68,10 @@ final class QueueModel {
         // playlist back, or this fetch wipes a not-yet-shipped offline add.
         await core.outbox?.drain()
         do {
-            let fresh = try await core.defaultPlaylist()
+            let fresh = try await core.forAccount(accountStore).defaultPlaylist()
             queue = fresh
             if let fresh {
-                await core.store?.save(fresh, key: CacheKey.queueMeta)
+                await accountStore?.save(fresh, key: CacheKey.queueMeta)
                 // Membership ops still queued for this playlist (the drain
                 // couldn't ship them): the local list is AHEAD of the server —
                 // keep it, don't overwrite screen/cache with stale membership
@@ -78,7 +81,7 @@ final class QueueModel {
                     return
                 }
                 let epoch = mutationEpoch
-                let served = try await core.playlistEpisodes(playlistId: fresh.id)
+                let served = try await core.forAccount(accountStore).playlistEpisodes(playlistId: fresh.id)
                 // Guard AGAIN at cache time: a mutation (or its just-enqueued
                 // op) that landed while the fetch was in flight outranks the
                 // stale server membership.
@@ -88,10 +91,10 @@ final class QueueModel {
                     return
                 }
                 episodes = served
-                await core.store?.save(episodes, key: CacheKey.playlistEpisodes(fresh.id))
+                await accountStore?.save(episodes, key: CacheKey.playlistEpisodes(fresh.id))
             } else {
                 episodes = []
-                await core.store?.remove(key: CacheKey.queueMeta)
+                await accountStore?.remove(key: CacheKey.queueMeta)
             }
             error = nil
         } catch {
@@ -106,7 +109,7 @@ final class QueueModel {
     /// with a full-page error.
     func createQueue() async {
         do {
-            _ = try await core.createPlaylist(name: "Queue", isDefault: true)
+            _ = try await core.forAccount(accountStore).createPlaylist(name: "Queue", isDefault: true)
             await refresh()
         } catch {
             ToastCenter.shared.error(
@@ -118,63 +121,53 @@ final class QueueModel {
 
     func remove(_ episode: EpisodeData) {
         guard let queue else { return }
-        mutationEpoch += 1
-        episodes.removeAll { $0.id == episode.id }
-        persistSnapshot()
-        Task { await core.outbox?.enqueue(.removeFromPlaylist(playlistId: queue.id, episodeId: episode.id)) }
+        core.enqueueMutation(
+            originStore: accountStore, .removeFromPlaylist(playlistId: queue.id, episodeId: episode.id)
+        ) { [self] in
+            mutationEpoch += 1
+            episodes.removeAll { $0.id == episode.id }
+            persistSnapshot()
+        }
     }
 
     func move(fromOffsets: IndexSet, toOffset: Int) {
-        guard let queue, let fromIndex = fromOffsets.first,
-            episodes.indices.contains(fromIndex)
-        else { return }
-        mutationEpoch += 1
-        let moved = episodes[fromIndex]
-        episodes.move(fromOffsets: fromOffsets, toOffset: toOffset)
-        guard let finalIndex = episodes.firstIndex(where: { $0.id == moved.id }) else { return }
-        persistSnapshot()
-        Task {
-            await core.outbox?.enqueue(
-                .moveInPlaylist(
-                    playlistId: queue.id, episodeId: moved.id, to: Int32(finalIndex)))
+        guard let fromIndex = fromOffsets.first, episodes.indices.contains(fromIndex) else { return }
+        let episode = episodes[fromIndex]
+        var ordered = episodes
+        ordered.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        guard let destination = ordered.firstIndex(where: { $0.id == episode.id }) else { return }
+        move(episode, to: destination)
+    }
+
+    private func move(_ episode: EpisodeData, to destination: Int) {
+        guard let queue else { return }
+        let operation = OutboxOp.Kind.moveInPlaylist(
+            playlistId: queue.id, episodeId: episode.id, to: Int32(destination))
+        core.enqueueMutation(originStore: accountStore, operation) { [self] in
+            guard let index = episodes.firstIndex(where: { $0.id == episode.id }) else { return }
+            mutationEpoch += 1
+            let moved = episodes.remove(at: index)
+            episodes.insert(moved, at: min(destination, episodes.count))
+            persistSnapshot()
         }
     }
 
-    func moveToTop(_ episode: EpisodeData) {
-        guard let queue, let idx = episodes.firstIndex(where: { $0.id == episode.id })
-        else { return }
-        mutationEpoch += 1
-        episodes.move(fromOffsets: IndexSet(integer: idx), toOffset: 0)
-        persistSnapshot()
-        Task {
-            await core.outbox?.enqueue(
-                .moveInPlaylist(playlistId: queue.id, episodeId: episode.id, to: 0))
-        }
-    }
+    func moveToTop(_ episode: EpisodeData) { move(episode, to: 0) }
 
-    /// Called from other tabs' episode rows ("Add to Queue"). Lands at the
-    /// FRONT (position 0, newest first) by default — the web's
-    /// add_to_queue_front pref, applied optimistically and in the drained op.
     func add(_ episode: EpisodeData) {
         guard let queue else {
-            // Cold start before the default playlist ever resolved: the tap
-            // must not vanish silently (the button renders regardless).
-            ToastCenter.shared.error("Queue isn't loaded yet — reconnect once, then retry.")
+            ToastCenter.shared.error("Queue isn't loaded yet. Reconnect once, then retry.")
             return
         }
-        guard !episodes.contains(where: { $0.id == episode.id }) else { return }
-        mutationEpoch += 1
         let front = core.models?.prefs.prefs.addToQueueFront ?? true
-        if front {
-            episodes.insert(episode, at: 0)
-        } else {
-            episodes.append(episode)
-        }
-        persistSnapshot()
-        Task {
-            await core.outbox?.enqueue(
-                .addToPlaylist(
-                    playlistId: queue.id, episodeId: episode.id, position: front ? 0 : nil))
+        core.enqueueMutation(
+            originStore: accountStore,
+            .addToPlaylist(playlistId: queue.id, episodeId: episode.id, position: front ? 0 : nil), episode: episode
+        ) { [self] in
+            guard !episodes.contains(where: { $0.id == episode.id }) else { return }
+            mutationEpoch += 1
+            if front { episodes.insert(episode, at: 0) } else { episodes.append(episode) }
+            persistSnapshot()
         }
     }
 
@@ -202,9 +195,6 @@ final class QueueModel {
         // (menus and counts read it — see PlaylistsModel.setMembership).
         core.models?.playlists.setMembership(
             playlistId: queue.id, episodeIds: episodes.map(\.id))
-        let snapshot = episodes
-        Task { [store = core.store] in
-            await store?.save(snapshot, key: CacheKey.playlistEpisodes(queue.id))
-        }
+
     }
 }

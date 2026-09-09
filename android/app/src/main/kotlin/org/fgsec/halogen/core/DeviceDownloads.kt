@@ -36,7 +36,7 @@ import org.fgsec.halogen.storage.OutboxOp
 import org.fgsec.halogen.wire.DownloadStatus
 import org.fgsec.halogen.wire.EpisodeData
 
-// Device downloads (web crates/ui-svc-sync download.rs): phase 1 waits for the
+// Device downloads (web webui/sync-engine download.rs): phase 1 waits for the
 // SERVER copy (durable TriggerDownload op + polling — never the RSS origin);
 // phase 2 pulls Range chunks into a `.partial` whose length IS the resume point
 // (`.partial.meta` sidecar keeps the Content-Type); only verified-complete files commit.
@@ -47,6 +47,8 @@ class DeviceDownloads(
     namespace: String,
     private val scope: CoroutineScope,
 ) {
+    private val accountStore = core.store
+
     sealed interface State {
         data object None : State
 
@@ -67,7 +69,7 @@ class DeviceDownloads(
     data class Stats(val count: Int, val bytes: Long)
 
     companion object {
-        // Web parity constants (crates/ui-svc-sync download.rs).
+        // Web parity constants (webui/sync-engine download.rs).
         // Server-copy wait budget: tries × interval ≈ 2 minutes.
         private const val SERVER_POLL_TRIES = 40
         private const val SERVER_POLL_INTERVAL_MS = 3_000L
@@ -144,7 +146,7 @@ class DeviceDownloads(
 
     // Rebuild state from disk (finished files + partials) and the cached list.
     suspend fun load() {
-        core.store?.load<List<EpisodeData>>(CacheKey.deviceDownloads)?.let { onDevice = it }
+        accountStore?.load<List<EpisodeData>>(CacheKey.deviceDownloads)?.let { onDevice = it }
         val seeded = withContext(Dispatchers.IO) {
             val entries = mutableMapOf<Int, State>()
             for (file in dir.list().orEmpty()) {
@@ -298,7 +300,10 @@ class DeviceDownloads(
     // not a slow one). Returns false after setting the failure state.
     private suspend fun waitForServerCopy(id: Int): Boolean {
         // Durable + idempotent server-side; survives offline and restarts.
-        core.outbox?.enqueue(OutboxOp.Kind.TriggerDownload(episodeId = id))
+        if (!core.ensureQueued(OutboxOp.Kind.TriggerDownload(episodeId = id))) {
+            states = states + (id to State.Failed("Couldn't save the download request."))
+            return false
+        }
         // Track the server run too so the waiting row's cloud ring shows live progress.
         core.models?.serverDownloads?.watch(id)
         var consecutiveErrors = 0
@@ -887,7 +892,7 @@ class DeviceDownloads(
 
     private fun persistList() {
         val snapshot = onDevice
-        scope.launch { core.store?.save(snapshot, CacheKey.deviceDownloads) }
+        scope.launch { accountStore?.save(snapshot, CacheKey.deviceDownloads) }
     }
 
     private fun partialFile(id: Int): File = File(dir, "$id.partial")

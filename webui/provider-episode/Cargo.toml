@@ -1,0 +1,28 @@
+[package]
+name = "halogen-webui-provider-episode"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-app-state = { path = "../app-state" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-app-state/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop"]

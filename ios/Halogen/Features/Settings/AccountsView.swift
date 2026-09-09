@@ -75,7 +75,10 @@ struct AccountsView: View {
                     }
                 }
             } footer: {
-                Text("Switching accounts swaps the whole library view; each account keeps its own cache and settings. Removing an account signs it out on this device — nothing is deleted on the server.")
+                Text(
+                    "Switching accounts swaps the whole library view; each account keeps its own cache and "
+                        + "settings. Removing an account signs it out on this device — nothing is deleted on the server."
+                )
             }
         }
         .navigationTitle("Accounts")
@@ -128,7 +131,9 @@ struct AddEmbeddedUserView: View {
                 Toggle("Administrator", isOn: .constant(true))
                     .disabled(true)
             } footer: {
-                Text("Users on the embedded server are always administrators. No password needed — the app manages sign-in.")
+                Text(
+                    "Local Only users manage the on-device library. No password is needed."
+                )
             }
             if let error {
                 Text(error).font(.footnote).foregroundStyle(.red)

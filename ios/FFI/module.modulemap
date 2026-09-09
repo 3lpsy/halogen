@@ -1,0 +1,5 @@
+module halogen_mobileFFI {
+    header "../Rust/include/halogen_mobileFFI.h"
+    link "halogen_mobile"
+    export *
+}

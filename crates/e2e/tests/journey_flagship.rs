@@ -1,14 +1,6 @@
-//! Journey E — flagship: one long, realistic session asserting at each step.
-//!
-//! onboard → feed ingested server-side (seed + poll) → /latest (sort by Title,
-//! then search narrows) → kebab Add-to-queue → /queue play (mini player Playing)
-//! → expand now-playing (skip + 2x speed) → device-download a DIFFERENT episode
-//! → go offline (dead port) → /downloads play offline → assert navbar shows
-//! "Offline" → reconnect (restore server_url + refresh) → assert "Online" and
-//! /history shows the played episode → reload → assert queue membership + device
-//! download persist.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Full session covers onboarding, search/sort, queue playback, expanded controls, a separate device download, offline
+//! playback, reconnect, history, and persisted queue/download state after reload. Ignored by default; run with `just
+//! test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_button_text, count, first_text, ingest_feed,
@@ -50,12 +42,8 @@ async fn flagship_journey() {
     )
     .await;
 
-    // The poll only ingests metadata. Local-first play gating keeps the play
-    // badge DISABLED until the server holds the file, so stage the FreeBSD
-    // episode (the one this journey searches for and plays from the queue) on
-    // the server — mock download copies the fixture clip. Only this one: leaving
-    // the rest NotDownloaded keeps the later device-download target's button
-    // title as "Download to device" (it flips to "On server — …" once staged).
+    // Stage only FreeBSD on the server so its queue play is enabled. Leave other episodes undownloaded to preserve the
+    // later target's Download to device button title.
     let freebsd = app.episode_id_by_title("FreeBSD").await;
     app.download_on_server(freebsd).await;
 
@@ -74,6 +62,7 @@ async fn flagship_journey() {
             "no episodes on Latest; body:\n{}",
             body_text(&driver).await
         );
+        halogen_e2e::shot(driver, "02-latest").await;
         let default_top = first_text(&driver, ROW).await;
 
         // Open the sort dropdown (identified by its trigger's aria-label — both
@@ -168,6 +157,8 @@ async fn flagship_journey() {
             body_text(&driver).await
         );
 
+        halogen_e2e::shot(driver, "03-queue").await;
+
         // ── Expand now-playing: skip + 2x speed ─────────────────────────────
         driver
             .query(By::Css("#mini-player button.flex-1"))
@@ -217,12 +208,10 @@ async fn flagship_journey() {
             .await
             .ok();
 
-        // Persist a playback record — what History is built from. It's emitted
-        // only on pause, a ~10s in-play tick debounce, or an end-of-clip
-        // MarkPlayed; none reliably fires in the short window before we go
-        // offline, so History came up empty. Pausing sends a SetCursor that
-        // syncs while ONLINE (tolerant: a short clip may have already ended →
-        // MarkPlayed, which records it too).
+        // Persist a playback record — what History is built from. It's emitted only on pause, a ~10s in-play
+        // tick debounce, or an end-of-clip MarkPlayed; none reliably fires in the short window before we go
+        // offline, so History came up empty. Pausing sends a SetCursor that syncs while ONLINE (tolerant: a
+        // short clip may have already ended → MarkPlayed, which records it too).
         click(&driver, "#mini-player button[aria-label='Pause']")
             .await
             .ok();
@@ -237,6 +226,8 @@ async fn flagship_journey() {
             body_text(&driver).await
         );
 
+        halogen_e2e::shot(driver, "04-history").await;
+
         // ── Device-download a DIFFERENT episode (from /latest) ──────────────
         driver.goto(format!("{}/latest", app.base_url)).await?;
         assert!(
@@ -245,12 +236,8 @@ async fn flagship_journey() {
             body_text(&driver).await
         );
         let download_title = first_text(&driver, ROW).await;
-        // FreeBSD was already device-downloaded by the DownloadOnly play above and
-        // sits on /latest page 0, so a "Downloaded on device — remove" badge
-        // ALREADY exists here. Waiting for that selector to merely *exist* is
-        // satisfied by FreeBSD's badge — the test then races on to go offline
-        // before THIS episode's bytes finish, so it's absent after reload. Count
-        // first, then require the count to INCREASE, so we wait for ep 1 itself.
+        // FreeBSD already has a downloaded badge. Require the count to increase so the test waits for this episode's
+        // bytes before going offline.
         let downloaded_before =
             count(&driver, "button[title='Downloaded on device — remove']").await;
         driver
@@ -284,14 +271,8 @@ async fn flagship_journey() {
             body_text(&driver).await
         );
         click(&driver, ".badge.badge-outline.cursor-pointer").await?;
-        // Offline playback ENGAGED: the mini player mounts (now_playing is set).
-        // This episode was already played-and-ended online, so replaying the
-        // sub-second mock clip from the local blob can complete near-instantly —
-        // the Pause (Playing) state may flash by faster than a DOM poll can catch
-        // (a real, minutes-long episode holds Playing for its whole duration).
-        // So the robust proof is: the player engaged offline AND did not error
-        // (a broken local-blob path would surface a playback/audio error instead
-        // of playing). We still try for Pause, but tolerate an instant finish.
+        // The short fixture may finish before polling observes Pause. Accept an engaged, error-free offline player even
+        // if Playing is too brief to catch.
         assert!(
             wait_for_css(&driver, "#mini-player", Duration::from_secs(10)).await,
             "offline playback did not engage (mini player never appeared); body:\n{}",
@@ -303,6 +284,7 @@ async fn flagship_journey() {
             Duration::from_secs(3),
         )
         .await; // best-effort: caught it mid-play if the clip was long enough
+        halogen_e2e::shot(driver, "05-offline-playback").await;
         let player_body = body_text(&driver).await;
         assert!(
             !player_body.contains("Playback error")

@@ -1,0 +1,12 @@
+[package]
+name = "halogen-webui-player-sleep"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+halogen-webui-logging = { path = "../logging" }
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]

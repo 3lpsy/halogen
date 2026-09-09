@@ -126,9 +126,7 @@ fun DbTransferView(core: HalogenCore, onBack: () -> Unit) {
             alignmentNote = if (core.isEmbeddedAccount && summary.created_usernames.isNotEmpty()) {
                 val failed = core.alignImportedUsers(summary.created_usernames)
                 if (failed.isEmpty()) null
-                else "Couldn't set up sign-in for imported user(s) " +
-                    "${failed.joinToString(", ")} — they keep their random " +
-                    "passwords and can't be signed in from this device."
+                else "Couldn't open imported profiles: ${failed.joinToString(", ")}."
             } else null
             staged = null
             error = null

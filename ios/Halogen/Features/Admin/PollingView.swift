@@ -36,9 +36,11 @@ struct PollingView: View {
                                 .font(.caption2.monospaced())
                                 .foregroundStyle(.tertiary)
                         }
-                        Text("\(String(job.total_new)) new · \(String(job.total_updated)) updated · \(String(job.total_errors)) errors")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            "\(String(job.total_new)) new · \(String(job.total_updated)) updated · \(String(job.total_errors)) errors"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 2)
                 }
@@ -61,7 +63,7 @@ struct PollingView: View {
                 .disabled(polling)
             }
         }
-        .task { await load() }
+        .task(id: core.libraryChanges.revision) { await load() }
         .refreshable { await load() }
     }
 

@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.downloads
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -18,6 +19,8 @@ import org.fgsec.halogen.wire.EpisodeData
 /// plus the SERVER's download set (Server / Downloading facets). Embedded
 /// accounts have no device tier — the server set IS this device.
 class DownloadsModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     enum class Facet(val rawValue: String) {
         OnDevice("on_device"),
@@ -60,7 +63,7 @@ class DownloadsModel(private val core: HalogenCore) {
             if (value == queryState) return
             queryState = value
             val snapshot = value
-            core.scope.launch { core.store?.save(snapshot, "listquery-downloads") }
+            core.scope.launch { accountStore?.save(snapshot, "listquery-downloads") }
         }
     private var loadedQuery = false
 
@@ -83,7 +86,7 @@ class DownloadsModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<ListQuery>("listquery-downloads")?.let { query = it }
+            accountStore?.load<ListQuery>("listquery-downloads")?.let { query = it }
         }
         // Cache-paint only a COLD list or a facet switch (siblings' rule):
         // this refires on every query keystroke, and repainting the full
@@ -92,7 +95,7 @@ class DownloadsModel(private val core: HalogenCore) {
         val facetChanged = paintedFacet != facet
         if ((episodes.isEmpty() || facetChanged) && query.search.isEmpty()) {
             if (facetChanged) episodes = emptyList()
-            core.store?.load<List<EpisodeData>>(CacheKey.downloads(facet.rawValue))?.let { cached ->
+            accountStore?.load<List<EpisodeData>>(CacheKey.downloads(facet.rawValue))?.let { cached ->
                 episodes = cached
                 loaded = true
             }
@@ -126,9 +129,9 @@ class DownloadsModel(private val core: HalogenCore) {
                 // stay renderable offline.
                 val ids = first.items.map { it.id }.toSet()
                 var snapshot = first.items
-                core.store?.load<List<EpisodeData>>(CacheKey.downloads(facet.rawValue))
+                accountStore?.load<List<EpisodeData>>(CacheKey.downloads(facet.rawValue))
                     ?.let { prior -> snapshot = snapshot + prior.filterNot { it.id in ids } }
-                core.store?.save(snapshot, CacheKey.downloads(facet.rawValue))
+                accountStore?.save(snapshot, CacheKey.downloads(facet.rawValue))
             }
         } catch (e: CancellationException) {
             throw e
@@ -165,16 +168,13 @@ class DownloadsModel(private val core: HalogenCore) {
     /// server file — durable (web: RemoveServerDownload op), so it queues
     /// offline instead of silently failing.
     suspend fun removeDownload(episode: EpisodeData) {
-        episodes = episodes.filterNot { it.id == episode.id }
         if (facet == Facet.OnDevice) {
+            episodes = episodes.filterNot { it.id == episode.id }
             core.models?.device?.remove(episode.id)
             return
         }
-        // Optimistic overlay (every row/menu flips immediately) AND snapshot
-        // patch — load()'s cache-paint must not resurrect the removed row.
+        if (!core.ensureQueued(OutboxOp.Kind.RemoveServerDownload(episodeId = episode.id))) return
+        episodes = episodes.filterNot { it.id == episode.id }
         core.models?.serverDownloads?.markRemovedLocally(episode.id)
-        val snapshot = episodes
-        core.store?.save(snapshot, CacheKey.downloads(facet.rawValue))
-        core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episodeId = episode.id))
     }
 }

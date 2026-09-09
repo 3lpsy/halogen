@@ -1,0 +1,19 @@
+[package]
+name = "halogen-webui-player-media-session"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+halogen-webui-player = { path = "../player" }
+halogen-webui-config = { path = "../config" }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = ["Window"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-player/web", "halogen-webui-config/web"]
+desktop = ["dioxus/desktop", "halogen-webui-player/desktop", "halogen-webui-config/desktop"]

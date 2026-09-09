@@ -1,0 +1,24 @@
+[package]
+name = "halogen-webui-view-menu"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-component-navigation = { path = "../component-navigation" }
+halogen-webui-hooks = { path = "../hooks" }
+dioxus = { workspace = true, features = ["router"] }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-component-navigation/web", "halogen-webui-hooks/web"]
+desktop = ["dioxus/desktop", "halogen-webui-component-navigation/desktop", "halogen-webui-hooks/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

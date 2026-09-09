@@ -1,0 +1,13 @@
+[package]
+name = "halogen-guards"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire-meta = { path = "../wire-meta", features = ["http"] }
+halogen-utils = { path = "../utils" }
+axum = { workspace = true }
+halogen-extractors = { path = "../extractors" }
+halogen-orm = { path = "../orm" }
+sea-orm = { workspace = true }
+tracing = { workspace = true }

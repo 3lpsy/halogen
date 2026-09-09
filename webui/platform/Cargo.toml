@@ -1,0 +1,22 @@
+[package]
+name = "halogen-webui-platform"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { workspace = true }
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
+futures-channel = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+directories = { workspace = true }
+tracing = { workspace = true }
+
+
+[features]
+desktop = []
+web = []

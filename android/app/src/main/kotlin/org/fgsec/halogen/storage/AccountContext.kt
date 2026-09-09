@@ -7,7 +7,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
 
 // The signed-in account and the storage namespace derived from it. Mirrors
-// the web client's convention (crates/ui-platform namespace): embedded
+// the web client's convention (webui/platform namespace): embedded
 // accounts are e{userId}, remote accounts u{userId}-{serverHash} — user ids
 // are per-server, so the suffix keeps equal ids from sharing a namespace.
 data class AccountContext(

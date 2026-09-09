@@ -1,0 +1,19 @@
+[
+  "01-signed-in",
+  "02-latest-rows",
+  "03-settings-admin",
+  "04-create-user-form",
+  "05-user-created",
+  "06-playlist-created",
+  "07-episodes-added",
+  "07b-queue-front",
+  "08-mini-player",
+  "09-queue",
+  "10-podcasts",
+  "11-playlist-detail",
+  "12-up-next-playlist",
+  "13-offline",
+  "14-offline-mutation",
+  "15-online-again",
+  "16-relaunch-persisted"
+]

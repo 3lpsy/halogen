@@ -1,15 +1,6 @@
-//! Service-worker offline lifecycle — a TRUE (network-severed) cold boot and the
-//! SW's cache-activation behavior. Closes the gaps flagged as NM21 (real offline
-//! boot) and NM25 (SW activation / `/healthz` bypass).
-//!
-//! The existing `offline.rs` only repoints the client's `server_url` at a dead
-//! port ("warm" offline: the app is already loaded, the API is unreachable). It
-//! never exercises a COLD boot with the network actually gone — where the app
-//! shell, wasm, and assets must come from the service-worker cache. Here we sever
-//! the network at the browser via CDP `Network.emulateNetworkConditions`
-//! (`offline:true`) and reload, so only the SW can answer.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Sever browser networking through CDP and reload to verify the service worker supplies the app shell, WASM, and
+//! assets for a cold offline boot. Also cover cache activation and healthz bypass. Ignored by default; run with `just
+//! test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, require_dist, run_session, sw_cached_body_len,
@@ -92,12 +83,10 @@ async fn true_offline_cold_boot_serves_app_shell() {
             "app shell did not boot from the SW cache while offline; body:\n{}",
             body_text(&driver).await
         );
-        // A cached list still renders from the local store with no network —
-        // this + the booted shell above is the NM21 signal (a real cold boot
-        // served entirely from the SW cache). Offline *detection* latency (the
-        // navbar flipping to "Offline") is a separate concern with nondeterministic
-        // timing under CDP emulation, already covered by the warm `offline.rs`
-        // test, so it's deliberately not asserted here.
+        // A cached list still renders from the local store with no network — this + the booted shell above is
+        // the NM21 signal (a real cold boot served entirely from the SW cache). Offline *detection* latency
+        // (the navbar flipping to "Offline") is a separate concern with nondeterministic timing under CDP
+        // emulation, already covered by the warm `offline.rs` test, so it's deliberately not asserted here.
         driver.goto(format!("{}/latest", app.base_url)).await?;
         assert!(
             wait_for_count(&driver, ROW, 1, Duration::from_secs(15)).await >= 1,
@@ -118,14 +107,10 @@ async fn true_offline_cold_boot_serves_app_shell() {
     .await;
 }
 
-/// The `activate` handler in `sw.js` deletes every cache whose name isn't the
-/// current build's fingerprinted `CACHE`, and `/healthz` is bypassed (never
-/// cached) so the reachability probe can't answer stale — the guard added in
-/// NM17. A full version-BUMP eviction test needs two separate dist builds and is
-/// out of scope for a single run; what a single build can prove is asserted here.
+/// A complete shell stays available offline while probes always reach the server.
 #[tokio::test]
 #[ignore = "needs Chrome + chromedriver + a built dist/ (run via `just test-e2e`)"]
-async fn sw_activation_keeps_one_cache_and_never_caches_healthz() {
+async fn sw_activation_keeps_one_shell_and_never_caches_healthz() {
     if !require_dist() {
         return;
     }
@@ -149,17 +134,23 @@ async fn sw_activation_keeps_one_cache_and_never_caches_healthz() {
             "service worker never took control"
         );
 
-        // Exactly one cache bucket survives activation (the fingerprinted one).
+        // Artwork has its own cache; exactly one complete shell belongs to this build.
         let names = cache_names(driver).await;
         assert_eq!(
-            names.len(),
+            names
+                .iter()
+                .filter(|name| name.starts_with("halogen-shell-"))
+                .count(),
             1,
-            "activate should leave exactly one (fingerprinted) cache; got: {names:?}"
+            "activate should leave exactly one shell cache; got: {names:?}"
         );
 
         // The app shell IS cached...
-        let shell = sw_cached_body_len(driver, "/").await;
-        assert!(shell > 0, "app shell '/' should be cached with a body");
+        let shell = sw_cached_body_len(driver, "/index.html").await;
+        assert!(
+            shell > 0,
+            "app shell '/index.html' should be cached with a body"
+        );
 
         // ...but the reachability probe is NEVER cached (NM17 bypass): fetch it
         // (populating any cache the SW would use), then assert it's absent.

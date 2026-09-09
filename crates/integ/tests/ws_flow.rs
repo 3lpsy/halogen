@@ -1,11 +1,5 @@
-//! Connectivity-WebSocket journey — the `/ws-ticket` mint + the `/ws` upgrade the
-//! UI's reconnect driver uses. Drives a REAL WebSocket client against the
-//! in-process server over loopback (plain `ws://`): mint a ticket as the seeded
-//! admin, upgrade with it, exchange one app-level ping/pong, and confirm the
-//! scope-locking — a missing ticket and a normal API token are both rejected at
-//! the handshake (401, no upgrade).
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(ws_flow)'`
+//! Mint a WebSocket ticket, upgrade over loopback, and exchange ping/pong. Missing tickets and normal API tokens must
+//! return 401 without upgrading. Run the halogen-integ ws_flow binary.
 
 use futures_util::{SinkExt, StreamExt};
 use halogen_integ::*;
@@ -48,7 +42,7 @@ async fn ws_ticket_and_socket_journey() {
     assert!(!ticket.is_empty(), "ticket should be a non-empty JWT");
 
     // 2) Upgrade with the valid ticket → 101, then app-level ping echoes a pong
-    //    carrying our `ts` (the client uses that to compute RTT).
+    //  carrying our `ts` (the client uses that to compute RTT).
     let good_url = format!("{}?ticket={}", client.ws_url(), ticket);
     let (mut sock, resp) = connect_async(good_url.as_str()).await.expect("ws upgrade");
     assert_eq!(resp.status().as_u16(), 101, "upgrade switches protocols");

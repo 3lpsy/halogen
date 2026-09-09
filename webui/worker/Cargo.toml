@@ -1,0 +1,27 @@
+[package]
+name = "halogen-webui-worker"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+halogen-webui-sync-engine = { path = "../sync-engine" }
+halogen-webui-store = { path = "../store" }
+halogen-webui-media = { path = "../media" }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-logging = { path = "../logging" }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Worker",
+    "DedicatedWorkerGlobalScope",
+    "MessageEvent"] }
+futures = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+desktop = []
+web = []

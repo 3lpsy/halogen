@@ -42,18 +42,14 @@ import org.fgsec.halogen.wire.PollJobData
 import org.fgsec.halogen.wire.ServerErrorsData
 import org.fgsec.halogen.wire.ServerLogsData
 import org.fgsec.halogen.wire.UserData
-import uniffi.halogen_mobile.EmbeddedCredentials
-import uniffi.halogen_mobile.credentials
-import uniffi.halogen_mobile.destroyEmbedded
 import uniffi.halogen_mobile.initCore
-import uniffi.halogen_mobile.recoverAdmin
-import uniffi.halogen_mobile.recoverUser
-import uniffi.halogen_mobile.startServer
-import uniffi.halogen_mobile.waitReady
+import uniffi.halogen_mobile.startLocal
+import uniffi.halogen_mobile.destroyLocal
+import org.fgsec.halogen.networking.LocalTransport
 import java.io.File
 import java.util.UUID
 
-/// App-wide core state: session lifecycle, embedded-server FFI boot, the API
+/// App-wide core state: session lifecycle, local-core FFI boot, the API
 /// client, the account's LocalStore + Outbox, and the feature-model registry.
 /// Views read `phase`; nothing below this file touches FFI or URLs directly.
 class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
@@ -108,9 +104,6 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
     /** In-flight auth-expiry recovery — collapses the burst of 401s a dead
      *  token produces into a single transition. */
     private var reauthJob: Job? = null
-    /** Embedded silent re-login is bounded (3 attempts) so a server that
-     *  keeps rejecting fresh tokens degrades to signed-out, not a loop. */
-    private var embeddedReloginAttempts = 0
     /** The periodic drain+pull loop — lives for the session, torn down with it. */
     private var pullJob: Job? = null
 
@@ -142,7 +135,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         when (session.kind) {
             Session.Kind.EMBEDDED -> {
                 try {
-                    startEmbedded(session)
+                    startLocalProfile(session)
                 } catch (e: Exception) {
                     DeviceLog.warn("embedded resume failed — $e")
                     phase = Phase.Failed(FriendlyError.message(e))
@@ -210,27 +203,11 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
             throw EmbeddedUserException("'$username' already exists — switch to it instead")
         }
 
-        val stored = embeddedSecrets.password(username)
-        val password: String
-        if (stored != null) {
-            // Known credential without a registered session (the account was
-            // removed): reconnect with it — a fresh create would 409.
-            password = stored
-        } else {
-            password = UUID.randomUUID().toString()
-            requireClient().createUser(username = username, password = password, isAdmin = true)
-            embeddedSecrets.remember(username, password)
-        }
-        val client = HalogenClient(baseUrl = base)
-        val jwt = client.login(username = username, password = password)
-        val session = Session(
-            kind = Session.Kind.EMBEDDED, serverUrl = null, username = username,
-            token = jwt, password = password,
-        )
-        sessionStore.upsertActive(session)
+        requireClient().createUser(username = username, password = UUID.randomUUID().toString(), isAdmin = true)
+        val session = Session(kind = Session.Kind.EMBEDDED, serverUrl = null, username = username, token = "")
         teardownSession()
         phase = Phase.Starting
-        resume(session)
+        startLocalProfile(session)
     }
 
     /** Recreate the per-account models over the same session (post-purge). */
@@ -254,8 +231,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
      *  an active embedded account signs out to the next account or landing. */
     suspend fun destroyEmbeddedServer() {
         val root = embeddedRoot()
-        destroyEmbedded(dataRoot = root.path)
-        root.deleteRecursively()
+        destroyLocal(dataRoot = root.path)
         // The server-side users are gone — their silent-login credentials too.
         embeddedSecrets.clear()
 
@@ -266,7 +242,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         // lists/prefs from the old world otherwise.
         val clientRoot = File(appContext.filesDir, "halogen-client")
         for (session in registry.sessions.filter { it.kind == Session.Kind.EMBEDDED }) {
-            val sub = AccountContext.jwtSub(session.token) ?: continue
+            val sub = session.localUserId?.toString() ?: AccountContext.jwtSub(session.token) ?: continue
             File(clientRoot, "e$sub").deleteRecursively()
         }
         registry = registry.copy(sessions = registry.sessions.filterNot { it.kind == Session.Kind.EMBEDDED })
@@ -317,11 +293,11 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         )
     }
 
-    /** Landing page: use this device's own library (the embedded server). */
+    /** Landing page: use this device's own library (the local runtime). */
     suspend fun useLocalLibrary() {
         phase = Phase.Starting
         try {
-            startEmbedded(null)
+            startLocalProfile(null)
         } catch (e: Exception) {
             DeviceLog.warn("embedded start failed — $e")
             phase = Phase.Failed(FriendlyError.message(e))
@@ -351,38 +327,8 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         if (phase != Phase.Ready || account == null) return
         when (val kind = account.kind) {
             is AccountContext.Kind.Embedded -> {
-                embeddedReloginAttempts += 1
-                if (embeddedReloginAttempts <= 3) {
-                    var password = embeddedSecrets.password(account.username)
-                    if (password == null) {
-                        // No stored credential (pre-gating server-side rename):
-                        // rotate the row in the DB and adopt the fresh secret.
-                        val creds = runCatching {
-                            recoverUser(dataRoot = embeddedRoot().path, username = account.username)
-                        }.getOrNull()
-                        if (creds != null) {
-                            embeddedSecrets.remember(creds.username, creds.password)
-                            password = creds.password
-                        }
-                    }
-                    if (password != null) {
-                        val jwt = runCatching {
-                            client?.login(username = account.username, password = password)
-                        }.getOrNull()
-                        if (jwt != null) {
-                            // login() already refreshed the shared TokenBox; mirror
-                            // it into the saved session + art loader like a refresh.
-                            client?.tokenBox?.onRefresh?.invoke(jwt)
-                            DeviceLog.info("auth: embedded session re-authenticated silently")
-                            return
-                        }
-                    }
-                }
-                // Out of budget (or the secret is gone): degrade to the landing
-                // page. The session stays saved — next boot retries the resume.
-                DeviceLog.warn("auth: embedded silent re-login failed")
-                teardownSession()
-                phase = Phase.NeedsAuth
+                DeviceLog.error("local profile is unavailable")
+                phase = Phase.Failed("Local profile is unavailable")
             }
             is AccountContext.Kind.Remote -> {
                 DeviceLog.warn("auth: remote session expired; returning to connect page")
@@ -410,6 +356,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
     }
 
     private fun teardownSession() {
+        LocalTransport.remove(client?.base?.host)
         // Unlike iOS (whose player dies with its model), the ExoPlayer is a
         // shared process singleton — without an explicit detach, audio keeps
         // playing behind the landing page after sign-out.
@@ -513,7 +460,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         scope.launch { outbox?.setSuspended(offline) }
         if (!offline) scope.launch { outbox?.drain() }
         // Persisted: a relaunch must come back in the chosen mode. Embedded
-        // never persists true — the on-device server is always reachable.
+        // never persists true — the local runtime is always reachable.
         val persisted = offline && !isEmbeddedAccount
         val store = store
         scope.launch { store?.save(persisted, CacheKey.manualOffline) }
@@ -559,9 +506,9 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
     /** Unsubscribe, offline-capable: tombstone + optimistic removal, local
      *  cascade, queued delete, then a reconcile refresh. */
     suspend fun unsubscribePodcast(id: Int) {
+        if (!ensureQueued(OutboxOp.Kind.Unsubscribe(podcastId = id))) return
         models?.podcasts?.tombstone(id)
         purgePodcastLocalData(id)
-        outbox?.enqueue(OutboxOp.Kind.Unsubscribe(podcastId = id))
         models?.podcasts?.refresh()
     }
 
@@ -624,23 +571,17 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
 
     suspend fun dbImport(payload: ByteArray): DbImportSummaryData = requireClient().dbImport(payload)
 
-    /** After an embedded DB import: rotate each imported user's random
-     *  password into EmbeddedSecrets so switching to them silently works.
-     *  Best-effort per user; returns the usernames that couldn't be aligned. */
+    /** Imported local profiles need no passwords; verify each profile is available. */
     suspend fun alignImportedUsers(usernames: List<String>): List<String> {
         if (!isEmbeddedAccount) return usernames
-        val root = embeddedRoot()
-        val failed = mutableListOf<String>()
-        for (username in usernames) {
+        return usernames.filter { username ->
             try {
-                val creds = recoverUser(dataRoot = root.path, username = username)
-                embeddedSecrets.remember(creds.username, creds.password)
+                startLocal(dataRoot = embeddedRoot().path, username = username)
+                false
             } catch (e: Exception) {
-                DeviceLog.warn("db import: couldn't align '$username' for silent login: $e")
-                failed.add(username)
+                true
             }
         }
-        return failed
     }
 
     suspend fun opmlExport(): String = requireClient().opmlExport()
@@ -675,98 +616,22 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
 
     // ── internals ────────────────────────────────────────────────────────────
 
-    /** Which self-heal a failed embedded login triggers: the seeded-admin
-     *  path recovers via recoverAdmin (which also ADOPTS a renamed admin
-     *  row); a specific user rotates their own row, falling back to admin
-     *  adoption when the row under that name is gone. */
-    private sealed class EmbeddedRecovery {
-        data object Admin : EmbeddedRecovery()
-        data class User(val username: String) : EmbeddedRecovery()
-    }
-
-    private suspend fun recoverEmbeddedCredentials(
-        root: String, recovery: EmbeddedRecovery,
-    ): EmbeddedCredentials = when (recovery) {
-        is EmbeddedRecovery.Admin -> recoverAdmin(dataRoot = root)
-        is EmbeddedRecovery.User -> try {
-            recoverUser(dataRoot = root, username = recovery.username)
-        } catch (e: Exception) {
-            DeviceLog.warn("embedded: recoverUser failed — ${e::class.simpleName}: ${e.message}")
-            recoverAdmin(dataRoot = root)
-        }
-    }
-
-    /** The embedded server's on-disk library (app-private files dir). */
+    /** The local runtime's on-disk library (app-private files dir). */
     fun embeddedRoot(): File = File(appContext.filesDir, "halogen-server")
 
-    /** Boot (or reuse) the in-process server, then silent-login: the
-     *  provisioned admin by default, or a stored embedded user's app-managed
-     *  credentials. Missing or rejected credentials self-heal by rotating the
-     *  row's password — an embedded account never lands on a password prompt. */
-    private suspend fun startEmbedded(session: Session?) {
-        val root = embeddedRoot()
-        root.mkdirs()
-
-        val url = startServer(dataRoot = root.path)
-        waitReady()
-        // The embedded server's tracing is only visible through the core's
-        // device-log ring — start folding it into the native Device Logs.
+    /** Open the profile through FFI, retaining its existing cache identity. */
+    private suspend fun startLocalProfile(session: Session?) {
+        val local = startLocal(dataRoot = embeddedRoot().path, username = session?.username)
+        val username = local.username()
+        val url = LocalTransport.install(local)
         DeviceLog.shared.startCorePump()
-
-        val recovery: EmbeddedRecovery =
-            session?.let { EmbeddedRecovery.User(it.username) } ?: EmbeddedRecovery.Admin
-        var username: String
-        var password: String
-        val storedSecret = session?.let { embeddedSecrets.password(it.username) }
-        when {
-            session?.password != null -> {
-                username = session.username
-                password = session.password
-            }
-            session != null && storedSecret != null -> {
-                // The app-side secrets mirror (survives session removal).
-                username = session.username
-                password = storedSecret
-            }
-            session != null -> {
-                // A stored session with NO credential anywhere: rotate the row
-                // in the DB instead of stranding the user on the landing page.
-                val creds = recoverEmbeddedCredentials(root.path, recovery)
-                username = creds.username
-                password = creds.password
-            }
-            else -> {
-                val creds = credentials(dataRoot = root.path)
-                username = creds.username
-                password = creds.password
-            }
-        }
-        val client = HalogenClient(baseUrl = url)
-        val jwt: String = try {
-            client.login(username = username, password = password)
-        } catch (e: Exception) {
-            // Credential drift (stale secrets, out-of-band change): rotate the
-            // password in the DB and retry once.
-            DeviceLog.warn("auth: embedded credentials rejected — running recovery")
-            val fresh = recoverEmbeddedCredentials(root.path, recovery)
-            username = fresh.username
-            password = fresh.password
-            client.login(username = username, password = password)
-        }
-        // Mirror the working credential into the app-side secrets store so a
-        // later session removal never strands this account.
-        embeddedSecrets.remember(username, password)
-        val saved = (session ?: Session(
-            kind = Session.Kind.EMBEDDED, serverUrl = null, username = username, token = jwt,
-        )).copy(username = username, password = password, token = jwt)
+        val saved = (session ?: Session(kind = Session.Kind.EMBEDDED, serverUrl = null,
+            username = username, token = "")).copy(username = username, password = null, token = "", localUserId = local.userId())
         sessionStore.upsertActive(saved)
-        finish(
-            client = client,
-            kind = AccountContext.Kind.Embedded,
-            serverUrl = url,
-            username = username,
-            jwt = jwt,
-        )
+        finish(client = HalogenClient(baseUrl = url), kind = AccountContext.Kind.Embedded,
+            serverUrl = url, username = username, jwt = "",
+            localAccount = AccountContext(AccountContext.Kind.Embedded, local.userId(), username),
+            localIsAdmin = local.isAdmin())
     }
 
     private suspend fun finish(
@@ -775,15 +640,17 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         serverUrl: String,
         username: String,
         jwt: String,
+        localAccount: AccountContext? = null,
+        localIsAdmin: Boolean = false,
     ) {
         this.client = client
         this.baseUrl = serverUrl
-        val account = AccountContext.from(kind = kind, username = username, jwt = jwt)
+        val account = localAccount ?: AccountContext.from(kind = kind, username = username, jwt = jwt)
         this.account = account
         // Admin gating: embedded users are always admins by policy; remote
         // resolves from the current user after login. Best-effort, UI-only.
         when (kind) {
-            is AccountContext.Kind.Embedded -> isAdmin = true
+            is AccountContext.Kind.Embedded -> isAdmin = localIsAdmin
             is AccountContext.Kind.Remote -> {
                 isAdmin = false
                 if (account != null) {
@@ -809,20 +676,39 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         if (store != null) {
             val failures = SyncFailures(store)
             this.syncFailures = failures
+            try {
             this.outbox = Outbox.create(
                 store = store,
-                perform = { op -> execute(op) },
+                perform = { queue ->
+                    if (kind is AccountContext.Kind.Embedded) {
+                        queue.drainLocal(LocalTransport.core(client.base.host))
+                    } else {
+                        val report = queue.drainRemote(serverUrl, client.token ?: "")
+                        if (report.authPaused && account != null) client.getUser(account.userId)
+                        report
+                    }
+                },
+                pull = { queue ->
+                    if (kind is AccountContext.Kind.Embedded) queue.pullLocal(LocalTransport.core(client.base.host), store.load<String>("sync-projected-cursor"))
+                    else queue.pullRemote(serverUrl, client.token ?: "", store.load<String>("sync-projected-cursor"))
+                },
                 onDeadLetter = { op, error ->
                     failures.record(op, error)
-                    healAfterDeadLetter(op.kind)
+                    if (this@HalogenCore.client === client) healAfterDeadLetter(op.kind)
                 },
             )
+            } catch (error: Exception) {
+                storageFailure = "Sync storage is unavailable. Pending changes have been preserved."
+                DeviceLog.error("sync initialization failed: $error")
+            }
         }
         ArtLoader.configure(context = appContext, token = client.token, namespace = account?.namespace)
+        val sessionId = sessionStore.load().activeId
+        val box = client.tokenBox
         client.tokenBox.onRefresh = { fresh ->
-            // Keep the persisted session + art loader on the fresh token.
+            // A late refresh must update its original session, never the newly active account.
             val registry = sessionStore.load()
-            registry.sessions.firstOrNull { it.id == registry.activeId }?.let { active ->
+            registry.sessions.firstOrNull { it.id == sessionId }?.let { active ->
                 sessionStore.save(
                     registry.copy(sessions = registry.sessions.map {
                         if (it.id == active.id) it.copy(token = fresh) else it
@@ -831,11 +717,12 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
             }
             // Keep the namespace: dropping it rebuilt the loader WITHOUT its
             // per-account disk cache after the first token refresh.
-            ArtLoader.configure(
-                context = appContext, token = fresh, namespace = this.account?.namespace,
-            )
+            if (this@HalogenCore.client?.tokenBox === box) {
+                ArtLoader.configure(
+                    context = appContext, token = fresh, namespace = this.account?.namespace,
+                )
+            }
         }
-        val box = client.tokenBox
         client.tokenBox.onAuthExpired = {
             scope.launch {
                 // Ignore stale sessions: an in-flight request from before an
@@ -844,7 +731,6 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
             }
         }
         reauthHint = null
-        embeddedReloginAttempts = 0
         connection.onOnline = { scope.launch { resyncAfterReconnect() } }
         connection.start(baseUrl = serverUrl)
         val m = Models(this)
@@ -898,7 +784,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
         }
     }
 
-    /** The 60s tick: drain queued ops, then revalidate the queue. */
+    /** The 60s tick: apply shared deltas, then refresh mounted screens. */
     private fun startPeriodicPull() {
         pullJob?.cancel()
         pullJob = scope.launch {
@@ -906,8 +792,7 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
                 delay(60_000)
                 if (!isActive) return@launch
                 if (connection.status != ConnectionMonitor.Status.Online) continue
-                outbox?.drain()
-                models?.queue?.refresh()
+                resyncAfterReconnect()
             }
         }
     }
@@ -918,14 +803,15 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
     suspend fun foregroundSync() {
         connection.probe()
         if (phase != Phase.Ready) return
-        outbox?.drain()
-        models?.queue?.refresh()
+        resyncAfterReconnect()
     }
 
     /** Back online: drain BEFORE pulling, then revalidate mounted screens so
      *  stale/errored content heals without a manual pull-to-refresh. */
     private suspend fun resyncAfterReconnect() {
-        outbox?.drain()
+        val sync = outbox
+        sync?.drain()
+        if (outbox !== sync) return
         // Admin gating resolved over a dead connection sticks false for the
         // whole session — re-resolve when healthy.
         val account = account
@@ -950,50 +836,6 @@ class HalogenCore(val appContext: Context, val scope: CoroutineScope) {
     }
 
     /** The Outbox's executor — one queued op against the API. */
-    private suspend fun execute(op: OutboxOp) {
-        val client = requireClient()
-        when (val k = op.kind) {
-            is OutboxOp.Kind.AddToPlaylist ->
-                client.addEpisode(k.playlistId, k.episodeId, k.position)
-            is OutboxOp.Kind.RemoveFromPlaylist ->
-                client.removeEpisode(k.playlistId, k.episodeId)
-            is OutboxOp.Kind.MoveInPlaylist ->
-                client.moveEpisode(k.playlistId, k.episodeId, k.to)
-            is OutboxOp.Kind.SetCursor ->
-                client.upsertPlayback(k.episodeId, cursor = k.cursor, completed = false)
-            // Same shape the web outbox sends: cursor 0 + the completed flag.
-            is OutboxOp.Kind.SetPlayed ->
-                client.upsertPlayback(k.episodeId, cursor = 0u, completed = k.played)
-            is OutboxOp.Kind.ReorderPlaylist ->
-                client.reorderPlaylist(k.playlistId, k.field, k.direction)
-            is OutboxOp.Kind.UpdatePlaylist ->
-                client.updatePlaylist(
-                    k.playlistId, k.name, k.isDefault, k.description,
-                    k.deleteServerFile, k.deleteClientFile,
-                )
-            is OutboxOp.Kind.MovePlaylist -> client.movePlaylist(k.playlistId, k.to)
-            is OutboxOp.Kind.Subscribe -> {
-                // The DTO requires a 1-256 char title; fall back to the feed
-                // URL — the RSS ingest heals it to the channel title. Clamp
-                // the description too: an oversize blurb would 422 and
-                // permanently drop the queued subscription.
-                val trimmed = k.title?.trim() ?: ""
-                client.createPodcast(
-                    title = (trimmed.ifEmpty { k.feedUrl }).take(256),
-                    feedUrl = k.feedUrl,
-                    description = k.description?.take(4096),
-                )
-            }
-            is OutboxOp.Kind.Unsubscribe -> client.deletePodcast(k.podcastId)
-            is OutboxOp.Kind.TriggerDownload -> client.triggerDownload(k.episodeId)
-            is OutboxOp.Kind.RemoveServerDownload -> client.removeServerDownload(k.episodeId)
-            is OutboxOp.Kind.UpdatePodcastConfig -> client.updatePodcastConfig(k.configId, k.data)
-            is OutboxOp.Kind.RemovePodcastConfig -> client.deletePodcastConfig(k.podcastId)
-            is OutboxOp.Kind.SetAutoPlaylists ->
-                client.setAutoPlaylists(k.podcastId, k.playlistIds, k.addToStart)
-        }
-    }
-
     private fun artUrl(kind: String, id: Int, small: Boolean): String? {
         val base = baseUrl ?: return null
         val suffix = if (small) "/art/small" else "/art"

@@ -100,6 +100,8 @@ pub mod ws;
 pub use auth::{LoginData, StatusData, TokenData, VersionData};
 pub use config::{ConfigData, ConfigOverridesData};
 pub use discover::{
+    DiscoverEpisodeItem, DiscoverEpisodePageData, DiscoverEpisodeSearchData, DiscoverPageInfo,
+    DiscoverPageParams, DiscoverPodcastData, DiscoverPodcastPageData, DiscoverPodcastParams,
     DiscoverProvider, DiscoverProviderError, DiscoverProviderInfo, DiscoverProvidersData,
     DiscoverResultItem, DiscoverSearchData, DiscoverSearchParams,
 };
@@ -161,3 +163,6 @@ pub use ws::WsTicketData;
 #[cfg(test)]
 mod tests;
 pub use db_transfer::DbImportSummaryData;
+
+mod sync;
+pub use sync::{SyncChangeData, SyncChangesData, SyncChangesParams, SyncResource};

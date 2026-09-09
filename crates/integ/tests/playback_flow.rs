@@ -1,9 +1,7 @@
-//! Playback journey — save and resume a playback position. Steps build on each
-//! other and prove the resume-position upsert (the unique-index path), the
-//! `episode_id` filter, and deletion. Driven through the `ApiClient`, asserting
-//! the persisted values.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(playback_flow)'`
+//! Playback journey — save and resume a playback position. Steps build on each other and prove the
+//! resume-position upsert (the unique-index path), the `episode_id` filter, and deletion. Driven through the
+//! `ApiClient`, asserting the persisted values. Run with: `cargo nextest run -p halogen-integ -E
+//! 'binary(playback_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{PlaybackListParams, PlaybackStoreData};
@@ -93,7 +91,7 @@ async fn playback_journey() {
     assert_eq!(page.data.len(), 1, "still one row after marking played");
 
     // 6) A second episode's playback, then the `episode_id` filter returns only
-    //    that one row.
+    //  that one row.
     client
         .upsert_playback(PlaybackStoreData {
             episode_id: other_id,

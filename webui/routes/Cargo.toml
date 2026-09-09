@@ -1,0 +1,63 @@
+[package]
+name = "halogen-webui-routes"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-page-app = { path = "../page-app" }
+halogen-webui-component-navigation = { path = "../component-navigation" }
+halogen-webui-provider-app = { path = "../provider-app" }
+halogen-webui-hooks = { path = "../hooks" }
+halogen-webui-provider-local = { path = "../provider-local" }
+halogen-webui-hook-auth-redirect = { path = "../hook-auth-redirect" }
+halogen-webui-view-polling = { path = "../view-polling" }
+halogen-webui-view-settings = { path = "../view-settings" }
+halogen-webui-episode-list-page = { path = "../episode-list-page" }
+halogen-webui-view-podcasts = { path = "../view-podcasts" }
+halogen-webui-view-downloads = { path = "../view-downloads" }
+halogen-webui-view-dock-config = { path = "../view-dock-config" }
+halogen-webui-view-config-overrides = { path = "../view-config-overrides" }
+halogen-webui-view-discover = { path = "../view-discover" }
+halogen-webui-view-queue = { path = "../view-queue" }
+halogen-webui-view-menu = { path = "../view-menu" }
+halogen-webui-view-admin-users = { path = "../view-admin-users" }
+halogen-webui-view-user-edit = { path = "../view-user-edit" }
+halogen-webui-view-episode = { path = "../view-episode" }
+halogen-webui-view-playlists = { path = "../view-playlists" }
+halogen-webui-view-home = { path = "../view-home" }
+halogen-webui-view-history = { path = "../view-history" }
+halogen-webui-view-cache-control = { path = "../view-cache-control" }
+halogen-webui-view-configure-swipes = { path = "../view-configure-swipes" }
+halogen-webui-page-login = { path = "../page-login" }
+halogen-webui-view-server-errors = { path = "../view-server-errors" }
+halogen-webui-view-latest = { path = "../view-latest" }
+halogen-webui-view-config = { path = "../view-config" }
+halogen-webui-view-logs = { path = "../view-logs" }
+halogen-webui-view-not-found = { path = "../view-not-found" }
+halogen-webui-player-controls = { path = "../player-controls" }
+halogen-webui-library-widgets = { path = "../library-widgets" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-accounts = { path = "../accounts" }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-webui-episode-list = { path = "../episode-list" }
+halogen-webui-component-icons = { path = "../component-icons" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["halogen-webui-page-app/web", "dioxus/web", "halogen-webui-accounts/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-component-icons/web", "halogen-webui-component-navigation/web", "halogen-webui-component-toast/web", "halogen-webui-component-widgets/web", "halogen-webui-config/web", "halogen-webui-episode-list-page/web", "halogen-webui-episode-list/web", "halogen-webui-hook-auth-redirect/web", "halogen-webui-hooks/web", "halogen-webui-library-widgets/web", "halogen-webui-logging/web", "halogen-webui-page-login/web", "halogen-webui-player-controls/web", "halogen-webui-provider-app/web", "halogen-webui-provider-local/web", "halogen-webui-view-admin-users/web", "halogen-webui-view-cache-control/web", "halogen-webui-view-config-overrides/web", "halogen-webui-view-configure-swipes/web", "halogen-webui-view-discover/web", "halogen-webui-view-dock-config/web", "halogen-webui-view-downloads/web", "halogen-webui-view-episode/web", "halogen-webui-view-history/web", "halogen-webui-view-home/web", "halogen-webui-view-latest/web", "halogen-webui-view-logs/web", "halogen-webui-view-menu/web", "halogen-webui-view-not-found/web", "halogen-webui-view-playlists/web", "halogen-webui-view-podcasts/web", "halogen-webui-view-polling/web", "halogen-webui-view-queue/web", "halogen-webui-view-server-errors/web", "halogen-webui-view-settings/web", "halogen-webui-view-user-edit/web", "halogen-webui-view-config/web"]
+desktop = ["halogen-webui-page-app/desktop", "dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-navigation/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-config/desktop", "halogen-webui-episode-list-page/desktop", "halogen-webui-episode-list/desktop", "halogen-webui-hook-auth-redirect/desktop", "halogen-webui-hooks/desktop", "halogen-webui-library-widgets/desktop", "halogen-webui-logging/desktop", "halogen-webui-page-login/desktop", "halogen-webui-player-controls/desktop", "halogen-webui-provider-app/desktop", "halogen-webui-provider-local/desktop", "halogen-webui-view-admin-users/desktop", "halogen-webui-view-cache-control/desktop", "halogen-webui-view-config-overrides/desktop", "halogen-webui-view-configure-swipes/desktop", "halogen-webui-view-discover/desktop", "halogen-webui-view-dock-config/desktop", "halogen-webui-view-downloads/desktop", "halogen-webui-view-episode/desktop", "halogen-webui-view-history/desktop", "halogen-webui-view-home/desktop", "halogen-webui-view-latest/desktop", "halogen-webui-view-logs/desktop", "halogen-webui-view-menu/desktop", "halogen-webui-view-not-found/desktop", "halogen-webui-view-playlists/desktop", "halogen-webui-view-podcasts/desktop", "halogen-webui-view-polling/desktop", "halogen-webui-view-queue/desktop", "halogen-webui-view-server-errors/desktop", "halogen-webui-view-settings/desktop", "halogen-webui-view-user-edit/desktop", "halogen-webui-view-config/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

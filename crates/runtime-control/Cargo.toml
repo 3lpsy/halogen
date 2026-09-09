@@ -1,0 +1,7 @@
+[package]
+name = "halogen-runtime-control"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tokio = { workspace = true }

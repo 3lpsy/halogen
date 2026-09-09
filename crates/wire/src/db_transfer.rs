@@ -5,13 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::meta::response::ResponsableData;
 
-/// What `POST /admin/db/import` did, per entity. Imports MERGE (never drop and
-/// replace): users match by lowercased username, podcasts by `(owner,
-/// feed_url)`, episodes by guid (falling back to `content_url`) within a
-/// podcast, playlists by the per-user default flag or `(user, name)`.
-/// `created_usernames` lists users the import created (with random passwords —
-/// hashes are stripped from exports); an embedded host uses it to re-provision
-/// its silent-login secrets for those users.
+/// Per-entity import results. Merge users by normalized username, podcasts by shared feed URL, episodes by
+/// guid/content_url within a podcast, and playlists by user/default or user/name. created_usernames identifies new
+/// random-password accounts so local hosts can provision silent-login secrets.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DbImportSummaryData {
     pub users_merged: u32,

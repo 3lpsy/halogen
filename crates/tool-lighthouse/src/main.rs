@@ -1,15 +1,6 @@
-//! `tool-lighthouse` — drive a real Chrome through every feature of the app and
-//! collect Web Vitals per step (pure Rust, no Node).
-//!
-//! Two modes:
-//!   * **Self-hosted (default):** spawn a real, seeded axum server serving the
-//!     built `dist/` (run `just ui-build` first), log in as the seeded admin, and
-//!     walk the app. Hermetic.
-//!   * **External (`--base-url`):** point at a running instance (e.g. the dev pod);
-//!     supply `--user`/`--pass` (or `LH_USER`/`LH_PASS`).
-//!
-//! Needs chromedriver + Chrome on PATH (same prerequisites as `just e2e`). See the
-//! crate `Cargo.toml` header for how this differs from the Lighthouse CLI.
+//! Collect Web Vitals by driving Chrome through the app. Default mode serves seeded dist/ after `just ui-build`;
+//! --base-url uses an existing server with --user/--pass or LH_USER/LH_PASS. Requires Chrome and chromedriver; see
+//! Cargo.toml for differences from Lighthouse CLI.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -91,7 +82,7 @@ fn parse_args() -> Args {
                      --read-only: block server-download triggers + audio fetches (auto-on for\n\
                      \x20            --base-url so a prod run has no write side-effects; login aside).\n\
                      --allow-writes: disable that guard even against --base-url.\n\
-                     Needs chromedriver + Chrome (set CHROMEDRIVER/WEBDRIVER_URL/CHROME as for `just e2e`)."
+                     Needs chromedriver + Chrome (set CHROMEDRIVER/WEBDRIVER_URL/CHROME as for `just test-e2e`)."
                 );
                 std::process::exit(0);
             }
@@ -145,11 +136,10 @@ async fn apply_emulation(d: &WebDriver, cpu: f64, throttle_network: bool) {
     }
 }
 
-/// Block the app's only server-mutating requests — the download triggers
-/// (`/episodes/download/bulk`) — plus the big audio byte fetches, via CDP URL
-/// blocking. Reads (episode/podcast/playlist lists, art, download-progress) are
-/// untouched. Fails the run rather than proceed unprotected, so "read-only" is a
-/// guarantee, not best-effort.
+/// Block the app's only server-mutating requests — the download triggers (`/episodes/download/bulk`) — plus the
+/// big audio byte fetches, via CDP URL blocking. Reads (episode/podcast/playlist lists, art, download-progress)
+/// are untouched. Fails the run rather than proceed unprotected, so "read-only" is a guarantee, not
+/// best-effort.
 async fn apply_read_only(d: &WebDriver) -> Result<()> {
     let cdp = d.cdp();
     cdp.send_raw("Network.enable", serde_json::json!({}))
@@ -250,14 +240,14 @@ async fn open_first_episode(d: &WebDriver) {
     sleep(1800).await;
 }
 
-/// The deployed WASM URL (e.g. `/assets/halogen-ui-<hash>_bg.wasm`), so each run
+/// The deployed WASM URL (e.g. `/assets/halogen-webui-<hash>_bg.wasm`), so each run
 /// records exactly which build it tested. Prefer the `.wasm` (all the Rust code +
 /// inline styles live there and its hash changes on every source edit); the JS
 /// glue filename can stay identical across Rust changes, so it's a poor signal.
 async fn probe_build(d: &WebDriver) -> String {
     let script = "const r = performance.getEntriesByType('resource').map(e => e.name);\
         return r.find(n => /\\.wasm(\\?|$)/.test(n)) \
-            || r.find(n => /\\/assets\\/halogen-ui-.*\\.js/.test(n)) \
+            || r.find(n => /\\/assets\\/halogen-webui-.*\\.js/.test(n)) \
             || '';";
     d.execute(script, Vec::new())
         .await
@@ -372,7 +362,7 @@ async fn main() -> Result<()> {
     let Some((_chromedriver, driver)) = halogen_e2e::browser_session().await else {
         bail!(
             "no chromedriver available — install chromedriver + Chrome \
-             (or set CHROMEDRIVER / WEBDRIVER_URL), same as `just e2e`"
+             (or set CHROMEDRIVER / WEBDRIVER_URL), same as `just test-e2e`"
         );
     };
 

@@ -23,54 +23,54 @@ data class LocalPlayback(
 )
 
 /// Locally-authoritative playback state keyed by episode id: every cursor save /
-/// played toggle writes here FIRST, then enqueues the durable op; readers merge
+/// played toggle follows durable journal acknowledgement; readers merge
 /// overlay-wins-when-newer, so a stale server page can't regress undrained state.
 class PlaybackOverlayModel(
     private val core: HalogenCore,
     private val scope: CoroutineScope,
 ) {
+    private val accountStore = core.store
+
     var entries by mutableStateOf<Map<Int, LocalPlayback>>(emptyMap())
         private set
 
     /// Hydrate from disk (boot / account switch) so offline listening
     /// progress survives relaunch.
     suspend fun load() {
-        val store = core.store ?: return
-        val saved = store.load<Map<Int, LocalPlayback>>(CacheKey.playbacks) ?: return
+        val store = accountStore ?: return
+        val queue = core.outbox
+        val saved = store.load<Map<Int, LocalPlayback>>(CacheKey.playbacks) ?: emptyMap()
         // Keep newer in-memory entries — a save can race the hydrate.
         val merged = saved.toMutableMap()
         for ((id, mem) in entries) {
             val disk = merged[id]
             if (disk == null || mem.updatedAt >= disk.updatedAt) merged[id] = mem
         }
-        entries = merged
+        if (core.store === store && core.outbox === queue) entries = merged
     }
 
     // MARK: - mutations (optimistic + outbox, the web's command pattern)
 
-    /// Cursor save: overlay + persist, then the durable (coalescing) op.
+    /// Cursor save: durable intent, then the local playback overlay.
     /// History learns about the episode too — one you merely STARTED must
     /// appear there immediately, offline included.
     fun setCursor(episode: EpisodeData, cursor: ULong) {
-        val now = System.currentTimeMillis()
-        val entry = (entries[episode.id] ?: LocalPlayback(0u, false, now))
-            .copy(cursor = cursor, updatedAt = now)
-        entries = entries + (episode.id to entry)
-        persist()
-        core.models?.history?.noteLocalPlayback(episode)
-        scope.launch { core.outbox?.enqueue(OutboxOp.Kind.SetCursor(episode.id, cursor)) }
+        core.enqueueMutation(OutboxOp.Kind.SetCursor(episode.id, cursor)) {
+            val now = System.currentTimeMillis()
+            val entry = (entries[episode.id] ?: LocalPlayback(0u, false, now)).copy(cursor = cursor, updatedAt = now)
+            entries = entries + (episode.id to entry)
+            core.models?.history?.noteLocalPlayback(episode)
+        }
     }
 
     /// Played toggle: the cursor resets to 0 in lock-step with the server op,
     /// History gains the episode, and the queued op supersedes pending cursor
     /// saves.
     fun markPlayed(episode: EpisodeData, played: Boolean) {
-        entries = entries + (episode.id to LocalPlayback(0u, played, System.currentTimeMillis()))
-        persist()
-        if (played) {
-            core.models?.history?.noteLocalPlayback(episode)
+        core.enqueueMutation(OutboxOp.Kind.SetPlayed(episode.id, played)) {
+            entries = entries + (episode.id to LocalPlayback(0u, played, System.currentTimeMillis()))
+            if (played) core.models?.history?.noteLocalPlayback(episode)
         }
-        scope.launch { core.outbox?.enqueue(OutboxOp.Kind.SetPlayed(episode.id, played)) }
     }
 
     /// Drop the local overlay entry for one episode — the per-episode
@@ -113,7 +113,7 @@ class PlaybackOverlayModel(
 
     private fun persist() {
         val snapshot = entries
-        val store = core.store
+        val store = accountStore
         val previous = persistChain
         persistChain = scope.launch {
             previous?.join()

@@ -1,0 +1,38 @@
+[package]
+name = "halogen-webui-provider-sync"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-provider-local = { path = "../provider-local" }
+halogen-webui-hook-context = { path = "../hook-context" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-store = { path = "../store" }
+halogen-webui-media = { path = "../media" }
+halogen-webui-sync-engine = { path = "../sync-engine" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-hook-context/web", "halogen-webui-logging/web", "halogen-webui-media/web", "halogen-webui-platform/web", "halogen-webui-provider-local/web", "halogen-webui-sync-engine/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-hook-context/desktop", "halogen-webui-logging/desktop", "halogen-webui-media/desktop", "halogen-webui-platform/desktop", "halogen-webui-provider-local/desktop", "halogen-webui-sync-engine/desktop"]

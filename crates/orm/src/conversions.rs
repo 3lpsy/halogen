@@ -1,9 +1,6 @@
-//! `From` conversions bridging the wire DTOs (`halogen-wire`) and the SeaORM
-//! entity models defined in this crate.
-//!
-//! They live here rather than in `halogen-wire` because they reference both
-//! layers, and `halogen-orm` is the crate that depends on `halogen-wire` — the
-//! reverse direction would be a dependency cycle.
+//! `From` conversions bridging the wire DTOs (`halogen-wire`) and the SeaORM entity models defined in this
+//! crate. They live here rather than in `halogen-wire` because they reference both layers, and `halogen-orm`
+//! is the crate that depends on `halogen-wire` — the reverse direction would be a dependency cycle.
 
 use chrono::Utc;
 use halogen_wire::{

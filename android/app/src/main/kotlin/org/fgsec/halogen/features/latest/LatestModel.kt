@@ -23,6 +23,8 @@ import org.fgsec.halogen.wire.OrderDirection
 /// Lives OUTSIDE the view (owned by the models registry), so tab switches and
 /// navigation pops come back to the exact list + scroll state.
 class LatestModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     var episodes by mutableStateOf<List<EpisodeData>>(emptyList())
         private set
@@ -57,7 +59,7 @@ class LatestModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            val saved = core.store?.load<ListQuery>(ListQueryKeys.latest)
+            val saved = accountStore?.load<ListQuery>(ListQueryKeys.latest)
             if (saved != null && saved != query) {
                 // A genuinely DIFFERENT restored query: adopt it so LaunchedEffect(query)
                 // refires (this run is stale). Equal values fall through — an equal
@@ -67,7 +69,7 @@ class LatestModel(private val core: HalogenCore) {
             }
         }
         val snapshot = query
-        core.scope.launch { core.store?.save(snapshot, ListQueryKeys.latest) }
+        core.scope.launch { accountStore?.save(snapshot, ListQueryKeys.latest) }
         // Debounce typing: LaunchedEffect(query) cancels this delay on the
         // next keystroke, so only the settled query actually fetches.
         if (query.search.isNotEmpty()) delay(300)
@@ -75,7 +77,7 @@ class LatestModel(private val core: HalogenCore) {
         // the cache holds one page — painting it over a deep in-memory list
         // truncated everything past page 1 and threw the scroll away.
         if (episodes.isEmpty() && isDefaultish && !isDeviceSet) {
-            val cached = core.store?.load<List<EpisodeData>>(CacheKey.latest(query.filters))
+            val cached = accountStore?.load<List<EpisodeData>>(CacheKey.latest(query.filters))
             if (cached != null) {
                 episodes = cached
                 loaded = true
@@ -155,9 +157,9 @@ class LatestModel(private val core: HalogenCore) {
                 // pages the user scrolled through stay renderable offline.
                 val ids = first.items.map { it.id }.toSet()
                 var snapshot = first.items
-                val prior = core.store?.load<List<EpisodeData>>(CacheKey.latest(query.filters))
+                val prior = accountStore?.load<List<EpisodeData>>(CacheKey.latest(query.filters))
                 if (prior != null) snapshot = snapshot + prior.filter { it.id !in ids }
-                core.store?.save(snapshot, CacheKey.latest(query.filters))
+                accountStore?.save(snapshot, CacheKey.latest(query.filters))
             }
         } catch (e: CancellationException) {
             throw e
@@ -229,7 +231,7 @@ class LatestModel(private val core: HalogenCore) {
     /// Called when the app leaves the foreground (and on tab disappear) —
     /// the anchor survives relaunch, not just tab switches.
     fun persistScrollAnchor() {
-        val store = core.store ?: return
+        val store = accountStore ?: return
         val anchor = topVisibleId ?: return
         core.scope.launch { store.save(anchor, CacheKey.latestScrollAnchor) }
         // Snapshot the whole loaded window (capped), not just page 1: a deep
@@ -246,7 +248,7 @@ class LatestModel(private val core: HalogenCore) {
 
     private suspend fun restoreAnchorIfNeeded() {
         if (restoredAnchor || episodes.isEmpty()) return
-        val store = core.store ?: return
+        val store = accountStore ?: return
         restoredAnchor = true
         val anchor = store.load<Int>(CacheKey.latestScrollAnchor) ?: return
         if (episodes.any { it.id == anchor }) pendingScrollTo = anchor

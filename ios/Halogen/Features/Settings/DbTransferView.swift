@@ -64,7 +64,9 @@ struct DbTransferView: View {
             } header: {
                 Text("Import")
             } footer: {
-                Text("Merges another server's export into this library: matching usernames merge, new users are created, nothing is replaced.")
+                Text(
+                    "Merges another server's export into this library: matching usernames merge, new users are created, nothing is replaced."
+                )
             }
 
             if busy {
@@ -146,9 +148,7 @@ struct DbTransferView: View {
                 alignmentNote =
                     failed.isEmpty
                     ? nil
-                    : "Couldn't set up sign-in for imported user(s) "
-                        + "\(failed.joined(separator: ", ")) — they keep their random "
-                        + "passwords and can't be signed in from this device."
+                    : "Couldn't open imported profiles: \(failed.joined(separator: ", "))."
             } else {
                 alignmentNote = nil
             }

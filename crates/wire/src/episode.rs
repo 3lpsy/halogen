@@ -111,13 +111,8 @@ pub struct EpisodeStoreData {
     #[validate(url(message = "Art URL must be a valid URL"))]
     pub art_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
-    // NOTE: `content_file_path`, `art_file_path`, `downloaded_at`, and
-    // `download_status` are deliberately NOT accepted from clients. They are
-    // server-managed download bookkeeping — only the download + art-cache
-    // pipelines set them, always under `media_root`. Accepting a client-supplied
-    // path let any authenticated user point the audio/art file-serving endpoints
-    // at an arbitrary file on disk (an arbitrary-file read). A create carries
-    // only content metadata; the download state is the server's to write.
+    // Reject client-supplied file paths and download status/timestamps. Only server download/art pipelines may set this
+    // bookkeeping under media_root; accepting arbitrary paths would expose local files through media endpoints.
     pub duration_secs: Option<i32>,
 }
 

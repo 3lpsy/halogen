@@ -1,0 +1,21 @@
+[package]
+name = "halogen-queries"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-sync-enrich = { path = "../sync-enrich", optional = true }
+rusqlite = { workspace = true, optional = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+sea-orm = { workspace = true }
+halogen-orm = { path = "../orm" }
+halogen-wire = { path = "../wire", features = ["db"] }
+halogen-utils = { path = "../utils" }
+validator = { workspace = true }
+
+[features]
+sqlite-cache = ["dep:rusqlite", "dep:halogen-sync-enrich"]

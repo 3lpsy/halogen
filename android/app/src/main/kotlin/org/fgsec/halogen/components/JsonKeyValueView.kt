@@ -59,6 +59,8 @@ fun JsonKeyValueView(
     cacheKey: String? = null,
     onBack: (() -> Unit)? = null,
 ) {
+    val accountStore = core.store
+
     var values by remember { mutableStateOf(listOf<Pair<String, String>>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshing by remember { mutableStateOf(false) }
@@ -66,7 +68,7 @@ fun JsonKeyValueView(
 
     suspend fun load() {
         if (values.isEmpty() && cacheKey != null) {
-            core.store?.load<List<CachedRow>>(cacheKey)?.let { cached ->
+            accountStore?.load<List<CachedRow>>(cacheKey)?.let { cached ->
                 values = cached.map { it.key to it.value }
             }
         }
@@ -76,7 +78,7 @@ fun JsonKeyValueView(
                 .sortedBy { it.first }
             error = null
             if (cacheKey != null) {
-                core.store?.save(values.map { CachedRow(it.first, it.second) }, cacheKey)
+                accountStore?.save(values.map { CachedRow(it.first, it.second) }, cacheKey)
             }
         } catch (e: Exception) {
             DeviceLog.warn("JsonKeyValueView: refresh failed — ${e::class.simpleName}: ${e.message}")

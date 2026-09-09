@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Feed-HTML rendering — native mirror of the web's whitelist parser
-/// (crates/ui-widgets/src/html.rs). Feed HTML is hostile input, never handed to
+/// (webui/component-widgets/src/html.rs). Feed HTML is hostile input, never handed to
 /// a real HTML engine: tokenize, whitelist structural tags, decode entities,
 /// emit AttributedString blocks in the app's typography; script/style drop whole.
 enum HTMLText {

@@ -1,16 +1,6 @@
-//! Background polling service.
-//!
-//! [`PollingHandle`] owns the scheduled poll task: it wakes every `interval`
-//! (the loop cadence, NOT the per-feed fetch rate) and runs an `rss::sync` that
-//! gates each podcast by its resolved poll interval, auto-downloads, and enforces
-//! retention. Each tick also runs a download-recovery pass
-//! (`download::recover_downloads`): it resets stuck `Downloading` rows back to
-//! `DownloadError`, retires attempt-exhausted ones as terminal `DownloadBroken`,
-//! and re-attempts the rest. The handle is start/stop/reset-able from the control
-//! endpoints.
-//! `poll()` and [`spawn_poll_job`](PollingHandle::spawn_poll_job) are the
-//! on-demand paths — both force a fetch (ignore intervals); the latter streams
-//! per-podcast progress into the [`jobs`] tracker.
+//! PollingHandle schedules interval ticks; each feed still obeys its resolved fetch interval. Ticks auto-download,
+//! enforce retention, and recover stuck or retryable downloads while retiring exhausted attempts. Manual
+//! poll/spawn_poll_job ignore intervals; the latter records per-podcast progress.
 
 pub mod jobs;
 
@@ -29,11 +19,10 @@ use self::jobs::JobTracker;
 use halogen_download::DownloadTracker;
 use halogen_rss::SyncContext;
 
-/// Run one reported feed sync against `ctx`, streaming per-podcast outcomes into
-/// the persisted job `job_id` (when `Some`) and finishing it with the run's
-/// status. The rss reporter callback is sync, while persisting an outcome is
-/// async — a channel + writer task bridges the two; the writer is drained before
-/// the job is finished so no outcome lands after `completed_at`.
+/// Run one reported feed sync against `ctx`, streaming per-podcast outcomes into the persisted job `job_id`
+/// (when `Some`) and finishing it with the run's status. The rss reporter callback is sync, while persisting an
+/// outcome is async — a channel + writer task bridges the two; the writer is drained before the job is finished
+/// so no outcome lands after `completed_at`.
 async fn run_reported_sync(
     dbc: &DatabaseConnection,
     ctx: &SyncContext,
@@ -154,11 +143,10 @@ impl PollingHandle {
         }
     }
 
-    /// Build the handle the way a full server host does — shared by the
-    /// `halogen-server` binary and the embedded in-process server: the wake
-    /// interval (ZERO when the polling service is disabled — the loop never
-    /// fires), poll concurrency, the UTC-midnight `no_sync_before` cutoff, and
-    /// the resolved subscription knobs.
+    /// Build the handle the way a full server host does — shared by the `halogen-server` binary and the
+    /// embedded in-process server: the wake interval (ZERO when the polling service is disabled — the loop
+    /// never fires), poll concurrency, the UTC-midnight `no_sync_before` cutoff, and the resolved subscription
+    /// knobs.
     pub fn from_config(dbc: DatabaseConnection, cfg: &halogen_config::Config) -> Self {
         // Episodes published before this instant are skipped by the sync
         // service (UTC midnight of the configured `subscription_no_sync_before`
@@ -217,11 +205,9 @@ impl PollingHandle {
         self.download_tracker.clone()
     }
 
-    /// Start an on-demand poll job and return its id once the job row is
-    /// persisted. The actual feed sync runs on a detached task, streaming
-    /// per-podcast results into the job history; clients poll
-    /// `GET /admin/poll-job/{id}` for progress. `podcast_id` scopes the run to
-    /// one feed (`None` = all feeds).
+    /// Start an on-demand poll job and return its id once the job row is persisted. The actual feed sync runs
+    /// on a detached task, streaming per-podcast results into the job history; clients poll `GET
+    /// /admin/poll-job/{id}` for progress. `podcast_id` scopes the run to one feed (`None` = all feeds).
     pub async fn spawn_poll_job(&self, podcast_id: Option<i32>) -> Result<u64, String> {
         let job_id = self.jobs.create(PollJobTrigger::Manual, podcast_id).await?;
         let dbc = self.dbc.clone();
@@ -359,14 +345,8 @@ impl PollingHandle {
         Ok(())
     }
 
-    /// Stop the scheduled poll task and wait for it to actually terminate,
-    /// aborting an in-flight tick rather than waiting it out (a tick can spend
-    /// minutes in feed fetches). Rows left `Downloading` by an aborted tick are
-    /// reclaimed by `reclaim_orphaned_downloads` / the next recovery pass — the
-    /// same hardening that covers a process kill. Idempotent: a no-op when the
-    /// service isn't running. This is the teardown an in-process host (the
-    /// embedded server's restart loop) needs before dropping its DB pool;
-    /// [`stop`](Self::stop) alone returns while the old tick may still hold it.
+    /// Abort and await the scheduled task before an in-process host drops its DB pool; stop alone may leave a tick
+    /// running. Orphan reclamation/download recovery handles interrupted rows. Safe to call when stopped.
     pub async fn shutdown(&self) {
         // Scope the guard: `std::sync::Mutex` must not be held across an await.
         let poll_task = match self.task.lock() {

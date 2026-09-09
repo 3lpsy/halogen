@@ -19,7 +19,7 @@ tracing = { workspace = true }
 url = { workspace = true }
 
 [dev-dependencies]
-halogen-migrate = { path = "../migrate" }
+halogen-migrations = { path = "../migrations" }
 halogen-fixture = { path = "../fixture", features = ["test-support"] }
 tokio = { workspace = true }
 wiremock = { workspace = true }

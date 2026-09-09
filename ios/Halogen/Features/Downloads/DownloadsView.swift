@@ -56,25 +56,25 @@ struct DownloadsView: View {
             } else {
                 List(selection: $selection) {
                     ForEach(displayedEpisodes, id: \.id) { episode in
-                    EpisodeRowLink(
-                        episode: episode,
-                        artURL: core.episodeArtURL(episode),
-                        subtitle: episode.podcast?.title,
-                        context: .browse,
-                        core: core
-                    )
-                    .tag(episode.id)
-                    .selectionDisabled(!isEditing)
-                    .configuredSwipes(.downloads, episode: episode, core: core)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            Task { await model.removeDownload(episode) }
-                        } label: {
-                            Label(
-                                model.facet == .onDevice ? "Remove" : "Delete file",
-                                systemImage: "trash")
+                        EpisodeRowLink(
+                            episode: episode,
+                            artURL: core.episodeArtURL(episode),
+                            subtitle: episode.podcast?.title,
+                            context: .browse,
+                            core: core
+                        )
+                        .tag(episode.id)
+                        .selectionDisabled(!isEditing)
+                        .configuredSwipes(.downloads, episode: episode, core: core)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                Task { await model.removeDownload(episode) }
+                            } label: {
+                                Label(
+                                    model.facet == .onDevice ? "Remove" : "Delete file",
+                                    systemImage: "trash")
+                            }
                         }
-                    }
                     }
                     if model.hasMore && !model.episodes.isEmpty && !selectedOnly {
                         LoadMoreRow(failed: model.loadMoreFailed) { await model.loadMore() }

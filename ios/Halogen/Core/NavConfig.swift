@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// Built-in navigation destinations — mirrors the web's `BuiltinNav`
-/// (crates/ui-config nav.rs), same snake_case tokens so a future config sync
+/// (webui/config nav.rs), same snake_case tokens so a future config sync
 /// could share them.
 enum BuiltinNav: String, Codable, CaseIterable, Identifiable {
     case queue

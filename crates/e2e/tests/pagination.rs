@@ -1,16 +1,5 @@
-//! Pagination + infinite-scroll journey across every list route.
-//!
-//! Regression for two coupled bugs:
-//!   1. The sync worker pulled only the first server page (default size 10), so
-//!      every list silently capped at 10 items regardless of library size.
-//!   2. The episode lists virtualize 30 rows at a time and grow as a sentinel
-//!      scrolls into view — useless if the data never exceeds the first page.
-//!
-//! We seed 35 episodes (> one virtualization window) plus 15 podcasts and 15
-//! playlists, then assert each route shows far more than the old 10-item cap and
-//! that scrolling the episode list reveals the whole set.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Seed 35 episodes, 15 podcasts, and 15 playlists; verify lists exceed the old 10-item cap and scrolling reveals every
+//! episode beyond the 30-row window. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, idb_seed_audio, login_via_ui, require_dist, run_session,
@@ -106,11 +95,10 @@ async fn pagination_and_infinite_scroll() {
                 body_text(&driver).await
             );
 
-            // ── /downloads — device-download set (seeded into the byte store) ────
-            // Device downloads are device-local and their ground truth is the
-            // IndexedDB byte store (`halogen.media.{segment}`/`audio`) — hydration derives
-            // the set from the blobs present, so seed tiny blobs directly, then
-            // reload so the worker re-hydrates from them.
+            // ── /downloads — device-download set (seeded into the byte store) ──── Device downloads are
+            // device-local and their ground truth is the IndexedDB byte store
+            // (`halogen.media.{segment}`/`audio`) — hydration derives the set from the blobs present, so seed
+            // tiny blobs directly, then reload so the worker re-hydrates from them.
             idb_seed_audio(&driver, &episode_ids).await?;
             driver.refresh().await?;
             driver.goto(format!("{}/downloads", app.base_url)).await?;

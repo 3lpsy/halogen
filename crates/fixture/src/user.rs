@@ -44,10 +44,7 @@ pub async fn seed_admin_user(
         "Created initial admin user '{}' — please change this password on first login",
         username
     );
-    // Print the password ONLY when we generated it (the CLI's "random password
-    // printed if omitted" contract). A caller-supplied one must never land in
-    // logs — the embedded server passes its secrets-file password here, and
-    // its tracing output feeds the user-viewable, exportable device log.
+    // Print only generated passwords, as promised by the CLI. Caller-supplied secrets must never reach logs.
     if password.is_none() {
         info!("Admin password: {}", pw_buf);
     }
@@ -55,12 +52,8 @@ pub async fn seed_admin_user(
     Ok((true, pw_buf))
 }
 
-/// Insert a user with a REAL (bcrypt-hashed) loginable password at an explicit
-/// `id`. Unlike [`seed_admin_user`], there is NO "skip when a user already
-/// exists" guard, so this can create a SECOND account for multi-account tests
-/// (the e2e add-account flow logs a second user in through the UI, which needs
-/// a genuine hash — `TestApp::seed_user`'s placeholder hash can't authenticate).
-/// The caller supplies the id to avoid colliding with the admin's `i32::MAX`.
+/// Insert an explicit user ID with a bcrypt password for real UI logins, including second accounts. No existing-user
+/// skip guard; callers must avoid the seeded admin's i32::MAX ID.
 pub async fn seed_password_user(
     dbc: &DatabaseConnection,
     id: i32,

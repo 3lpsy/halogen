@@ -4,13 +4,15 @@ import Foundation
 /// it's the user's `is_default` playlist (`GET /playlists/default`).
 extension HalogenClient {
     func playlists() async throws -> [PlaylistData] {
-        try await get("playlists", query: [
-            URLQueryItem(name: "includes[0]", value: "EpisodeIds"),
-            // Server default page size is 10 — a curated playlist list fits
-            // one big page.
-            URLQueryItem(name: "pagination[page]", value: "0"),
-            URLQueryItem(name: "pagination[size]", value: "500"),
-        ])
+        try await get(
+            "playlists",
+            query: [
+                URLQueryItem(name: "includes[0]", value: "EpisodeIds"),
+                // Server default page size is 10 — a curated playlist list fits
+                // one big page.
+                URLQueryItem(name: "pagination[page]", value: "0"),
+                URLQueryItem(name: "pagination[size]", value: "500"),
+            ])
     }
 
     /// One playlist by id — the deep-link fetch-through, episode ids
@@ -33,13 +35,15 @@ extension HalogenClient {
     /// order MUST be requested explicitly: the endpoint's param-less default
     /// is id ASC (front-adds once landed at the END on iOS because of this).
     func playlistEpisodes(playlistId: Int32, pageSize: Int = 500) async throws -> [EpisodeData] {
-        try await get("playlists/\(playlistId)/episodes", query: [
-            URLQueryItem(name: "pagination[page]", value: "0"),
-            URLQueryItem(name: "pagination[size]", value: String(pageSize)),
-            URLQueryItem(name: "includes[0]", value: "Podcast"),
-            URLQueryItem(name: "order[order_by]", value: "position"),
-            URLQueryItem(name: "order[direction]", value: "Asc"),
-        ])
+        try await get(
+            "playlists/\(playlistId)/episodes",
+            query: [
+                URLQueryItem(name: "pagination[page]", value: "0"),
+                URLQueryItem(name: "pagination[size]", value: String(pageSize)),
+                URLQueryItem(name: "includes[0]", value: "Podcast"),
+                URLQueryItem(name: "order[order_by]", value: "position"),
+                URLQueryItem(name: "order[direction]", value: "Asc"),
+            ])
     }
 
     /// Create a playlist with the web form's full field set (name +

@@ -1,15 +1,5 @@
-//! Development data seeding.
-//!
-//! [`seed_dev_data`] populates a fresh database with a rich, realistic dataset —
-//! podcasts, episodes, podcast configs, subscriptions, playlists (including the
-//! default queue), podcast→playlist auto-add links, and playback history — so a
-//! local dev environment has every type of data the UI can render without
-//! subscribing to anything by hand.
-//!
-//! Podcast + episode metadata is parsed straight from the RSS fixtures in
-//! `data/tests/*.xml` (the same feeds the server's parser tests use). Every
-//! downloaded episode points at a single copy of `data/tests/nasa-test-clip.mp3` placed in
-//! the media root, so playback works offline without real downloads.
+//! Seed a fresh database with subscriptions, playlists, auto-add links, configs, and playback history from data/tests
+//! RSS fixtures. Downloaded episodes share a copied nasa-test-clip.mp3 in the media root for offline playback.
 
 use std::path::{Path, PathBuf};
 
@@ -37,11 +27,10 @@ const FIXTURES: &[&str] = &[
     // The Daily, pre-filtered to May 2026 episodes only (the full feed lives in
     // `simplecast_the_daily.xml`, which the RSS/polling tests use).
     "simplecast_the_daily_may.xml",
-    // Odd Lots carries inline `psc:chapters` on a couple of episodes — seeded with
-    // their chapter rows so the now-playing chapter UI has real data in dev (see
-    // the chaptered-item handling in the seed loop). Acquired carries the external
-    // `podcast:chapters` URL form, which can't be fetched offline, so it seeds as a
-    // normal podcast (no chapter rows) — useful as the "URL but no chapters" case.
+    // Odd Lots carries inline `psc:chapters` on a couple of episodes — seeded with their chapter rows so the
+    // now-playing chapter UI has real data in dev (see the chaptered-item handling in the seed loop). Acquired
+    // carries the external `podcast:chapters` URL form, which can't be fetched offline, so it seeds as a normal
+    // podcast (no chapter rows) — useful as the "URL but no chapters" case.
     "omny_odd_lots.xml",
     "transistor_acquired.xml",
 ];
@@ -54,12 +43,9 @@ const MAX_EPISODES_PER_PODCAST: usize = 10;
 /// root (a copy of `data/tests/nasa-test-clip.mp3`).
 const SEED_AUDIO_FILENAME: &str = "seed_dev.mp3";
 
-/// Seed a development dataset from the RSS fixtures in `fixtures_dir`
-/// (typically `data/tests`), copying `nasa-test-clip.mp3` into `media_root` for playback.
-///
-/// Idempotent: if any podcast already exists, this is a no-op and returns
-/// `Ok(false)`. On a fresh database it inserts the full dataset and returns
-/// `Ok(true)`.
+/// Seed a development dataset from the RSS fixtures in `fixtures_dir` (typically `data/tests`), copying
+/// `nasa-test-clip.mp3` into `media_root` for playback. Idempotent: if any podcast already exists, this is a
+/// no-op and returns `Ok(false)`. On a fresh database it inserts the full dataset and returns `Ok(true)`.
 pub async fn seed_dev_data(
     dbc: &DatabaseConnection,
     fixtures_dir: &Path,
@@ -512,14 +498,8 @@ async fn seed_playbacks(dbc: &DatabaseConnection, user_id: i32, episodes: &[i32]
     Ok(())
 }
 
-/// Seed a second, **non-admin** development account (`dev2` / password `dev2`) with
-/// a small library: a default queue, one custom playlist, and three subscriptions —
-/// two shared with the admin's seed plus one podcast only `dev2` follows. Lets the
-/// dev UI exercise the multi-user / subscription-scoping paths the single admin
-/// seed can't show.
-///
-/// Idempotent: a no-op returning `Ok(false)` if the `dev2` user already exists.
-/// Best run after [`seed_dev_data`] so there are existing podcasts to share.
+/// Seed non-admin dev2/dev2 with a queue, custom playlist, and three subscriptions, including shared and exclusive
+/// podcasts. Run after seed_dev_data to exercise account scoping. Return Ok(false) if dev2 already exists.
 pub async fn seed_dev2_data(dbc: &DatabaseConnection) -> Result<bool> {
     if user::Entity::find()
         .filter(user::Column::Username.eq("dev2"))
@@ -672,11 +652,10 @@ async fn insert_chapters(
     Ok(chapters.len())
 }
 
-/// Parse inline `psc:chapters` off a feed item into `(title, starts_at_secs)`
-/// pairs. `rss` exposes namespaced elements via `extensions()` keyed by prefix →
-/// local name: `<psc:chapters>` at `["psc"]["chapters"]`, each `<psc:chapter>` a
-/// child carrying `start` (NPT) + `title` attrs. Mirrors the server's parser; kept
-/// here because the seed lives below the server crate.
+/// Parse inline `psc:chapters` off a feed item into `(title, starts_at_secs)` pairs. `rss` exposes namespaced
+/// elements via `extensions()` keyed by prefix → local name: `<psc:chapters>` at `["psc"]["chapters"]`, each
+/// `<psc:chapter>` a child carrying `start` (NPT) + `title` attrs. Mirrors the server's parser; kept here
+/// because the seed lives below the server crate.
 fn parse_psc_chapters(item: &Item) -> Vec<(String, i32)> {
     let Some(psc) = item.extensions().get("psc") else {
         return Vec::new();

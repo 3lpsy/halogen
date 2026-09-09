@@ -15,13 +15,13 @@ final class EmbeddedJourneyTests: JourneyCase {
         app.tabBars.buttons["Podcasts"].tap()
         require(app.buttons["podcast-add"], "add-podcast button").tap()
         let title = require(app.textFields["Title"], "title field", timeout: 10)
-        title.tap()
-        title.typeText("Acquired")
+        focusAndType(title, "Acquired", "podcast title")
         let url = app.textFields.matching(
             NSPredicate(format: "placeholderValue CONTAINS 'Feed URL'")
         ).firstMatch
-        require(url, "feed url field", timeout: 5).tap()
-        url.typeText("\(Self.serverBase)/feeds/transistor_acquired.xml")
+        focusAndType(
+            require(url, "feed url field", timeout: 5),
+            "\(Self.serverBase)/feeds/transistor_acquired.xml", "feed URL")
         snap("02-create-form")
         require(anyElement("podcast-create-submit"), "create submit").tap()
 
@@ -65,8 +65,7 @@ final class EmbeddedJourneyTests: JourneyCase {
         require(app.buttons["Accounts"], "Accounts entry", timeout: 10).tap()
         require(app.buttons["New user on this device"], "add device user", timeout: 10).tap()
         let user2 = require(app.textFields["Username"], "username field", timeout: 10)
-        user2.tap()
-        user2.typeText("seconduser")
+        focusAndType(user2, "seconduser", "second device username")
         require(app.buttons["Create and switch"], "create-and-switch submit", timeout: 5).tap()
         requireSessionUp(timeout: 60)
         // Subscriptions are per-user: the fresh user starts with an empty

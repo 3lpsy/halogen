@@ -1,0 +1,8 @@
+[package]
+name = "halogen-format"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+chrono = { workspace = true }
+chrono-tz = { workspace = true }

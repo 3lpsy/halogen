@@ -1,15 +1,5 @@
-//! Journey C — device download → play offline → remove.
-//!
-//! The full local-first download lifecycle:
-//!   - download an episode to the device from /latest (real bytes → IndexedDB,
-//!     the `halogen.media`/`audio` store goes from 0 to 1 row);
-//!   - cut connectivity (repoint the client at a dead port + reload);
-//!   - on /downloads the play badge stays enabled and playback reaches Playing
-//!     (audio sourced from the stored blob, no server);
-//!   - remove the device download (the per-row trash badge) — the byte store
-//!     drops back to 0 and the row is gone after a reload.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Download real episode bytes to IndexedDB, switch the client to an unreachable server, play the stored audio offline,
+//! then remove it and verify absence after reload. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, idb_audio_count, ingest_feed, login_via_ui, patch_active_config,

@@ -8,6 +8,8 @@ import Observation
 @MainActor
 @Observable
 final class HistoryModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
 
     /// The displayed rows (pool → chips/search → order).
@@ -23,7 +25,7 @@ final class HistoryModel {
         didSet {
             guard query != oldValue else { return }
             let snapshot = query
-            Task { [store = core.store] in
+            Task { [store = accountStore] in
                 await store?.save(snapshot, key: "listquery-history")
             }
             rebuild()
@@ -41,19 +43,20 @@ final class HistoryModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
     }
 
     func load() async {
         error = nil
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(ListQuery.self, key: "listquery-history")
             {
                 query = saved
             }
         }
-        if pool.isEmpty, let store = core.store,
+        if pool.isEmpty, let store = accountStore,
             let cached = await store.load([EpisodeData].self, key: CacheKey.history)
         {
             for episode in cached { pool[episode.id] = episode }
@@ -71,7 +74,7 @@ final class HistoryModel {
         generation += 1
         let mine = generation
         do {
-            let first = try await core.playbacksPage(page: 0)
+            let first = try await core.forAccount(accountStore).playbacksPage(page: 0)
             guard mine == generation else { return }
             merge(first.items)
             await resolveBodies(for: first.items.map(\.episode_id))
@@ -101,7 +104,7 @@ final class HistoryModel {
         defer { loadingMore = false }
         loadMoreFailed = false
         do {
-            let next = try await core.playbacksPage(page: page + 1)
+            let next = try await core.forAccount(accountStore).playbacksPage(page: page + 1)
             page += 1
             hasMore = next.hasMore
             merge(next.items)
@@ -153,7 +156,7 @@ final class HistoryModel {
         guard !missing.isEmpty else { return }
         let fetched = await withTaskGroup(of: EpisodeData?.self) { group in
             for id in missing {
-                group.addTask { [core] in try? await core.episodeDetail(id: id) }
+                group.addTask { [core, accountStore] in try? await core.forAccount(accountStore).episodeDetail(id: id) }
             }
             var out: [EpisodeData] = []
             for await episode in group {
@@ -184,8 +187,8 @@ final class HistoryModel {
                 uniqueKeysWithValues: rows.map { ($0.id, recencyDate($0)) })
             rows.sort { a, b in
                 let (da, db) = (dates[a.id] ?? .distantPast, dates[b.id] ?? .distantPast)
-                if da != db { return da > db }
-                return a.id > b.id
+                if da != db { return query.direction == .asc ? da < db : da > db }
+                return query.direction == .asc ? a.id < b.id : a.id > b.id
             }
         } else {
             rows = ListQuery(orderField: query.orderField, direction: query.direction)
@@ -211,6 +214,6 @@ final class HistoryModel {
     /// playback row, so the reload can re-derive recency order offline.
     private func persistSnapshot() {
         let snapshot = Array(pool.values)
-        Task { [store = core.store] in await store?.save(snapshot, key: CacheKey.history) }
+        Task { [store = accountStore] in await store?.save(snapshot, key: CacheKey.history) }
     }
 }

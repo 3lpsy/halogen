@@ -34,11 +34,13 @@ extension HalogenClient {
 
     /// One episode with its relations (podcast / caller's playback / chapters).
     func episode(id: Int32) async throws -> EpisodeData {
-        try await get("episodes/\(id)", query: [
-            URLQueryItem(name: "includes[0]", value: "Podcast"),
-            URLQueryItem(name: "includes[1]", value: "Playback"),
-            URLQueryItem(name: "includes[2]", value: "Chapters"),
-        ])
+        try await get(
+            "episodes/\(id)",
+            query: [
+                URLQueryItem(name: "includes[0]", value: "Podcast"),
+                URLQueryItem(name: "includes[1]", value: "Playback"),
+                URLQueryItem(name: "includes[2]", value: "Chapters"),
+            ])
     }
 
     /// Online podcast search across the server's providers (iTunes/gpodder —

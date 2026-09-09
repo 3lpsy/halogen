@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.discover
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -132,12 +133,12 @@ class DiscoverModel(private val core: HalogenCore) {
     suspend fun subscribe(item: DiscoverResultItem) {
         // Durable subscribe (web: OutboxOp::Subscribe) — queues offline and
         // survives restarts; the library refresh reconciles once it drains.
-        core.outbox?.enqueue(
+        if (!core.ensureQueued(
             OutboxOp.Kind.Subscribe(
                 feedUrl = item.feed_url,
                 title = item.title,
                 description = item.description?.takeIf { it.isNotEmpty() },
-            ))
+            ))) return
         subscribedFeeds = subscribedFeeds + item.feed_url
         core.models?.podcasts?.refresh()
     }

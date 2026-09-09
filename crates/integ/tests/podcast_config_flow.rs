@@ -1,9 +1,7 @@
-//! Podcast-config journey — the lifecycle of a polling/download config through
-//! the podcast it belongs to: create+link → get → update → remove → confirm
-//! gone. Configs are only ever created/deleted via their podcast (there is no
-//! standalone create/list/delete). Driven through the `ApiClient`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(podcast_config_flow)'`
+//! Podcast-config journey — the lifecycle of a polling/download config through the podcast it belongs to:
+//! create+link → get → update → remove → confirm gone. Configs are only ever created/deleted via their podcast
+//! (there is no standalone create/list/delete). Driven through the `ApiClient`. Run with: `cargo nextest run
+//! -p halogen-integ -E 'binary(podcast_config_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{PodcastConfigStoreData, PodcastConfigUpdateData, PodcastStoreData};

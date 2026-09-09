@@ -7,7 +7,7 @@ publish = false
 # Browser end-to-end tests. Heavy deps (a WebDriver client) live here so they
 # never touch the server/ui build graph. Tests are `#[ignore]` by default —
 # they need a running chromedriver + Chrome and a built `dist/`.
-# Run with: `just e2e`
+# Run with: `just test-e2e`
 
 [dependencies]
 # The embedded frontend (the test serving path: the server serves the bundled

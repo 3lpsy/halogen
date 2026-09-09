@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.playlists
 
+import org.fgsec.halogen.core.enqueueMutation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -270,6 +271,8 @@ class PlaylistEpisodesModel(
     /// Exposed so play actions can carry this list as the play context.
     val playlistId: Int,
 ) {
+    private val accountStore = core.store
+
     var episodes: List<EpisodeData> by mutableStateOf(emptyList())
         private set
     var loaded: Boolean by mutableStateOf(false)
@@ -289,7 +292,7 @@ class PlaylistEpisodesModel(
         set(value) {
             if (value == queryState.value) return
             queryState.value = value
-            val store = core.store
+            val store = accountStore
             core.scope.launch { store?.save(value, QUERY_KEY) }
         }
 
@@ -312,10 +315,10 @@ class PlaylistEpisodesModel(
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<ListQuery>(QUERY_KEY)?.let { queryState.value = it }
+            accountStore?.load<ListQuery>(QUERY_KEY)?.let { queryState.value = it }
         }
         if (episodes.isEmpty()) {
-            core.store?.load<List<EpisodeData>>(CacheKey.playlistEpisodes(playlistId))?.let {
+            accountStore?.load<List<EpisodeData>>(CacheKey.playlistEpisodes(playlistId))?.let {
                 episodes = it
                 loaded = true
             }
@@ -347,7 +350,7 @@ class PlaylistEpisodesModel(
             }
             episodes = fresh
             error = null
-            core.store?.save(fresh, CacheKey.playlistEpisodes(playlistId))
+            accountStore?.save(fresh, CacheKey.playlistEpisodes(playlistId))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -358,42 +361,27 @@ class PlaylistEpisodesModel(
     }
 
     fun remove(episode: EpisodeData) {
-        mutationEpoch += 1
-        episodes = episodes.filterNot { it.id == episode.id }
-        core.models?.playlists?.setMembership(
-            playlistId = playlistId, episodeIds = episodes.map { it.id })
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.RemoveFromPlaylist(playlistId = playlistId, episodeId = episode.id))
+        core.enqueueMutation(OutboxOp.Kind.RemoveFromPlaylist(playlistId = playlistId, episodeId = episode.id)) {
+            mutationEpoch += 1
+            episodes = episodes.filterNot { it.id == episode.id }
+            core.models?.playlists?.setMembership(playlistId = playlistId, episodeIds = episodes.map { it.id })
         }
     }
 
     /// `toIndex` is the row's FINAL resting index (reorder helper semantics).
     fun move(fromIndex: Int, toIndex: Int) {
-        if (fromIndex !in episodes.indices) return
-        mutationEpoch += 1
-        val list = episodes.toMutableList()
-        val moved = list.removeAt(fromIndex)
-        list.add(toIndex.coerceIn(0, list.size), moved)
-        episodes = list
-        val finalIndex = episodes.indexOfFirst { it.id == moved.id }
-        if (finalIndex < 0) return
-        core.models?.playlists?.setMembership(
-            playlistId = playlistId, episodeIds = episodes.map { it.id })
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.MoveInPlaylist(
-                    playlistId = playlistId, episodeId = moved.id, to = finalIndex))
+        val moved = episodes.getOrNull(fromIndex) ?: return
+        val finalIndex = toIndex.coerceIn(0, (episodes.size - 1).coerceAtLeast(0))
+        core.enqueueMutation(OutboxOp.Kind.MoveInPlaylist(playlistId = playlistId, episodeId = moved.id, to = finalIndex)) {
+            mutationEpoch += 1
+            val list = episodes.filterNot { it.id == moved.id }.toMutableList()
+            list.add(finalIndex.coerceIn(0, list.size), moved)
+            episodes = list
+            core.models?.playlists?.setMembership(playlistId = playlistId, episodeIds = episodes.map { it.id })
         }
     }
 
-    private fun persistSnapshot() {
-        val snapshot = episodes
-        val store = core.store
-        core.scope.launch { store?.save(snapshot, CacheKey.playlistEpisodes(playlistId)) }
-    }
+
 
     private companion object {
         /// One shared query across every playlist detail (web: the

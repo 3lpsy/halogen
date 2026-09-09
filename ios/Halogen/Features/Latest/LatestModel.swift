@@ -8,6 +8,8 @@ import Observation
 @MainActor
 @Observable
 final class LatestModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
 
     private(set) var episodes: [EpisodeData] = []
@@ -32,6 +34,7 @@ final class LatestModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
     }
 
     private var loadedQuery = false
@@ -41,7 +44,7 @@ final class LatestModel {
         error = nil
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(ListQuery.self, key: "listquery-latest"),
                 saved != query
             {
@@ -54,7 +57,7 @@ final class LatestModel {
             }
         }
         let snapshot = query
-        Task { [store = core.store] in await store?.save(snapshot, key: "listquery-latest") }
+        Task { [store = accountStore] in await store?.save(snapshot, key: "listquery-latest") }
         // Debounce typing: task(id: query) cancels this sleep on the next
         // keystroke, so only the settled query actually fetches.
         if !query.search.isEmpty {
@@ -64,7 +67,7 @@ final class LatestModel {
         // (`task(id:)` refires on appear), and the cache holds one page —
         // painting it over a deep in-memory list truncated everything past
         // page 1 and threw the scroll position away.
-        if episodes.isEmpty, isDefaultish, !isDeviceSet, let store = core.store,
+        if episodes.isEmpty, isDefaultish, !isDeviceSet, let store = accountStore,
             let cached = await store.load([EpisodeData].self, key: CacheKey.latest(query.filters))
         {
             episodes = cached
@@ -111,14 +114,15 @@ final class LatestModel {
             return
         }
         do {
-            var first = try await core.latestEpisodesRaw(
+            var first = try await core.forAccount(accountStore).latestEpisodesRaw(
                 extra: query.queryItems, page: 0, pageSize: 20)
             // A multi-chip facet can't ride the wire — trim the page locally
             // (OR within the facet, same rows the web's local query keeps).
             if query.needsLocalChipFilter {
                 first = HalogenClient.PageOf(
                     items: first.items.filter {
-                        query.matchesChips($0, status: { [weak core] in core?.overlayStatus($0) ?? $0.playback_status ?? .unplayed })
+                        query.matchesChips(
+                            $0, status: { [weak core] in core?.overlayStatus($0) ?? $0.playback_status ?? .unplayed })
                     },
                     hasMore: first.hasMore)
             }
@@ -149,12 +153,12 @@ final class LatestModel {
                 // (web: every fetched page is upserted into the pool).
                 let ids = Set(first.items.map(\.id))
                 var snapshot = first.items
-                if let prior = await core.store?.load(
+                if let prior = await accountStore?.load(
                     [EpisodeData].self, key: CacheKey.latest(query.filters))
                 {
                     snapshot += prior.filter { !ids.contains($0.id) }
                 }
-                await core.store?.save(snapshot, key: CacheKey.latest(query.filters))
+                await accountStore?.save(snapshot, key: CacheKey.latest(query.filters))
             }
         } catch is CancellationError {
             return
@@ -188,7 +192,7 @@ final class LatestModel {
         // list (and corrupt page/hasMore for the wrong facet).
         let mine = generation
         do {
-            let next = try await core.latestEpisodesRaw(
+            let next = try await core.forAccount(accountStore).latestEpisodesRaw(
                 extra: query.queryItems, page: page + 1, pageSize: 20)
             guard mine == generation else { return }
             page += 1
@@ -196,7 +200,8 @@ final class LatestModel {
             var items = next.items.filter { !known.contains($0.id) }
             if query.needsLocalChipFilter {
                 items = items.filter {
-                    query.matchesChips($0, status: { [weak core] in core?.overlayStatus($0) ?? $0.playback_status ?? .unplayed })
+                    query.matchesChips(
+                        $0, status: { [weak core] in core?.overlayStatus($0) ?? $0.playback_status ?? .unplayed })
                 }
             }
             episodes.append(contentsOf: items)
@@ -225,7 +230,7 @@ final class LatestModel {
     /// Called when the scene leaves the foreground (and on tab disappear) —
     /// the anchor survives relaunch, not just tab switches.
     func persistScrollAnchor() {
-        guard let anchor = topVisibleId, let store = core.store else { return }
+        guard let anchor = topVisibleId, let store = accountStore else { return }
         Task { await store.save(anchor, key: CacheKey.latestScrollAnchor) }
         // Snapshot the whole loaded window (capped), not just page 1: a deep
         // anchor is only restorable when the relaunch cache-paint actually
@@ -241,7 +246,7 @@ final class LatestModel {
     }
 
     private func restoreAnchorIfNeeded() async {
-        guard !restoredAnchor, !episodes.isEmpty, let store = core.store else { return }
+        guard !restoredAnchor, !episodes.isEmpty, let store = accountStore else { return }
         restoredAnchor = true
         if let anchor = await store.load(Int32.self, key: CacheKey.latestScrollAnchor),
             episodes.contains(where: { $0.id == anchor })

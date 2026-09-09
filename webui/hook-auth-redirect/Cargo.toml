@@ -1,0 +1,10 @@
+[package]
+name = "halogen-webui-hook-auth-redirect"
+version.workspace = true
+edition.workspace = true
+[dependencies]
+dioxus = { workspace = true }
+
+[features]
+desktop = ["dioxus/desktop"]
+web = ["dioxus/web"]

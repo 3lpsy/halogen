@@ -1,12 +1,11 @@
 # syntax=docker/dockerfile:1
-# Self-contained halogen-server with the frontend embedded; PROFILE=release|dev,
-# cargo-chef caches deps, toolchain via the TOOLCHAIN build-arg.
-# Build: docker build -f ci/docker/release/Dockerfile -t halogen:release .  (just image-release)
-# Run:   docker run --rm -p 8080:8080 -e HALOGEN_AUTH_TOKEN_SECRET=... halogen:release
+# Embedded-frontend server; PROFILE=release|dev, cached dependencies, TOOLCHAIN base.
+# Build: docker build -f ci/docker/release/Dockerfile -t halogen:release .
+# Run: docker run --rm -p 8080:8080 -e HALOGEN_AUTH_TOKEN_SECRET=... halogen:release
 
 # REQUIRED build-arg (no default — keeps the internal registry host out of the
 # repo): registry.${SERVICES_ROOT_DOMAIN}/halogen-toolchain:latest in CI, or
-# halogen-toolchain:local after `just image-toolchain`.
+# halogen-toolchain:local after `just docker-build-toolchain`.
 ARG TOOLCHAIN
 FROM ${TOOLCHAIN} AS chef
 WORKDIR /src
@@ -23,32 +22,32 @@ RUN cargo chef prepare --recipe-path recipe.json
 ############################################
 FROM chef AS builder
 
-# Build profile: release (optimized → target/release) or dev (debug →
-# target/debug, debug_assertions on). Used by local `just image-dev`; CI's dev
-# images are built incrementally instead (dev-release.yml). CI release leaves it
-# at the default.
+# Server profile: release or dev. The frontend always uses wasm-release.
 ARG PROFILE=release
 
 # Disable the repo's sccache default: the cooked layer IS the cache, and
 # sccache's server can't start under buildah's chroot isolation.
 ENV RUSTC_WRAPPER=""
 
-# Cook deps (server + wasm frontend) in the build's profile. .cargo first so the
-# cooked artifacts use the same linker/registry/cfgs (else the cache misses).
+# Cook server dependencies in PROFILE and frontend/worker in wasm-release.
+# Copy Cargo configuration first to preserve registry and linker settings.
 COPY .cargo .cargo
 COPY --from=planner /src/recipe.json recipe.json
 RUN REL=$([ "$PROFILE" = dev ] && echo "" || echo "--release"); \
     cargo chef cook $REL -p halogen-server --features embed-frontend \
         --recipe-path recipe.json \
- && cargo chef cook $REL --target wasm32-unknown-unknown \
-        -p halogen-ui --no-default-features --features web \
-        --recipe-path recipe.json
+ && cargo chef cook --profile wasm-release --target wasm32-unknown-unknown \
+        -p halogen-webui --no-default-features --features web \
+        --recipe-path recipe.json \
+ && cargo chef cook --profile wasm-release --target wasm32-unknown-unknown \
+        -p halogen-webui-worker --recipe-path recipe.json
 
 # Real source + the actual build (profile-selected).
 COPY . .
-RUN cd crates/ui && npm ci
+RUN cd webui/app && npm ci
 RUN if [ "$PROFILE" = dev ]; then \
-        just build-dev && cp target/debug/halogen-server /usr/local/bin/halogen-server ; \
+        just ui-build && cargo build -p halogen-server --features embed-frontend \
+        && cp target/debug/halogen-server /usr/local/bin/halogen-server ; \
     else \
         just build-release && cp target/release/halogen-server /usr/local/bin/halogen-server ; \
     fi
@@ -65,7 +64,7 @@ RUN useradd --system --create-home --uid 10001 halogen
 
 COPY --from=builder /usr/local/bin/halogen-server /usr/local/bin/halogen-server
 
-# OCI version label (defaults to the workspace version; image-release/image-dev + CI pass it).
+# OCI version label (defaults to the workspace version; release tooling passes it).
 ARG VERSION=0.1.0
 LABEL org.opencontainers.image.title="halogen-server" \
       org.opencontainers.image.description="Halogen Podcast Server" \
@@ -76,8 +75,7 @@ RUN mkdir -p /data/media && chown -R halogen:halogen /data
 USER halogen
 VOLUME ["/data"]
 
-# IMPORTANT: set a stable HALOGEN_AUTH_TOKEN_SECRET in production — the default is
-# randomized per boot, invalidating every issued JWT on restart.
+# Set a stable HALOGEN_AUTH_TOKEN_SECRET. Startup rejects a missing secret.
 ENV HALOGEN_LISTEN_ADDRESS=0.0.0.0 \
     HALOGEN_LISTEN_PORT=8080 \
     HALOGEN_DB_PATH=/data/halogen.db \

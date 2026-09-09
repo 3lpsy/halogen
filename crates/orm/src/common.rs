@@ -11,23 +11,9 @@ use validator::ValidationErrors;
 
 use halogen_wire::{DbValidationErrors, Order, Pagination, Paginator};
 
-/// Generic, location-aware DB lookups layered over SeaORM, available on **every**
-/// `EntityTrait` via a blanket impl. They wrap `find_by_id` / single-column finds
-/// and emit the right error `field`/`code` so producers don't hand-build them:
-///
-/// - the error `field` is **never** a caller-supplied string. `by_id*` is always
-///   keyed `"id"`; `by_column*` derives its field from the column's own `Iden`
-///   name (`Column::PodcastId` → `"podcast_id"`), so the reported location can't
-///   drift from the column the query actually touched.
-/// - a missing row is `code = "exists"` (→ 404); an unexpected `DbErr` routes
-///   through [`DbValidationErrors`] (unique → 409, else a non-leaking 500 logged
-///   once at the mapping site) — these helpers stay silent.
-/// - messages stay generic (`"<table> does not exist"`, derived from the entity);
-///   the UI keys off field + code + status, not the prose.
-///
-/// FK-specific lookups (only meaningful for entities that *have* that column,
-/// e.g. `by_podcast_id`) do **not** belong here — give them their own
-/// entity-scoped trait. This blanket trait is for what's valid on any entity.
+/// Location-aware lookups for every EntityTrait. ID errors use id; column errors derive the field from Iden. Missing
+/// rows return exists/404; DbValidationErrors maps unique violations to 409 and other failures to a logged, non-leaking
+/// 500. Keep messages generic and FK-specific helpers in entity-scoped traits.
 #[async_trait]
 pub trait EntityHelpers<E>
 where
@@ -49,7 +35,7 @@ where
     ) -> Result<E::Model, ValidationErrors>;
 
     /// Whether a row with this primary key exists.
-    async fn id_exists(
+    async fn is_id_present(
         dbc: &DatabaseConnection,
         id: Self::PrimaryKeyType,
     ) -> Result<bool, ValidationErrors>;
@@ -110,7 +96,7 @@ where
         }
     }
 
-    async fn id_exists(
+    async fn is_id_present(
         dbc: &DatabaseConnection,
         id: Self::PrimaryKeyType,
     ) -> Result<bool, ValidationErrors> {
@@ -156,23 +142,17 @@ where
     }
 }
 
-/// List endpoints' sortable entities: map a request `order_by` key to a column,
-/// falling back to the primary key for unknown keys. The list-side companion to
-/// [`EntityHelpers`] — drives [`paginate`] so each entity's sort vocabulary lives
-/// with that entity instead of a `match` copy-pasted into every list handler. The
-/// per-entity `impl`s live in each entity module (`podcast.rs`, `episode.rs`, …).
+/// List endpoints' sortable entities: map a request `order_by` key to a column, falling back to the primary key
+/// for unknown keys. The list-side companion to [`EntityHelpers`] — drives [`paginate`] so each entity's sort
+/// vocabulary lives with that entity instead of a `match` copy-pasted into every list handler. The per-entity
+/// `impl`s live in each entity module (`podcast.rs`, `episode.rs`, …).
 pub trait Sortable: EntityTrait {
     fn order_column(order_by: &str) -> Self::Column;
 }
 
-/// Apply `order` (via [`Sortable`]) to `query`, then page it: returns the
-/// requested page's models plus the response [`Paginator`] metadata. Collapses the
-/// `order_by` / `paginate` / `from_db_paginator` / `fetch_page` quartet every list
-/// handler repeated; a DB error becomes a non-leaking [`ValidationErrors`].
-///
-/// The caller passes the fully-FILTERED query (scoping, search, …) WITHOUT a sort;
-/// the requested sort is appended here, so a relevance pre-sort the caller already
-/// applied stays primary and this becomes the tiebreak.
+/// Append Sortable ordering, paginate the filtered query, and return models with Paginator metadata. Map DB errors to
+/// non-leaking ValidationErrors. Normally pass no existing sort; a relevance pre-sort stays primary and the requested
+/// order becomes its tiebreaker.
 pub async fn paginate<E>(
     dbc: &DatabaseConnection,
     query: Select<E>,

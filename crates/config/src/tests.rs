@@ -497,11 +497,10 @@ mod config_tests {
         assert_eq!(cfg.subscription_download_max_attempts, 2);
     }
 
-    // Gap 1: an empty `auth_token_secret` after all layering makes `resolve`
-    // return Err. Setting the keyed env var to an empty string defeats the
-    // test-only fallback in `config_env_var` (the keyed lookup succeeds with
-    // ""), while `apply_env`'s non-empty guard then skips the assignment — so
-    // the secret stays empty and validation fails.
+    // Gap 1: an empty `auth_token_secret` after all layering makes `resolve` return Err. Setting the keyed env
+    // var to an empty string defeats the test-only fallback in `config_env_var` (the keyed lookup succeeds with
+    // ""), while `apply_env`'s non-empty guard then skips the assignment — so the secret stays empty and
+    // validation fails.
     #[test]
     fn test_missing_auth_token_secret_rejected() {
         let key = test_key();
@@ -777,5 +776,45 @@ mod config_tests {
         assert_eq!(back.auth_token_expiry_minutes, Some(15));
         assert_eq!(back.episode_playback_complete_percentage, Some(10));
         fs::remove_file(&path).ok();
+    }
+    #[test]
+    fn discover_provider_env_overrides_allow_local_fixtures() {
+        let key = test_key();
+        set_test_env_key(&key);
+        let names = [
+            (
+                "HALOGEN_DISCOVER_ITUNES_BASE_URL",
+                "http://127.0.0.1:8099/discover/itunes.json",
+            ),
+            (
+                "HALOGEN_DISCOVER_GPODDER_BASE_URL",
+                "http://127.0.0.1:8099/discover/gpodder.json",
+            ),
+        ];
+        for (name, value) in names {
+            unsafe { env::set_var(format!("{name}_{key}"), value) };
+        }
+        let config = Config::resolve(&Cli::parse_from(["halogen-server"])).unwrap();
+        assert_eq!(config.discover_itunes_base_url, names[0].1);
+        assert_eq!(config.discover_gpodder_base_url, names[1].1);
+        let cli = Cli::parse_from([
+            "halogen-server",
+            "--discover-itunes-base-url",
+            "http://127.0.0.1:9000/itunes",
+            "--discover-gpodder-base-url",
+            "http://127.0.0.1:9000/gpodder",
+        ]);
+        let overridden = Config::resolve(&cli).unwrap();
+        assert_eq!(
+            overridden.discover_itunes_base_url,
+            "http://127.0.0.1:9000/itunes"
+        );
+        assert_eq!(
+            overridden.discover_gpodder_base_url,
+            "http://127.0.0.1:9000/gpodder"
+        );
+        for (name, _) in names {
+            unsafe { env::remove_var(format!("{name}_{key}")) };
+        }
     }
 }

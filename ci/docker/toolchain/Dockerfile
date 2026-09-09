@@ -1,8 +1,6 @@
 # syntax=docker/dockerfile:1
-# Shared build toolchain: release + testing `FROM` this (built once/pushed).
-# On ci-podman-dx-win (Fedora): rust stable + wasm32 + windows-gnu/mingw,
-# wasm-bindgen, sccache/nextest/just, node, CLIs, and the crates gate are
-# inherited; only halogen's own desktop/packaging lane is added here.
+# Shared release/testing base inherits Rust, WASM/Windows, Node, caches, and test tools.
+# Add Halogen desktop and packaging dependencies here.
 
 # No default: CI passes the in-cluster base derived from the root-domain var.
 ARG BASE_IMAGE
@@ -165,3 +163,74 @@ ENV CHROMEDRIVER=/usr/bin/chromedriver
 
 # Flathub runtimes live on /cache (setup-flatpak.sh), not baked.
 ENV FLATPAK_USER_DIR=/cache/flatpak
+
+# Browser and Linux Apple development tools.
+# Browsers for `just test-e2e` (crates/e2e drives them via chromedriver).
+# procps-ng/psmisc give ps/pkill/pstree for stray-browser cleanup and triage.
+RUN dnf -y install --setopt=install_weak_deps=False \
+        chromium chromedriver unzip procps-ng psmisc \
+    && dnf clean all
+
+# chrome-headless-shell: ~40% faster suite than full chromium (amd64-only —
+# Chrome for Testing ships no linux-arm64). Version-pinned with its driver.
+ARG CFT_VERSION=150.0.7871.124
+ARG CFT_BASE=https://storage.googleapis.com/chrome-for-testing-public
+RUN curl -fsSL -o /tmp/shell.zip "${CFT_BASE}/${CFT_VERSION}/linux64/chrome-headless-shell-linux64.zip" \
+    && curl -fsSL -o /tmp/driver.zip "${CFT_BASE}/${CFT_VERSION}/linux64/chromedriver-linux64.zip" \
+    && unzip -q /tmp/shell.zip -d /opt && unzip -q /tmp/driver.zip -d /opt \
+    && mv /opt/chrome-headless-shell-linux64 /opt/chrome-headless-shell \
+    && mv /opt/chromedriver-linux64/chromedriver /opt/chrome-headless-shell/chromedriver \
+    && rm -rf /opt/chromedriver-linux64 /tmp/shell.zip /tmp/driver.zip
+
+# The shell opens no initial tab and chromedriver `--`-prefixes every caps arg,
+# so a wrapper appends a positional about:blank or sessions hang tabless.
+# setpriv --pdeathsig ties chrome's life to chromedriver's, so a hard-killed
+# test (whose pdeathsig takes chromedriver) can't orphan a browser tree.
+RUN printf '#!/bin/sh\nexec setpriv --pdeathsig SIGKILL /opt/chrome-headless-shell/chrome-headless-shell "$@" about:blank\n' \
+        > /opt/chrome-headless-shell/shell-with-tab \
+    && chmod +x /opt/chrome-headless-shell/shell-with-tab
+
+# Point the harness at the shell + its matched driver (chromium stays on PATH;
+# unset CHROME_BIN / set CHROMEDRIVER=/usr/bin/chromedriver to fall back).
+ENV CHROME_BIN=/opt/chrome-headless-shell/shell-with-tab \
+    CHROMEDRIVER=/opt/chrome-headless-shell/chromedriver
+
+# rcodesign signs Mach-O bundles without macOS, which is what lets the iOS
+# signing lane run here instead of on the Mac (CI-004). llvm + openssl cover
+# the rest of what `codesign`/`security`/`dwarfdump` did on the host.
+# zip is what sign-ios.sh packages the .ipa with; unzip comes from the tier above.
+RUN dnf -y install --setopt=install_weak_deps=False llvm openssl zip && dnf clean all \
+    && cargo install --locked apple-codesign \
+    && rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git" \
+    && rcodesign --version
+
+# Swift supplies the parser, formatter and language server. ios-check uses
+# the separately mounted Darwin SDK; swiftlint checks source conventions.
+RUN dnf -y install --setopt=install_weak_deps=False swift-lang swiftlint python3-pyyaml python3-pillow \
+    && dnf clean all \
+    && swiftc --version && swift-format --version && swiftlint version \
+    && command -v sourcekit-lsp \
+    && test -e "$(dirname "$(dirname "$(readlink -f "$(command -v swiftc)")")")/lib/libsourcekitdInProc.so"
+
+# FEAT-048: `swift build --swift-sdk` (ios-check) needs Swift >= 6.3 with the
+# `swift sdk` subcommand — Fedora's swift-lang above provides both now. Gate
+# it so a future distro lag fails the image build, never a CI lane.
+RUN v="$(swift --version 2>&1 | sed -n 's/.*Swift version \([0-9.]*\).*/\1/p')" \
+    && printf '6.3\n%s\n' "$v" | sort -V -C \
+    && swift sdk list
+
+# iOS Rust targets for the staticlib slices, typeshare for ios-wire-types.
+RUN rustup target add aarch64-apple-ios aarch64-apple-ios-sim \
+    && cargo install --locked typeshare-cli \
+    && rm -rf "${CARGO_HOME}/registry" "${CARGO_HOME}/git"
+
+# xtool packs the dev-lane .app and registers the mounted Darwin SDK
+# (`xtool sdk install`); the SDK itself is never baked (Xcode licence).
+ARG XTOOL_VERSION=1.18.1
+RUN curl -fsSL -o /opt/xtool.AppImage \
+        "https://github.com/xtool-org/xtool/releases/download/${XTOOL_VERSION}/xtool-x86_64.AppImage" \
+    && chmod +x /opt/xtool.AppImage \
+    && printf '#!/bin/sh\nexec env APPIMAGE_EXTRACT_AND_RUN=1 /opt/xtool.AppImage "$@"\n' \
+        > /usr/local/bin/xtool \
+    && chmod +x /usr/local/bin/xtool \
+    && xtool --help >/dev/null

@@ -1,17 +1,6 @@
-//! Shared library for the Tier-1 HTTP integration journeys (`tests/*.rs`).
-//!
-//! Each journey drives a **real** axum server (via [`support`]) over loopback,
-//! exercising routes through the real [`halogen_api::ApiClient`] — the exact
-//! gateway the UI uses — so the same request-building, `serde_qs` query
-//! serialisation, and envelope decoding the frontend relies on are tested on the
-//! wire. The only faked dependency is upstream RSS: a [`wiremock`] server
-//! reachable through a podcast's `feed_url`.
-//!
-//! A few journeys (media streaming, podcast artwork, SPA-fallback routing, and
-//! the connectivity WebSocket `/ws-ticket` + `/ws` upgrade) talk a raw protocol
-//! — binary bodies / range requests / cookie auth / unprefixed paths / `ws://`
-//! frames that aren't typed `ApiClient` calls — helped by the small
-//! [`Client`]/[`json_ok`] wrappers here.
+//! HTTP journeys use the real Axum server and ApiClient to verify request encoding and envelopes; upstream RSS is
+//! mocked. Raw Client/json_ok helpers cover binary media, range/cookie auth, SPA paths, and WebSocket upgrades outside
+//! the typed API.
 
 mod test_fixture;
 
@@ -19,7 +8,7 @@ pub mod support;
 
 pub use support::{AdminCreds, SpawnOptions, TestApp, spawn, spawn_with};
 
-use halogen_api::{ApiClient, ApiError};
+use halogen_apiclient::{ApiClient, ApiError};
 use halogen_wire::{
     DefaultListParams, EpisodeInclude, FilterParams, Includable, Order, OrderDirection, Pagination,
 };
@@ -44,12 +33,10 @@ pub fn anon_api(app: &TestApp) -> ApiClient {
     ApiClient::new(Url::parse(&app.base_url).expect("parse base url"))
 }
 
-/// Recover the HTTP status an [`ApiError`] corresponds to.
-///
-/// The server returns errors as a `ResponseData` envelope with `errors`
-/// populated, which the client decodes as [`ApiError::Validation`] — dropping
-/// the numeric status. Mirror the server's `extract_status_code` to recover it
-/// from the error `code`, so tests can assert `status_of(&err) == 404`, etc.
+/// Recover the HTTP status an [`ApiError`] corresponds to. The server returns errors as a `ResponseData`
+/// envelope with `errors` populated, which the client decodes as [`ApiError::Validation`] — dropping the
+/// numeric status. Mirror the server's `extract_status_code` to recover it from the error `code`, so tests can
+/// assert `status_of(&err) == 404`, etc.
 pub fn status_of(err: &ApiError) -> u16 {
     match err {
         ApiError::Server { status, .. } => *status,

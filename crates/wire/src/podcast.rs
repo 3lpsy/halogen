@@ -100,11 +100,10 @@ pub struct PodcastUpdateData {
     pub description: Option<String>,
     #[validate(url(message = "Feed URL must be a valid URL"))]
     pub feed_url: Option<String>,
-    // `art_url` and `author` are intentionally NOT editable here: both are
-    // feed-derived (art flows through the server art cache; author comes from the
-    // RSS channel), no client form sets them, and as nullable columns an
-    // `Option<String>` field could never express "clear to NULL" anyway. Omitted
-    // rather than carried as dead, half-working input.
+    // `art_url` and `author` are intentionally NOT editable here: both are feed-derived (art flows through the
+    // server art cache; author comes from the RSS channel), no client form sets them, and as nullable columns
+    // an `Option<String>` field could never express "clear to NULL" anyway. Omitted rather than carried as
+    // dead, half-working input.
 }
 
 // impls

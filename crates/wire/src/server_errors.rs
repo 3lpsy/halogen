@@ -1,10 +1,7 @@
-//! Response types for the admin server-errors endpoint
-//! (`GET /admin/server-errors`): the persisted failure histories for podcast RSS
-//! syncs and episode media downloads.
-//!
-//! The two row shapes are deliberately parallel (id + FK + optional title
-//! snapshot + reason + timestamp) — they differ only in what they point at. New
-//! error kinds should follow the same shape.
+//! Response types for the admin server-errors endpoint (`GET /admin/server-errors`): the persisted failure
+//! histories for podcast RSS syncs and episode media downloads. The two row shapes are deliberately parallel
+//! (id + FK + optional title snapshot + reason + timestamp) — they differ only in what they point at. New error
+//! kinds should follow the same shape.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

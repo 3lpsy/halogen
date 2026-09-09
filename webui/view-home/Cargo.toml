@@ -1,0 +1,22 @@
+[package]
+name = "halogen-webui-view-home"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

@@ -208,11 +208,10 @@ pub struct PlaylistUpdateData {
 }
 
 impl PlaylistUpdateData {
-    /// Merge this update onto an existing playlist: a `Some` field is applied, a
-    /// `None` field leaves the target unchanged. The single source of truth for the
-    /// update's field semantics — the client's optimistic updater
-    /// (`SyncService::update_playlist_locally`) applies it so an offline edit mirrors
-    /// exactly what the server will persist.
+    /// Merge this update onto an existing playlist: a `Some` field is applied, a `None` field leaves the target
+    /// unchanged. The single source of truth for the update's field semantics — the client's optimistic updater
+    /// (`SyncService::update_playlist_locally`) applies it so an offline edit mirrors exactly what the server
+    /// will persist.
     pub fn apply_to(&self, pl: &mut PlaylistData) {
         if let Some(name) = &self.name {
             pl.name = name.clone();

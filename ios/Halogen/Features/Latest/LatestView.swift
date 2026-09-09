@@ -106,6 +106,7 @@ struct LatestView: View {
                 }
             }
             .listStyle(.plain)
+            .accessibilityIdentifier("latest-episode-list")
             .onChange(of: model.pendingScrollTo) { _, target in
                 if let target {
                     proxy.scrollTo(target, anchor: .top)

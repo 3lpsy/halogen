@@ -24,6 +24,8 @@ import org.fgsec.halogen.wire.PlaybackData
 /// desc, episode-id-desc tiebreak — never publish date); bodies resolve into a local
 /// pool so search/chips/sorts apply over everything loaded (web query.rs id-list branch).
 class HistoryModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     /// The displayed rows (pool → chips/search → order).
     var episodes: List<EpisodeData> by mutableStateOf(emptyList())
@@ -48,7 +50,7 @@ class HistoryModel(private val core: HalogenCore) {
             if (value == queryState) return
             queryState = value
             val snapshot = value
-            core.scope.launch { core.store?.save(snapshot, "listquery-history") }
+            core.scope.launch { accountStore?.save(snapshot, "listquery-history") }
             rebuild()
         }
     private var loadedQuery = false
@@ -66,10 +68,10 @@ class HistoryModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<ListQuery>("listquery-history")?.let { query = it }
+            accountStore?.load<ListQuery>("listquery-history")?.let { query = it }
         }
         if (pool.isEmpty()) {
-            core.store?.load<List<EpisodeData>>(CacheKey.history)?.let { cached ->
+            accountStore?.load<List<EpisodeData>>(CacheKey.history)?.let { cached ->
                 for (episode in cached) pool[episode.id] = episode
                 rebuild()
                 loaded = true
@@ -226,7 +228,7 @@ class HistoryModel(private val core: HalogenCore) {
     /// playback row, so the reload can re-derive recency order offline.
     private fun persistSnapshot() {
         val snapshot = pool.values.toList()
-        core.scope.launch { core.store?.save(snapshot, CacheKey.history) }
+        core.scope.launch { accountStore?.save(snapshot, CacheKey.history) }
     }
 
     /// One undecodable wire date must not crash the list — rank it last.

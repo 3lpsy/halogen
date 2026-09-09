@@ -1,5 +1,5 @@
 use super::*;
-use halogen_migrate::connect_and_migrate;
+use halogen_migrations::connect_and_migrate;
 use halogen_orm::episode::{ActiveModel as EpisodeAM, Model as EpisodeModel};
 use halogen_orm::podcast::ActiveModel as PodcastAM;
 use sea_orm::ActiveModelTrait;
@@ -617,12 +617,12 @@ async fn download_mock_copies_fixture_clip() {
     .await;
     let episode = fetch_episode(&dbc, id).await;
 
-    // Copies the bundled nasa-test-clip.mp3 to "{id}_mock.wav".
+    // Copies the bundled nasa-test-clip.mp3 to "{id}_mock.mp3".
     let path = download_mock(&episode, &media_root)
         .await
         .expect("download_mock ok");
 
-    let dest = media_root.join(format!("{id}_mock.wav"));
+    let dest = media_root.join(format!("{id}_mock.mp3"));
     assert_eq!(path, dest.to_string_lossy());
     assert!(dest.exists(), "mock clip should be copied to dest");
     let meta = std::fs::metadata(&dest).expect("stat mock copy");

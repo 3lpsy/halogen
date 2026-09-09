@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import java.net.URI
 
 /// Feed-HTML rendering — the native mirror of the web's whitelist parser
-/// (crates/ui-widgets/src/html.rs). Feed descriptions are hostile input, never
+/// (webui/component-widgets/src/html.rs). Feed descriptions are hostile input, never
 /// handed to a real HTML engine: tokenize, keep a small structural-tag whitelist,
 /// decode entities, emit AnnotatedString blocks; script/style contents drop whole.
 object HtmlText {

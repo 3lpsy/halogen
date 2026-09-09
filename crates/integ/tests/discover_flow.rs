@@ -1,12 +1,5 @@
-//! Discover journey — federated podcast search through the real server.
-//!
-//! The Discover providers (iTunes, gpodder) are backed here by `wiremock`
-//! upstreams serving the saved `data/tests/discover_*_search.json` fixtures, so
-//! the real `/api/v1/discover/*` path — auth, the `DiscoverService`, provider
-//! parsing, the merge/fault-tolerance logic, and `ApiClient` decoding — runs end
-//! to end without any external call.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(discover_flow)'`
+//! Exercise discovery authentication, provider parsing, merging, fault tolerance, and ApiClient decoding using wiremock
+//! directory responses from data/tests. Run the halogen-integ discover_flow binary.
 
 use halogen_integ::*;
 use halogen_wire::{DiscoverProvider, DiscoverSearchParams};

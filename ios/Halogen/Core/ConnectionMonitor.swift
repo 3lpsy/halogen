@@ -66,7 +66,7 @@ final class ConnectionMonitor {
         request.timeoutInterval = 5
         let previous = status
         do {
-            let (_, response) = try await URLSession.shared.data(for: request)
+            let (_, response) = try await LocalTransport.data(for: request)
             let ok = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) }
             status = ok == true ? .online : .offline
         } catch {

@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.podcasts
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,8 @@ private data class AutoPlaylistsSnapshot(val playlistIds: List<Int>, val addToSt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoPlaylistsView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Unit)? = null) {
+    val accountStore = core.store
+
     var selected by remember { mutableStateOf(setOf<Int>()) }
     /// Insert-position override for auto-added episodes: true = start,
     /// false = end, null = server default (stamped on every link).
@@ -67,28 +70,24 @@ fun AutoPlaylistsView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Un
     /// Durable replace-the-set op (web: SetPodcastAutoPlaylists) — the
     /// checkmarks above are the optimistic state; queues offline, and the
     /// FIFO outbox keeps rapid edits in order.
-    fun save() {
-        val ids = selected.toList()
-        val position = addToStart
+    var saving by remember { mutableStateOf(false) }
+    fun save(ids: Set<Int> = selected, position: Boolean? = addToStart) {
+        if (saving) return
+        saving = true
         scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.SetAutoPlaylists(
-                    podcastId = podcast.id, playlistIds = ids, addToStart = position))
-            // The snapshot tracks the queued truth, so an offline re-open
-            // shows what will land on drain.
-            core.store?.save(
-                AutoPlaylistsSnapshot(playlistIds = ids, addToStart = position),
-                CacheKey.autoPlaylists(podcast.id))
-            error = null
+            try {
+                if (!core.ensureQueued(OutboxOp.Kind.SetAutoPlaylists(podcastId = podcast.id, playlistIds = ids.toList(), addToStart = position))) return@launch
+                selected = ids
+                addToStart = position
+                edited = true
+                error = null
+            } finally { saving = false }
         }
     }
 
     fun toggle(id: Int) {
-        // Never edit an unconfirmed set — see the type doc.
         if (!loaded) return
-        edited = true
-        selected = if (id in selected) selected - id else selected + id
-        save()
+        save(ids = if (id in selected) selected - id else selected + id)
     }
 
     /// Local-first seed (web podcast_auto_playlists.rs: the cached set makes
@@ -96,7 +95,7 @@ fun AutoPlaylistsView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Un
     /// `loaded` gate protects against doesn't apply to a confirmed snapshot).
     suspend fun seedFromCache() {
         if (loaded) return
-        val cached = core.store?.load<AutoPlaylistsSnapshot>(CacheKey.autoPlaylists(podcast.id))
+        val cached = accountStore?.load<AutoPlaylistsSnapshot>(CacheKey.autoPlaylists(podcast.id))
             ?: return
         selected = cached.playlistIds.toSet()
         addToStart = cached.addToStart
@@ -116,7 +115,7 @@ fun AutoPlaylistsView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Un
             }
             loaded = true
             error = null
-            core.store?.save(
+            accountStore?.save(
                 AutoPlaylistsSnapshot(
                     playlistIds = links.map { it.playlist_id },
                     addToStart = links.firstOrNull()?.add_to_start),
@@ -205,12 +204,10 @@ fun AutoPlaylistsView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Un
                     addToStart = addToStart,
                     enabled = loaded,
                     onSelect = { newValue ->
-                        addToStart = newValue
                         // The override rides every link, so a position change
                         // is a save of the same whole set.
                         if (loaded) {
-                            edited = true
-                            save()
+                            save(position = newValue)
                         }
                     },
                 )

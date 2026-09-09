@@ -1,0 +1,29 @@
+[package]
+name = "halogen-local-runtime"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-apiclient = { path = "../apiclient" }
+halogen-router = { path = "../router" }
+halogen-routes = { path = "../routes" }
+halogen-config = { path = "../config" }
+halogen-migrations = { path = "../migrations" }
+halogen-fixture = { path = "../fixture" }
+halogen-orm = { path = "../orm" }
+halogen-polling = { path = "../polling" }
+halogen-runtime-control = { path = "../runtime-control" }
+halogen-art = { path = "../art" }
+halogen-net = { path = "../net" }
+halogen-wire = { path = "../wire" }
+axum = { workspace = true }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+libc = { workspace = true }
+
+[dev-dependencies]
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+serde_json = { workspace = true }

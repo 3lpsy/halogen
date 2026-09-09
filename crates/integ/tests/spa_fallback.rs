@@ -1,13 +1,5 @@
-//! Regression: API routes must live under `/api/v1` and must NOT shadow the
-//! client-side SPA routes. A browser refresh of e.g. `/podcasts` (no
-//! `Authorization` header) once matched the guarded API route and returned
-//! `{"error":"Missing or malformed Authorization header"}` instead of falling
-//! through to the SPA. Moving the API under `/api/v1` fixes that.
-//!
-//! Raw HTTP (not an `ApiClient` call): this is about URL routing / the auth
-//! middleware, below the typed gateway.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(spa_fallback)'`
+//! Verify raw HTTP SPA paths such as `/podcasts` reach the frontend without API authentication; guarded resources
+//! belong under `/api/v1`. Run the halogen-integ spa_fallback binary.
 
 use halogen_integ::*;
 use reqwest::StatusCode;

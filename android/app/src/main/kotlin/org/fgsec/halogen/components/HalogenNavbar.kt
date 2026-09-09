@@ -99,7 +99,7 @@ fun HalogenNavbar(
                             core.beginAddAccount()
                         },
                     )
-                    // Embedded accounts talk to the on-device server — "going
+                    // Embedded accounts talk to the local runtime — "going
                     // offline" against it is meaningless and just suspends the
                     // outbox (web hides the toggle there too).
                     if (!core.isEmbeddedAccount) {

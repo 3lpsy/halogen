@@ -1,0 +1,31 @@
+[package]
+name = "halogen-webui-media"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store-idb = { path = "../store-idb" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+web-sys = { workspace = true, features = ["Blob", "BlobPropertyBag", "Url"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[dev-dependencies]
+
+[features]
+desktop = ["halogen-webui-logging/desktop", "halogen-webui-platform/desktop"]
+web = ["halogen-webui-logging/web", "halogen-webui-platform/web"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

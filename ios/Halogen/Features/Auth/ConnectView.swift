@@ -149,7 +149,7 @@ struct ConnectView: View {
             Button {
                 Task { await core.useLocalLibrary() }
             } label: {
-                Label("Use embedded server (this device)", systemImage: "iphone")
+                Label("Use Local Only", systemImage: "iphone")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)

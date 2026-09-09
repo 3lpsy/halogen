@@ -1,17 +1,5 @@
-//! Offline journey — once a list has been cached online, the app keeps rendering
-//! it after the server becomes unreachable (offline-first), and the per-episode
-//! play control disables because there's nothing to stream.
-//!
-//! We never tear down the server (the harness owns its lifetime); instead we point
-//! the *client* at a dead address by rewriting the active user's stored config
-//! (`patch_active_config`) and reloading. The worker then fails its pull and flips
-//! `sync_status` to Offline, while the episode list still resolves from the local
-//! store.
-//!
-//! Covers two things nothing else did: offline rendering of a general list page,
-//! and the offline-disabled state of an episode's results/actions.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Repoint persisted client config to an unreachable server and reload; verify cached list rendering and offline play
+//! gating without stopping the server. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, patch_active_config, require_dist, run_session,
@@ -98,21 +86,8 @@ async fn cached_list_renders_offline_with_play_disabled() {
     .await;
 }
 
-/// An unreachable server is the **Offline** condition, not a page error: the
-/// cached pool is all we have, exactly as with the manual "Go Offline" toggle,
-/// and the offline indicator already carries that state.
-///
-/// The list used to report it as an error and render the raw `reqwest`/`ApiError`
-/// wording — "Error loading episodes: transport error: error sending request" —
-/// in a banner above rows that were resolving from cache perfectly well. The
-/// error is surfaced only when the cached pool `is_empty()`, sampled when the
-/// fetch resolves; a connection-refused fails so much faster than the local-store
-/// read that the pool still looks empty, so the banner latched and then stayed
-/// there once the rows arrived.
-///
-/// Separate from [`cached_list_renders_offline_with_play_disabled`] on purpose:
-/// that test's play-badge assertion is currently failing on master (the badge no
-/// longer disables offline), which would mask this one entirely.
+/// An unreachable server should show the offline indicator without a list-error banner. A fast connection refusal can
+/// precede cache hydration; keep this assertion separate from play gating so that failure cannot mask it.
 #[tokio::test]
 #[ignore = "needs Chrome + chromedriver + a built dist/ (run via `just test-e2e`)"]
 async fn offline_list_does_not_surface_raw_transport_error() {

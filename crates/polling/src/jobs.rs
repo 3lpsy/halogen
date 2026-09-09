@@ -1,11 +1,5 @@
-//! DB-backed store for poll jobs.
-//!
-//! A poll job is one feed-sync run — user-triggered (all feeds, or one podcast)
-//! or a tick of the scheduled service. Every run is persisted as a `poll_job`
-//! row plus per-podcast `poll_job_podcast` outcome rows, so the status endpoints
-//! read durable history that survives restarts. Retention is capped at
-//! [`MAX_JOBS`]: older jobs (and their outcome children, via the FK cascade) are
-//! pruned when a job finishes.
+//! Persist each scheduled or manual feed-sync run and its per-podcast outcomes. Finishing a job prunes history beyond
+//! MAX_JOBS, with outcome rows removed by cascade.
 
 use chrono::Utc;
 use sea_orm::ActiveValue::{NotSet, Set};

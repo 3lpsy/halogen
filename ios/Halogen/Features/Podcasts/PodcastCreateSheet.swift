@@ -62,12 +62,14 @@ struct PodcastCreateSheet: View {
         // podcast appears once the op drains and the library refreshes. An
         // empty title rides as nil; the drain falls back to the feed URL.
         let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
-        await core.outbox?.enqueue(
-            .subscribe(
-                feedUrl: feedUrl.trimmingCharacters(in: .whitespaces),
-                title: trimmedTitle.isEmpty ? nil : trimmedTitle,
-                description: nil
-            ))
+        guard
+            await core.ensureQueued(
+                .subscribe(
+                    feedUrl: feedUrl.trimmingCharacters(in: .whitespaces),
+                    title: trimmedTitle.isEmpty ? nil : trimmedTitle,
+                    description: nil
+                ))
+        else { return }
         await onCreated()
         dismiss()
     }

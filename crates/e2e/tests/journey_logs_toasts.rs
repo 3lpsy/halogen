@@ -1,15 +1,5 @@
-//! Journey F — device logs + toasts.
-//!
-//! Two client-only surfaces nothing else drives end to end:
-//!   - **Device logs**: enable capture + pick a level on the viewer page
-//!     (/logs/device), generate some log lines by navigating, reach the viewer
-//!     again from the Settings menu ("Device Logs"), confirm it's capturing
-//!     lines, filter via the search box, then Clear to the empty state.
-//!   - **Toasts**: trigger a runtime error (a device download with the server
-//!     unreachable) and assert the daisyUI toast (`.toast .alert-error`) carries
-//!     the expected message.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Exercise device-log capture, level selection, filtering, and clearing, then assert an error toast after an
+//! unreachable-server device download. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_el, count, login_via_ui, patch_active_config,
@@ -75,11 +65,10 @@ async fn logs_and_toasts_journey() {
             .await
             .ok();
 
-        // The toggle's effect persists to localStorage and applies capture live
-        // (`pages/logs` → `logging::set_enabled`). Belt-and-braces against any
-        // race: force the persisted shape (merging onto existing config) and
-        // reload — config-load re-applies it (`providers/config.rs`), so capture
-        // is unambiguously on before we generate log lines.
+        // The toggle's effect persists to localStorage and applies capture live (`pages/logs` →
+        // `logging::set_enabled`). Belt-and-braces against any race: force the persisted shape (merging onto
+        // existing config) and reload — config-load re-applies it (`providers/config.rs`), so capture is
+        // unambiguously on before we generate log lines.
         patch_active_config(
             &driver,
             "c.device_logs = Object.assign({}, c.device_logs, { enabled: true, level: 'Debug' });",
@@ -140,11 +129,10 @@ async fn logs_and_toasts_journey() {
         for _ in 0..20 {
             search.send_keys(Key::Backspace).await?;
         }
-        // The capture controls (added to this page) make it tall enough that
-        // focusing the search box scrolls the header — and its Clear button —
-        // up under the fixed navbar. `click_el` scrolls it back into view and
-        // falls back to a JS click if the navbar still intercepts.
-        // Clear is now an icon button (label-less); target its aria-label.
+        // The capture controls (added to this page) make it tall enough that focusing the search box scrolls
+        // the header — and its Clear button — up under the fixed navbar. `click_el` scrolls it back into view
+        // and falls back to a JS click if the navbar still intercepts. Clear is now an icon button
+        // (label-less); target its aria-label.
         let clear_btn = driver
             .query(By::Css("button[aria-label='Clear']"))
             .first()

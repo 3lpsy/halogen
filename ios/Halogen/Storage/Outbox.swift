@@ -46,65 +46,59 @@ struct OutboxOp: Codable, Identifiable {
     }
 }
 
-/// Persisted FIFO of offline mutations (models mutate optimistically, enqueue,
-/// the drain syncs when reachable — web drain loop). Failure taxonomy (web
-/// network.rs): permanent (4xx) dead-letters now; countable (5xx/empty) backs
-/// off then dead-letters; transient (transport, 401/408/429) retries forever.
+/// Native UI adapter over the shared Rust journal and retry engine.
 actor Outbox {
     private static let key = "outbox"
-    /// Consecutive countable failures of the same head op before it is
-    /// dead-lettered (web: OUTBOX_DEAD_LETTER_ATTEMPTS).
-    private static let deadLetterAttempts: UInt32 = 10
-
-    /// Drains to skip before re-attempting a head op with `failures`
-    /// consecutive countable failures: 1, 3, 7, then 15 (cap) — the web's
-    /// `drain_skips` backoff curve.
-    private static func drainSkips(_ failures: UInt32) -> UInt32 {
-        (1 << min(failures, 4)) - 1
-    }
-
-    /// Retry bookkeeping for a failing FIFO head. In-memory only — a relaunch
-    /// grants a fresh budget (deterministic failures re-exhaust it quickly,
-    /// anything transient deserves the fresh start; same as the web).
-    private struct HeadRetry {
-        let opId: UUID
-        var failures: UInt32
-        var skipDrains: UInt32
-    }
-
     private let store: LocalStore
-    /// The core flips this with the manual-offline toggle: ops queue but
-    /// never drain while suspended.
-    private(set) var suspended = false
-    /// Executes one op against the API. Injected by the core (owns the client).
-    private let perform: (OutboxOp) async throws -> Void
-    /// Fired when an op is dead-lettered — the user must hear about a
-    /// discarded change (toast + sync-failures record); DeviceLog alone is
-    /// not a user surface.
+    private let queue: SyncQueue
+    private let gate: JournalGate
+    private let synchronize: (SyncQueue, String?) async throws -> String?
+    private let perform: (SyncQueue) async throws -> SyncDrainReport
+    private let onSnapshot: () async -> Void
     private let onDeadLetter: (OutboxOp, Error) async -> Void
     private var ops: [OutboxOp]
     private var draining = false
-    private var headRetry: HeadRetry?
+    private(set) var suspended = false
 
     init(
         store: LocalStore,
-        perform: @escaping (OutboxOp) async throws -> Void,
+        perform: @escaping (SyncQueue) async throws -> SyncDrainReport,
+        synchronize: @escaping (SyncQueue, String?) async throws -> String? = { _, _ in nil },
+        onSnapshot: @escaping () async -> Void = {},
         onDeadLetter: @escaping (OutboxOp, Error) async -> Void = { _, _ in }
-    ) async {
+    ) async throws {
         self.store = store
         self.perform = perform
+        self.synchronize = synchronize
+        self.onSnapshot = onSnapshot
         self.onDeadLetter = onDeadLetter
-        // Per-op lossy decode: ONE op persisted by a different build (unknown
-        // case / changed payload) must not wipe the whole queue — an
-        // all-or-nothing [OutboxOp] decode returns nil and the next persist
-        // would overwrite every survivor (web: per-op serde aliases/defaults).
-        let boxed = await store.load([Lossy<OutboxOp>].self, key: Self.key) ?? []
-        self.ops = boxed.compactMap(\.value)
-        if ops.count < boxed.count {
-            DeviceLog.warn(
-                "outbox: dropped \(boxed.count - ops.count) undecodable persisted op(s); kept \(ops.count)"
-            )
+        let path = await store.syncDatabasePath
+        let gate = await JournalGate.forPath(path)
+        self.gate = gate
+        await gate.acquire()
+        defer { Task { await gate.release() } }
+        let original = try await store.prepareOutboxMigration()
+        self.ops = try original.map { try WireJSON.decoder.decode([OutboxOp].self, from: $0) } ?? []
+        self.queue = try openSyncQueue(dbPath: path)
+        try await queue.importOperations(operations: ops.map { try $0.sharedOperation() })
+        try await store.projectSnapshot(queue.cachedSnapshot())
+        let rejected = Set(try await queue.quarantinedIds())
+        for op in ops where rejected.contains(op.id.uuidString) {
+            await onDeadLetter(
+                op,
+                NSError(
+                    domain: "HalogenSync", code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Change rejected by the server"]))
         }
+        let recovery = try OutboxOp.restoreSharedQueue(await queue.pending())
+        try await store.projectJournal(recovery)
+        let projected = Set(recovery.map { $0.id.uuidString })
+        let delivered = try await queue.deliveredIds().filter { projected.contains($0) }
+        try await queue.confirmCached(sourceIds: delivered)
+        try await store.forgetJournalMarkers(Set(delivered))
+        let pending = Set(try await queue.pendingIds())
+        ops = recovery.filter { pending.contains($0.id.uuidString) }
+        try await store.saveDurably(ops, key: Self.key)
     }
 
     var pendingCount: Int { ops.count }
@@ -144,151 +138,83 @@ actor Outbox {
         }
     }
 
-    /// Discard every queued op (the purge screen). Irreversible.
     func clearAll() async {
-        ops.removeAll()
-        headRetry = nil
-        await persist()
+        await gate.acquire()
+        defer { Task { await gate.release() } }
+        do {
+            try await queue.clearAll()
+            try await store.saveDurably(Optional<String>.none, key: "sync-projected-cursor")
+            ops.removeAll()
+            try await store.saveDurably(ops, key: Self.key)
+        } catch { DeviceLog.error("sync clear failed: \(error)") }
     }
 
-    func enqueue(_ kind: OutboxOp.Kind) async {
-        // Cursor writes coalesce: a fresh save supersedes any queued one for
-        // the episode (last-write-wins server-side); a played-toggle writes
-        // cursor 0, so it supersedes too (web coalesce_pending_cursor).
-        switch kind {
-        case .setCursor(let episodeId, _), .setPlayed(let episodeId, _):
-            ops.removeAll {
-                if case .setCursor(let e, _) = $0.kind { return e == episodeId }
-                return false
-            }
-        default:
-            break
+    @discardableResult
+    func enqueue(_ kind: OutboxOp.Kind) async -> Bool { await enqueueBatch([kind]) }
+
+    func enqueueBatch(_ kinds: [OutboxOp.Kind]) async -> Bool {
+        await gate.acquire()
+        defer { Task { await gate.release() } }
+        guard !Task.isCancelled else { return false }
+        let operations = kinds.map(OutboxOp.init)
+        let previousIds = Set(ops.map { $0.id.uuidString })
+        do {
+            try await queue.importOperations(operations: operations.map { try $0.sharedOperation() })
+            try await store.projectJournal(operations)
+            let pending = Set(try await queue.pendingIds())
+            ops.removeAll { previousIds.contains($0.id.uuidString) && !pending.contains($0.id.uuidString) }
+            ops.append(contentsOf: operations.filter { pending.contains($0.id.uuidString) })
+            // This is a derived mirror; a missing write is rebuilt from the journal on launch.
+            await store.save(ops, key: Self.key)
+        } catch {
+            DeviceLog.error("sync persistence failed: \(error)")
+            await MainActor.run { ToastCenter.shared.error("Couldn't save this change. Please try again.") }
+            return false
         }
-        ops.append(OutboxOp(kind))
-        await persist()
-        await drain()
+        Task {
+            await Task.yield(); await drain()
+        }
+        return true
     }
 
-    func setSuspended(_ value: Bool) {
-        suspended = value
-    }
+    var pendingOperations: [OutboxOp] { ops }
 
-    /// Pump the queue FIFO — see the type doc for the failure taxonomy.
-    /// Draining stops at the head's first transient/backing-off failure so
-    /// dependent ops can never replay out of order.
+    func setSuspended(_ value: Bool) { suspended = value }
+
     func drain() async {
-        guard !suspended else { return }
-        guard !draining else { return }
+        guard !suspended, !draining else { return }
         draining = true
-        defer { draining = false }
-
-        // A head op backing off after countable failures skips whole drains
-        // per its budget (web: HeadRetry.skip_drains). A different head means
-        // the old entry is stale — drop it for a fresh budget.
-        if let head = ops.first {
-            if var retry = headRetry, retry.opId == head.id {
-                if retry.skipDrains > 0 {
-                    retry.skipDrains -= 1
-                    headRetry = retry
-                    return
-                }
-            } else {
-                headRetry = nil
+        await gate.acquire()
+        defer { draining = false; Task { await gate.release() } }
+        guard !suspended else { return }
+        do {
+            let submitted = Set(ops.map { $0.id.uuidString })
+            try await queue.importOperations(operations: ops.map { try $0.sharedOperation() })
+            let report = try await perform(queue)
+            let recovery = try OutboxOp.restoreSharedQueue(await queue.pending())
+            try await store.projectJournal(recovery)
+            let projected = Set(recovery.map { $0.id.uuidString })
+            let delivered = try await queue.deliveredIds().filter { projected.contains($0) }
+            try await queue.confirmCached(sourceIds: delivered)
+            try await store.forgetJournalMarkers(Set(delivered))
+            var snapshotChanged = false
+            if !report.authPaused, !suspended {
+                snapshotChanged = try await store.projectSnapshot(
+                    synchronize(queue, store.load(String.self, key: "sync-projected-cursor")))
             }
-        }
-
-        while let op = ops.first {
-            do {
-                try await perform(op)
-                if headRetry?.opId == op.id { headRetry = nil }
-                ops.removeFirst()
-                await persist()
-            } catch {
-                switch Self.classify(error) {
-                case .permanent:
-                    // The server will never accept this op — dead-letter it so
-                    // it stops blocking the head of the FIFO every drain.
-                    DeviceLog.warn("outbox: dropped op after API rejection: \(error)")
-                    if headRetry?.opId == op.id { headRetry = nil }
-                    ops.removeFirst()
-                    await persist()
-                    await onDeadLetter(op, error)
-                case .countable:
-                    // 5xx/empty could equally be a transient outage or a
-                    // deterministic server bug on this payload — retry, but
-                    // against a budget.
-                    let attempt = (headRetry?.opId == op.id ? headRetry!.failures : 0) + 1
-                    if attempt >= Self.deadLetterAttempts {
-                        DeviceLog.warn(
-                            "outbox: op failed every budgeted retry (\(attempt)); dropping: \(error)"
-                        )
-                        headRetry = nil
-                        ops.removeFirst()
-                        await persist()
-                        await onDeadLetter(op, error)
-                    } else {
-                        DeviceLog.warn(
-                            "outbox: op failed (attempt \(attempt)); retrying with backoff: \(error)"
-                        )
-                        headRetry = HeadRetry(
-                            opId: op.id, failures: attempt,
-                            skipDrains: Self.drainSkips(attempt))
-                        return
-                    }
-                case .transient:
-                    DeviceLog.info(
-                        "outbox: drain paused (retryable \(error)), \(ops.count) pending")
-                    return
-                }
+            let pending = Set(try await queue.pendingIds())
+            let rejected = Set(try await queue.quarantinedIds())
+            let failed = ops.filter { submitted.contains($0.id.uuidString) && rejected.contains($0.id.uuidString) }
+            ops.removeAll { submitted.contains($0.id.uuidString) && !pending.contains($0.id.uuidString) }
+            try await store.saveDurably(ops, key: Self.key)
+            if snapshotChanged { await onSnapshot() }
+            for op in failed {
+                await onDeadLetter(
+                    op,
+                    NSError(
+                        domain: "HalogenSync", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: report.lastError ?? "Change rejected by the server"]))
             }
-        }
-    }
-
-    private enum FailureClass {
-        case permanent
-        case countable
-        case transient
-    }
-
-    /// The web's `is_permanent_failure` / `is_countable_failure` taxonomy
-    /// (crates/ui-toast classify.rs) over the Swift client's error shape.
-    private static func classify(_ error: Error) -> FailureClass {
-        switch error {
-        case let client as HalogenClient.ClientError:
-            switch client {
-            case .api:
-                // Validation: the server rejected the payload — permanent.
-                return .permanent
-            case .http(let status):
-                switch status {
-                case 401, 408, 429:
-                    // Token may refresh / explicit throttle-and-retry.
-                    return .transient
-                case 400...499:
-                    return .permanent
-                case 500...:
-                    return .countable
-                default:
-                    return .transient
-                }
-            case .emptyData:
-                return .countable
-            case .offline, .signedOut:
-                // Never counts against an op — waits for reconnect/re-auth.
-                return .transient
-            }
-        case is DecodingError:
-            // Version skew: the op executed but its response no longer decodes.
-            // Deterministic — burn the countable budget instead of wedging the
-            // head as "offline" forever (the endpoints tolerate a replay).
-            return .countable
-        default:
-            // URLError and friends: offline — keep the op, wait for reconnect.
-            return .transient
-        }
-    }
-
-    private func persist() async {
-        await store.save(ops, key: Self.key)
+        } catch { DeviceLog.warn("sync paused: \(error)") }
     }
 }

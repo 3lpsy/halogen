@@ -1,18 +1,5 @@
-//! Multiselect (bulk-action) journey on `/latest`, driven through the real DOM.
-//!
-//! Exercises the affordances nothing else covers end to end:
-//!   - **Enter/exit**: the activate icon turns the list into multiselect (per-row
-//!     checkboxes appear); the X exits and clears the selection.
-//!   - **Select + count**: ticking rows raises the count on the bulk-actions badge.
-//!   - **Selected view**: the "Selected" chip narrows the list to exactly the
-//!     ticked rows, and toggling it off restores the full list (selection survives).
-//!   - **Bulk menu + action**: the badge opens the bulk menu (add-to-playlist plus
-//!     the download options — no disabled placeholders); "Download on server" fires
-//!     one bulk call and the worker toasts a count.
-//!
-//! One ordered browser session; steps build on each other.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Exercise multiselect entry/exit, selection counts, Selected filtering, and the bulk server-download action in one
+//! browser session. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_button_text, click_el, count, first_text,

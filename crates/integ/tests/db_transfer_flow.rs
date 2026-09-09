@@ -1,19 +1,11 @@
-//! DB export/import journey — the server↔server / embedded↔server migration
-//! and full-backup story.
-//!
-//! Export must be a WAL-safe, scrubbed snapshot: no password hashes, nothing
-//! marked downloaded (and no file paths — media doesn't travel), no
-//! operational history (poll jobs / error logs). Import must MERGE, never
-//! replace: users match by username (the overlapping `admin` merges; `alice`
-//! is created with a random password), podcasts/episodes/playlists land under
-//! the mapped owner, and a re-import of the same file changes nothing.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(db_transfer_flow)'`
+//! Verify WAL-safe export strips hashes, media paths/download flags, and operational history. Import merges by
+//! username, maps ownership, provisions random passwords for new users, and remains idempotent on re-import. Run the
+//! halogen-integ db_transfer_flow binary.
 
 use std::io::Read;
 
 use flate2::read::GzDecoder;
-use halogen_api::{ApiClient, ApiError};
+use halogen_apiclient::{ApiClient, ApiError};
 use halogen_integ::*;
 use halogen_wire::{DownloadStatus, LoginData, PlaybackStoreData, PlaylistStoreData};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
@@ -93,7 +85,7 @@ async fn db_export_import_journey() {
     std::fs::create_dir_all(&inspect_dir).expect("create inspect dir");
     let snap_path = inspect_dir.join("export.db");
     std::fs::write(&snap_path, &raw).expect("write snapshot");
-    let snap = halogen_migrate::get_dbc(&snap_path)
+    let snap = halogen_migrations::get_dbc(&snap_path)
         .await
         .expect("open snapshot");
     let users = halogen_orm::user::Entity::find()

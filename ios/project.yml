@@ -17,6 +17,16 @@ settings:
 # Explicit shared scheme: xcodebuild -scheme from a headless CLI needs one
 # (Xcode's scheme auto-creation only happens in the GUI).
 schemes:
+  HalogenUnit:
+    build:
+      targets:
+        Halogen: all
+        HalogenTests: [test]
+    test:
+      config: Debug
+      targets:
+        - name: HalogenTests
+          parallelizable: false
   Halogen:
     build:
       targets:
@@ -29,6 +39,8 @@ schemes:
     test:
       config: Debug
       targets:
+        - name: HalogenTests
+          parallelizable: false
         - name: HalogenUITests
           parallelizable: false
           randomExecutionOrder: false
@@ -42,6 +54,7 @@ targets:
     info:
       path: Halogen/Info.plist
       properties:
+        CFBundleIconName: AppIcon
         UILaunchScreen: {}
         # Versions flow from build settings so `just ios-archive` can stamp
         # the workspace version + a fresh build number (App Store Connect
@@ -99,4 +112,16 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.fgsec.halogen.uitests
         TEST_TARGET_NAME: Halogen
+        GENERATE_INFOPLIST_FILE: YES
+
+  HalogenTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: Halogen
+    settings:
+      base:
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Halogen.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Halogen"
+        BUNDLE_LOADER: "$(TEST_HOST)"
         GENERATE_INFOPLIST_FILE: YES

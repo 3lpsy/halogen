@@ -1,0 +1,28 @@
+[package]
+name = "halogen-webui-view-cache-control"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+halogen-webui-provider-local = { path = "../provider-local" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-config = { path = "../config" }
+halogen-webui-cache-purge = { path = "../cache-purge" }
+halogen-webui-accounts = { path = "../accounts" }
+halogen-webui-component-icons = { path = "../component-icons" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-accounts/web", "halogen-webui-cache-purge/web", "halogen-webui-component-icons/web", "halogen-webui-config/web", "halogen-webui-hooks/web", "halogen-webui-provider-local/web"]
+desktop = ["dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-cache-purge/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-config/desktop", "halogen-webui-hooks/desktop", "halogen-webui-provider-local/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

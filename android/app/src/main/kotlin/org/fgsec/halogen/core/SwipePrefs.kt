@@ -15,7 +15,7 @@ import org.fgsec.halogen.storage.OutboxOp
 import org.fgsec.halogen.wire.EpisodeData
 import org.fgsec.halogen.wire.PlaybackStatus
 
-/// Configurable episode swipe actions — the full web vocabulary (crates/ui-listview
+/// Configurable episode swipe actions — the full web vocabulary (webui/listview
 /// `SwipeAction::ALL`), one per edge per page. Toggles resolve against the row's live
 /// state; embedded accounts remap device-download actions to their server counterparts.
 @Serializable
@@ -109,7 +109,7 @@ enum class SwipeAction(val token: String) {
 enum class SwipeTint { Gray, Indigo, Green, Blue, Red, Purple, Orange }
 
 /// The pages whose swipes are configurable — all six of the web's
-/// (crates/ui-config swipe.rs `SwipePage::ALL`).
+/// (webui/config swipe.rs `SwipePage::ALL`).
 @Serializable
 enum class SwipePage(val token: String) {
     @SerialName("latest") Latest("latest"),
@@ -150,7 +150,7 @@ data class SwipePrefs(val pages: Map<String, PagePrefs>) {
             ?: PagePrefs(SwipeAction.None, SwipeAction.None)
 
     companion object {
-        /// The web defaults (crates/ui-config swipe.rs): `leading` here is the
+        /// The web defaults (webui/config swipe.rs): `leading` here is the
         /// web's `left` (fires on a swipe-RIGHT gesture), `trailing` its `right`.
         val default = SwipePrefs(
             pages = mapOf(
@@ -197,7 +197,7 @@ class SwipePrefsModel(
 }
 
 /// The action→primitive mapping — one place, mirroring the web's
-/// `perform_episode_action` (crates/ui-episode-list action.rs), embedded
+/// `perform_episode_action` (webui/episode-list action.rs), embedded
 /// device→server remaps included. The Compose swipe container
 /// (components/SwipeActions.kt) and row menus both call through here.
 fun performSwipeAction(
@@ -262,16 +262,16 @@ fun performSwipeAction(
 }
 
 private fun removeServer(core: HalogenCore, episode: EpisodeData) {
-    // Optimistic overlay first — the row flips without waiting for drain.
-    core.models?.serverDownloads?.markRemovedLocally(episode.id)
-    core.scope.launch { core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id)) }
+    core.enqueueMutation(OutboxOp.Kind.RemoveServerDownload(episode.id)) {
+        core.models?.serverDownloads?.markRemovedLocally(episode.id)
+    }
 }
 
 /// Remove-then-trigger, in outbox order (web: RedownloadOnServer).
 private fun redownloadServer(core: HalogenCore, episode: EpisodeData) {
     core.scope.launch {
-        core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id))
-        core.models?.serverDownloads?.download(episode)
+        if (!core.ensureQueuedBatch(listOf(OutboxOp.Kind.RemoveServerDownload(episode.id), OutboxOp.Kind.TriggerDownload(episode.id)))) return@launch
+        core.models?.serverDownloads?.watch(episode.id)
     }
 }
 

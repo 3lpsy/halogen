@@ -1,6 +1,6 @@
 use super::*;
 use halogen_fixture::test_support::TestRoot;
-use halogen_migrate::connect_and_migrate;
+use halogen_migrations::connect_and_migrate;
 use sea_orm::ActiveValue;
 use wiremock::matchers::{method, path as path_matcher};
 use wiremock::{Mock, MockServer, ResponseTemplate};

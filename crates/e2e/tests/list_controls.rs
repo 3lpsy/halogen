@@ -1,17 +1,5 @@
-//! Episode-list controls journey — sort, search, and the filter chips, driven
-//! through the real DOM on `/latest`.
-//!
-//! These are the three list affordances that nothing else exercised end to end:
-//!   - **Sort**: the field dropdown flips published order; the first row changes.
-//!   - **Search**: the hidden search bar narrows the list to a title substring,
-//!     and clearing it restores the full set.
-//!   - **Chips**: the Unplayed / In Progress / Finished filter checkboxes partition
-//!     the list by `playback_status` (server- *and* cache-side), and unchecking
-//!     restores it.
-//!
-//! One ordered browser session; steps build on each other.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Exercise `/latest` sort order, substring search/clear, and Unplayed/In Progress/Finished filters in one ordered
+//! browser session. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_el, first_text, login_via_ui, require_dist,

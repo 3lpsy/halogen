@@ -1,8 +1,6 @@
-//! Subscription journey — subscribe to a (mocked) feed and watch episodes flow
-//! through the real ingestion pipeline, each step building on the last. Driven
-//! through the `ApiClient`, asserting the ingested data.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(subscription_flow)'`
+//! Subscription journey — subscribe to a (mocked) feed and watch episodes flow through the real ingestion
+//! pipeline, each step building on the last. Driven through the `ApiClient`, asserting the ingested data. Run
+//! with: `cargo nextest run -p halogen-integ -E 'binary(subscription_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{EpisodeInclude, FilterParams, PlaybackStoreData, PlaylistStoreData};

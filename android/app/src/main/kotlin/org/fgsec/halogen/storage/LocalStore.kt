@@ -2,6 +2,7 @@ package org.fgsec.halogen.storage
 
 import android.content.Context
 import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -15,12 +16,13 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import org.fgsec.halogen.features.latest.EpisodeFilter
 import org.fgsec.halogen.networking.WireJson
 
 // Per-account local cache (stale-while-revalidate snapshots) — the native
-// counterpart of the web client's IndexedDB LocalStore (crates/ui-svc-store).
+// counterpart of the web client's IndexedDB LocalStore (webui/store).
 // One JSON file per key under filesDir/halogen-client/<namespace>/<key>.json;
 // the namespace (AccountContext) keeps accounts from sharing a cache.
 class LocalStore(context: Context, namespace: String) {
@@ -28,25 +30,83 @@ class LocalStore(context: Context, namespace: String) {
         File(File(context.filesDir, "halogen-client"), namespace).apply { mkdirs() }
     private val mutex = Mutex()
 
-    suspend fun <T> load(serializer: KSerializer<T>, key: String): T? =
+    val syncDatabasePath: String get() = File(dir, "sync.sqlite").absolutePath
+
+    suspend fun prepareOutboxMigration(): String? = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            val source = fileFor("outbox")
+            if (!source.exists()) return@withContext null
+            val original = source.readText()
+            val backup = fileFor("outbox-v1-backup")
+            if (!backup.exists()) backup.writeText(original)
+            cachePayload(WireJson.json.parseToJsonElement(original)).toString()
+        }
+    }
+
+    private fun readRaw(key: String): JsonElement? =
+        fileFor(key).takeIf { it.exists() }?.readText()?.let(WireJson.json::parseToJsonElement)
+
+    private fun writeRaw(key: String, data: JsonElement) {
+        val tmp = File(dir, "$key.json.tmp")
+        FileOutputStream(tmp).use { stream ->
+            stream.write(data.toString().toByteArray(Charsets.UTF_8))
+            stream.fd.sync()
+        }
+        check(tmp.renameTo(fileFor(key))) { "could not persist $key" }
+    }
+
+    suspend fun <T> saveDurably(serializer: KSerializer<T>, value: T, key: String) {
         mutex.withLock {
             withContext(Dispatchers.IO) {
-                runCatching { WireJson.json.decodeFromString(serializer, fileFor(key).readText()) }
-                    .getOrNull()
+                val payload = WireJson.json.encodeToJsonElement(serializer, value)
+                writeRaw(key, cacheEnvelope(payload, cacheReceipts(readRaw(key))))
             }
         }
+    }
+    suspend inline fun <reified T> saveDurably(value: T, key: String) = saveDurably(serializer<T>(), value, key)
+
+    suspend fun <T> load(serializer: KSerializer<T>, key: String): T? = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            runCatching { readRaw(key)?.let { WireJson.json.decodeFromJsonElement(serializer, cachePayload(it)) } }.getOrNull()
+        }
+    }
 
     suspend fun <T> save(serializer: KSerializer<T>, value: T, key: String) {
+        try { saveDurably(serializer, value, key) }
+        catch (error: kotlinx.coroutines.CancellationException) { throw error }
+        catch (_: Exception) { }
+    }
+
+    internal suspend fun replaceSnapshot(key: String, payload: JsonElement) {
+        mutex.withLock { withContext(Dispatchers.IO) { writeRaw(key, payload) } }
+    }
+
+    /** Receipts can be pruned after the canonical journal no longer contains their payload. */
+    internal suspend fun forgetJournalMarkers(ids: Set<String>) {
+        if (ids.isEmpty()) return
         mutex.withLock {
             withContext(Dispatchers.IO) {
-                val data = runCatching { WireJson.json.encodeToString(serializer, value) }
-                    .getOrNull() ?: return@withContext
-                // Atomic write: temp file in the same dir, then rename over.
-                val tmp = File(dir, "$key.json.tmp")
-                runCatching {
-                    tmp.writeText(data)
-                    tmp.renameTo(fileFor(key))
+                for (file in dir.listFiles().orEmpty().filter { it.extension == "json" }) {
+                    val key = file.nameWithoutExtension
+                    val raw = readRaw(key) ?: continue
+                    val receipts = cacheReceipts(raw)
+                    if (receipts.any { it in ids }) {
+                        writeRaw(key, cacheEnvelope(cachePayload(raw), receipts - ids))
+                    }
                 }
+            }
+        }
+    }
+
+    /** Apply payload and its replay receipt in the same atomic cache-file replacement. */
+    internal suspend fun projectCache(key: String, operationId: String, transform: (JsonElement?) -> JsonElement?) {
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
+                val raw = readRaw(key)
+                val receipts = cacheReceipts(raw)
+                if (operationId in receipts) return@withContext
+                val updated = transform(raw?.let(::cachePayload)) ?: return@withContext
+                writeRaw(key, cacheEnvelope(updated, receipts + operationId))
             }
         }
     }

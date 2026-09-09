@@ -1,9 +1,7 @@
-//! RSS feed sync: fetch podcast feeds, ingest new episodes, and — when enabled —
-//! auto-download new episodes + enforce the per-podcast retention cap.
-//!
-//! [`RssManager`] is the orchestrator (owns the DB handle, HTTP client, and
-//! resolved [`SyncContext`]); the re-exported free functions are the thin entry
-//! points the poller and tests call. Feed parsing lives in [`feed`].
+//! RSS feed sync: fetch podcast feeds, ingest new episodes, and — when enabled — auto-download new episodes +
+//! enforce the per-podcast retention cap. [`RssManager`] is the orchestrator (owns the DB handle, HTTP client,
+//! and resolved [`SyncContext`]); the re-exported free functions are the thin entry points the poller and tests
+//! call. Feed parsing lives in [`feed`].
 
 mod feed;
 mod manager;

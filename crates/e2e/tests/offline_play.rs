@@ -1,12 +1,5 @@
-//! Offline PLAYBACK journey — the point of true device downloads: an episode
-//! downloaded to the device keeps playing with the server completely
-//! unreachable. Pipeline under test: device download (real bytes → IndexedDB)
-//! → kill connectivity (repoint the client at a dead port, reload) → the play
-//! badge stays ENABLED for the downloaded episode (local-first gating) → play
-//! → the mini player appears and reaches the Playing state (audio sourced from
-//! a blob: object URL, no network).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Download real bytes into IndexedDB, reload against an unreachable server, and verify the downloaded episode remains
+//! playable from a blob URL. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, ingest_feed, login_via_ui, patch_active_config, require_dist,

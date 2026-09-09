@@ -3,7 +3,7 @@ import SwiftUI
 /// Config-overrides editor (admin): typed editing of the allowlisted
 /// parameters (wire ConfigOverridesData). POST replaces the set wholesale;
 /// changes apply after a server restart — the web's config-overrides page
-/// (crates/ui-views config_overrides_form) key-for-key.
+/// (webui/views config_overrides_form) key-for-key.
 struct ConfigOverridesView: View {
     /// The input a parameter renders as (web: InputKind).
     enum ParamKind {
@@ -149,14 +149,18 @@ struct ConfigOverridesView: View {
         ) {
             Button("Save") { Task { await save() } }
         } message: {
-            Text("This replaces the server's overrides file with the current set. Restart the server afterwards to apply them.")
+            Text(
+                "This replaces the server's overrides file with the current set. Restart the server afterwards to apply them."
+            )
         }
         .confirmationDialog(
             "Clear all overrides?", isPresented: $confirmClear, titleVisibility: .visible
         ) {
             Button("Clear all", role: .destructive) { Task { await clearAll() } }
         } message: {
-            Text("This deletes every override and reverts the server to its configured defaults. Restart afterwards to apply.")
+            Text(
+                "This deletes every override and reverts the server to its configured defaults. Restart afterwards to apply."
+            )
         }
     }
 
@@ -209,10 +213,10 @@ struct ConfigOverridesView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            ForEach($rows) { $row in
+            ForEach($rows) { row in
                 OverrideRowView(
-                    meta: Self.params.first { $0.key == row.key },
-                    row: $row)
+                    meta: Self.params.first { $0.key == row.wrappedValue.key },
+                    row: row)
             }
             .onDelete { offsets in
                 rows.remove(atOffsets: offsets)
@@ -434,7 +438,9 @@ private struct OverrideRowView: View {
                 "Enabled",
                 isOn: Binding(
                     get: { row.value == "true" },
-                    set: { row.value = $0 ? "true" : "false"; row.error = nil }
+                    set: {
+                        row.value = $0 ? "true" : "false"; row.error = nil
+                    }
                 )
             )
             .font(.callout)
@@ -458,7 +464,9 @@ private struct OverrideRowView: View {
     private var valueBinding: Binding<String> {
         Binding(
             get: { row.value },
-            set: { row.value = $0; row.error = nil }
+            set: {
+                row.value = $0; row.error = nil
+            }
         )
     }
 }

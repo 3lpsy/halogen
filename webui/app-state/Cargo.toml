@@ -1,0 +1,13 @@
+[package]
+name = "halogen-webui-app-state"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire = { path = "../../crates/wire" }
+chrono = { workspace = true }
+serde = { workspace = true }
+
+[features]
+desktop = []
+web = []

@@ -36,12 +36,8 @@ pub struct EpisodePlaylistMoveData {
     pub to: i32,
 }
 
-/// Body for the bulk add/remove endpoints (POST / DELETE
-/// `/playlists/{playlist_id}/episodes/bulk`). The playlist id comes from the path
-/// (the route guard authorizes it); the body carries only the episode ids to add
-/// or remove. Mirrors [`crate::episode::EpisodeBulkActionData`] — bulk adds
-/// append (no per-episode position), and the server is lenient per id (an
-/// unauthorized / already-present / not-a-member id is skipped, not a batch error).
+/// Bulk membership body contains episode IDs; the path supplies the authorized playlist ID. Adds append. Unauthorized,
+/// already-present, and missing membership IDs are skipped individually without failing the batch.
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, Default)]
 pub struct EpisodePlaylistBulkData {
     #[validate(length(

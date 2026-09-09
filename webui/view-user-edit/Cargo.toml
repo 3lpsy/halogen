@@ -1,0 +1,26 @@
+[package]
+name = "halogen-webui-view-user-edit"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-accounts = { path = "../accounts" }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-wire = { path = "../../crates/wire" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-accounts/web", "halogen-webui-component-widgets/web", "halogen-webui-hooks/web"]
+desktop = ["dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-hooks/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

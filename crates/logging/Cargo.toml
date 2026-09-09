@@ -1,0 +1,10 @@
+[package]
+name = "halogen-logging"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-config = { path = "../config" }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }

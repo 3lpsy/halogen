@@ -1,0 +1,32 @@
+[package]
+name = "halogen-webui-page-login"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+halogen-webui-provider-local = { path = "../provider-local" }
+halogen-webui-hook-auth-redirect = { path = "../hook-auth-redirect" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-accounts = { path = "../accounts" }
+halogen-webui-component-icons = { path = "../component-icons" }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-utils = { path = "../../crates/utils" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-accounts/web", "halogen-webui-component-icons/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-hook-auth-redirect/web", "halogen-webui-hooks/web", "halogen-webui-logging/web", "halogen-webui-provider-local/web"]
+desktop = ["dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-hook-auth-redirect/desktop", "halogen-webui-hooks/desktop", "halogen-webui-logging/desktop", "halogen-webui-provider-local/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

@@ -24,12 +24,10 @@ impl From<TransactionError<DbErr>> for DbValidationErrors {
     }
 }
 impl From<DbValidationErrors> for ValidationErrors {
-    /// The single `DbErr -> ValidationErrors` mapping shared across the codebase.
-    /// A UNIQUE violation parses the offending column into a per-field `unique`
-    /// error (`field` = the column, → 409). Every other `DbErr` becomes a generic
-    /// 500 keyed `database`/`panic`; the raw driver message is `warn!`-logged once
-    /// here — the single mapping site every path converges on — and NEVER put in
-    /// the response.
+    /// The single `DbErr -> ValidationErrors` mapping shared across the codebase. A UNIQUE violation parses the
+    /// offending column into a per-field `unique` error (`field` = the column, → 409). Every other `DbErr`
+    /// becomes a generic 500 keyed `database`/`panic`; the raw driver message is `warn!`-logged once here — the
+    /// single mapping site every path converges on — and NEVER put in the response.
     fn from(wrapper: DbValidationErrors) -> Self {
         let db_msg = wrapper.0.to_string();
 

@@ -1,0 +1,24 @@
+[package]
+name = "halogen-webui-transport-ws"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-net = { workspace = true }
+js-sys = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true, features = ["connect", "rustls-tls-webpki-roots"] }
+
+[features]
+desktop = ["halogen-webui-logging/desktop", "halogen-webui-platform/desktop"]
+web = ["halogen-webui-logging/web", "halogen-webui-platform/web"]

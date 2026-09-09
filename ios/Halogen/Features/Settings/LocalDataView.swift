@@ -4,6 +4,16 @@ import SwiftUI
 /// this device with live size/count stats, each category individually
 /// deletable — caches, prefs, sync ops, audio, artwork, other accounts, logs.
 struct LocalDataView: View {
+    private let accountModels: Models?
+    private let accountOutbox: Outbox?
+    private let accountStore: LocalStore?
+    init(core: HalogenCore) {
+        self.core = core
+        self.accountStore = core.store
+        self.accountOutbox = core.outbox
+        self.accountModels = core.models
+    }
+
     let core: HalogenCore
 
     @State private var stats = LocalDataStats()
@@ -26,8 +36,8 @@ struct LocalDataView: View {
                     detail: "\(stats.contentCount) items · \(Self.size(stats.contentBytes))",
                     icon: "internaldrive"
                 ) {
-                    await core.store?.remove(keys: stats.contentKeys)
-                    core.remountModels()
+                    await accountStore?.remove(keys: stats.contentKeys)
+                    if core.store === accountStore { core.remountModels() }
                     note("Cleared the content cache")
                 }
                 purgeRow(
@@ -35,8 +45,8 @@ struct LocalDataView: View {
                     detail: "\(stats.viewSettingsCount) items",
                     icon: "slider.horizontal.3"
                 ) {
-                    await core.store?.remove(keys: stats.viewSettingsKeys)
-                    core.remountModels()
+                    await accountStore?.remove(keys: stats.viewSettingsKeys)
+                    if core.store === accountStore { core.remountModels() }
                     note("Reset view settings")
                 }
                 purgeRow(
@@ -44,8 +54,8 @@ struct LocalDataView: View {
                     detail: "\(stats.prefsCount) items",
                     icon: "gearshape"
                 ) {
-                    await core.store?.remove(keys: stats.prefsKeys)
-                    core.remountModels()
+                    await accountStore?.remove(keys: stats.prefsKeys)
+                    if core.store === accountStore { core.remountModels() }
                     note("Reset preferences")
                 }
                 purgeRow(
@@ -53,7 +63,7 @@ struct LocalDataView: View {
                     detail: "\(stats.outboxCount) ops",
                     icon: "arrow.triangle.2.circlepath"
                 ) {
-                    await core.outbox?.clearAll()
+                    await accountOutbox?.clearAll()
                     note("Discarded the pending sync queue")
                 }
                 purgeRow(
@@ -61,7 +71,7 @@ struct LocalDataView: View {
                     detail: "\(stats.audioCount) files · \(Self.size(stats.audioBytes))",
                     icon: "arrow.down.circle"
                 ) {
-                    core.models?.device.removeAll()
+                    accountModels?.device.removeAll()
                     note("Deleted device audio")
                 }
                 purgeRow(
@@ -104,24 +114,25 @@ struct LocalDataView: View {
                 .disabled(busy)
             } footer: {
                 Text(
-                    "Clears every cache, setting, pending sync op, and downloaded file for all accounts on this device. The embedded server library below is separate."
+                    "Clears every cache, setting, pending sync op, and downloaded file for all accounts on this "
+                        + "device. The on-device library below is separate."
                 )
             }
 
             Section {
                 HStack {
-                    Label("Embedded server data", systemImage: "externaldrive.badge.xmark")
+                    Label("On-device library data", systemImage: "externaldrive.badge.xmark")
                     Spacer()
                     Text(Self.size(stats.embeddedBytes))
                         .foregroundStyle(.secondary)
                         .font(.callout)
                 }
-                Button("Delete embedded server…", role: .destructive) {
+                Button("Delete on-device library…", role: .destructive) {
                     confirmEmbedded = true
                 }
                 .disabled(busy || stats.embeddedBytes == 0)
             } header: {
-                Text("Embedded server")
+                Text("On-device library")
             } footer: {
                 Text(
                     "Deletes this device's entire library — database, media files, and users. Remote servers are unaffected."
@@ -134,7 +145,7 @@ struct LocalDataView: View {
         .task { await reload() }
         .refreshable { await reload() }
         .confirmationDialog(
-            "Delete the embedded server?", isPresented: $confirmEmbedded
+            "Delete the on-device library?", isPresented: $confirmEmbedded
         ) {
             Button("Delete everything", role: .destructive) {
                 Task { await deleteEmbedded() }
@@ -150,7 +161,8 @@ struct LocalDataView: View {
             }
         } message: {
             Text(
-                "Caches, view settings, preferences, pending sync ops, device audio, and other accounts' data are permanently removed. The embedded server library is not touched."
+                "Caches, view settings, preferences, pending sync ops, device audio, and other accounts' data "
+                    + "are permanently removed. The on-device library is not touched."
             )
         }
     }
@@ -165,6 +177,7 @@ struct LocalDataView: View {
             Text(detail).foregroundStyle(.secondary).font(.callout)
             Button(role: .destructive) {
                 Task {
+                    guard core.store === accountStore else { return }
                     await action()
                     await reload()
                 }
@@ -189,10 +202,11 @@ struct LocalDataView: View {
     private func deleteAll() async {
         busy = true
         defer { busy = false }
-        await core.store?.remove(
+        await accountStore?.remove(
             keys: stats.contentKeys + stats.viewSettingsKeys + stats.prefsKeys)
-        await core.outbox?.clearAll()
-        core.models?.device.removeAll()
+        await accountOutbox?.clearAll()
+        guard core.store === accountStore else { return }
+        accountModels?.device.removeAll()
         ArtLoader.shared.configure(token: core.apiToken)
         DeviceLog.shared.clear()
         LocalDataStats.removeOtherNamespaces(active: core.account?.namespace)
@@ -205,8 +219,8 @@ struct LocalDataView: View {
         busy = true
         defer { busy = false }
         do {
-            try await core.destroyEmbeddedServer()
-            note("Embedded server deleted")
+            try await core.forAccount(accountStore).destroyEmbeddedServer()
+            note("On-device library deleted")
             await reload()
         } catch {
             note("Delete failed: \(error)")
@@ -273,16 +287,14 @@ struct LocalDataStats {
     // MARK: - filesystem census helpers
 
     static func clientRoot() -> URL {
-        let support = try! FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask,
-            appropriateFor: nil, create: true)
+        let support = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
         return support.appendingPathComponent("halogen-client", isDirectory: true)
     }
 
     static func embeddedRoot() -> URL {
-        let support = try! FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask,
-            appropriateFor: nil, create: true)
+        let support = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
         return support.appendingPathComponent("halogen-server", isDirectory: true)
     }
 

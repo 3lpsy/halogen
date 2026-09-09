@@ -6,6 +6,8 @@ import Observation
 @MainActor
 @Observable
 final class EpisodeDetailModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
     private let episodeId: Int32
 
@@ -14,11 +16,12 @@ final class EpisodeDetailModel {
 
     init(core: HalogenCore, episodeId: Int32) {
         self.core = core
+        self.accountStore = core.store
         self.episodeId = episodeId
     }
 
     func load() async {
-        if episode == nil, let store = core.store,
+        if episode == nil, let store = accountStore,
             let cached = await store.load(EpisodeData.self, key: CacheKey.episode(episodeId))
         {
             episode = cached
@@ -28,10 +31,10 @@ final class EpisodeDetailModel {
 
     func refresh() async {
         do {
-            let fresh = try await core.episodeDetail(id: episodeId)
+            let fresh = try await core.forAccount(accountStore).episodeDetail(id: episodeId)
             episode = fresh
             error = nil
-            await core.store?.save(fresh, key: CacheKey.episode(episodeId))
+            await accountStore?.save(fresh, key: CacheKey.episode(episodeId))
         } catch {
             if episode == nil { self.error = FriendlyError.message(error) }
         }
@@ -42,13 +45,14 @@ final class EpisodeDetailModel {
     /// in lock-step; this model also patches its own cached copy.
     func togglePlayed() async {
         guard var current = episode else { return }
-        let status = core.models?.playbacks.status(for: current)
+        let status =
+            core.models?.playbacks.status(for: current)
             ?? current.playback_status ?? .unplayed
         let nowPlayed = status != .finished
         core.models?.playbacks.markPlayed(current, played: nowPlayed)
         current = Self.withPlaybackStatus(current, nowPlayed ? .finished : .unplayed)
         episode = current
-        await core.store?.save(current, key: CacheKey.episode(episodeId))
+        await accountStore?.save(current, key: CacheKey.episode(episodeId))
     }
 
     /// Generated DTOs are immutable (let fields) — rebuild with one change.

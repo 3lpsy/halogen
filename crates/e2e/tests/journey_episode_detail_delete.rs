@@ -1,12 +1,5 @@
-//! Journey D — episode detail → download/play → podcast → delete.
-//!
-//! Tap the newest /latest row open to its episode detail (h1 matches the row
-//! title), download it to the device (the button flips to "Remove device download"),
-//! play it (mini player appears), follow the podcast-name link to the podcast
-//! detail, then Delete the podcast: the confirm modal ("Delete podcast?")
-//! confirms, and we redirect to /podcasts with the card gone.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Open an episode, download and play it, follow its podcast link, then confirm podcast deletion and the redirect to a
+//! list without that card. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, click_button_text, login_via_ui, require_dist, run_session,

@@ -1,5 +1,7 @@
 package org.fgsec.halogen.components
 
+import org.fgsec.halogen.core.enqueueMutation
+import org.fgsec.halogen.core.ensureQueuedBatch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -101,6 +103,8 @@ fun EpisodeMenu(
     core: HalogenCore,
     dismiss: () -> Unit,
 ) {
+    val accountStore = core.store
+
     val models = core.models
     val navigator = LocalNavigator.current
     var playlistsOpen by remember { mutableStateOf(false) }
@@ -251,8 +255,8 @@ fun EpisodeMenu(
             // Force fresh: remove drains first, then the trigger re-fetches
             // (web: RedownloadOnServer's op order).
             core.scope.launch {
-                core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id))
-                models?.serverDownloads?.download(episode)
+                if (!core.ensureQueuedBatch(listOf(OutboxOp.Kind.RemoveServerDownload(episode.id), OutboxOp.Kind.TriggerDownload(episode.id)))) return@launch
+                models?.serverDownloads?.watch(episode.id)
             }
             dismiss()
         }
@@ -261,12 +265,8 @@ fun EpisodeMenu(
             if (embedded) "trash" else "icloud.slash",
             destructive = true,
         ) {
-            // Optimistic overlay first (rows/menus flip immediately — web
-            // resets the status before enqueueing), then the durable op
-            // (queues offline instead of silently dropping).
-            models?.serverDownloads?.markRemovedLocally(episode.id)
-            core.scope.launch {
-                core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id))
+            core.enqueueMutation(OutboxOp.Kind.RemoveServerDownload(episode.id)) {
+                models?.serverDownloads?.markRemovedLocally(episode.id)
             }
             dismiss()
         }
@@ -312,7 +312,7 @@ fun EpisodeMenu(
     EpisodeMenuItem("Remove local data", "arrow.counterclockwise", destructive = true) {
         models?.device?.remove(episode.id)
         models?.playbacks?.purge(episode.id)
-        core.scope.launch { core.store?.remove(CacheKey.episode(episode.id)) }
+        core.scope.launch { accountStore?.remove(CacheKey.episode(episode.id)) }
         // Menus can't host a confirm dialog; at minimum the destructive wipe
         // must acknowledge itself.
         ToastCenter.success("Removed this episode's local data")
@@ -364,12 +364,8 @@ fun DownloadButton(episode: EpisodeData, core: HalogenCore) {
                         serverRunning -> models?.serverDownloads?.watch(episode.id)
                         onServer -> {
                             if (core.isEmbeddedAccount) {
-                                // Optimistic overlay first — the trash flips
-                                // back to a download glyph immediately.
-                                models?.serverDownloads?.markRemovedLocally(episode.id)
-                                core.scope.launch {
-                                    core.outbox?.enqueue(
-                                        OutboxOp.Kind.RemoveServerDownload(episode.id))
+                                core.enqueueMutation(OutboxOp.Kind.RemoveServerDownload(episode.id)) {
+                                    models?.serverDownloads?.markRemovedLocally(episode.id)
                                 }
                             } else {
                                 models?.device?.download(episode)

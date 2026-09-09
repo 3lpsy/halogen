@@ -8,11 +8,10 @@ use tracing::info;
 use halogen_orm::playlist::{ActiveModel, Column, Entity as PlaylistEntity};
 use halogen_orm::user::Entity as UserEntity;
 
-/// Ensure the primary user has a default "Queue" playlist (the `is_default`
-/// queue-backing list the UI uses). Defaults are **per-user** now, so this seeds
-/// one for the first user (the seeded admin). Idempotent: no-ops if there's no
-/// user yet, or if that user already has a default playlist. Returns whether a new
-/// one was created.
+/// Ensure the primary user has a default "Queue" playlist (the `is_default` queue-backing list the UI uses).
+/// Defaults are **per-user** now, so this seeds one for the first user (the seeded admin). Idempotent: no-ops
+/// if there's no user yet, or if that user already has a default playlist. Returns whether a new one was
+/// created.
 pub async fn seed_default_queue(dbc: &DatabaseConnection) -> Result<bool> {
     let Some(user) = UserEntity::find().one(dbc).await? else {
         info!("No user present — skipping default queue seed");

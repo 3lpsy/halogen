@@ -1,0 +1,9 @@
+[package]
+name = "halogen-sync-policy"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-apiclient = { path = "../apiclient" }
+halogen-utils = { path = "../utils" }
+serde = { workspace = true }

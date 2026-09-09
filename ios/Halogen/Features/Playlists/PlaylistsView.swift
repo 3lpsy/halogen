@@ -54,10 +54,12 @@ struct PlaylistsView: View {
         .sheet(isPresented: $showCreate) {
             PlaylistCreateSheet(model: model, core: core)
         }
-        .sheet(item: Binding(
-            get: { renameTarget.map { RenameBox(playlist: $0) } },
-            set: { renameTarget = $0?.playlist }
-        )) { box in
+        .sheet(
+            item: Binding(
+                get: { renameTarget.map { RenameBox(playlist: $0) } },
+                set: { renameTarget = $0?.playlist }
+            )
+        ) { box in
             PlaylistEditSheet(model: model, core: core, playlist: box.playlist)
         }
         .task { await model.load() }
@@ -199,7 +201,8 @@ private struct PlaylistCreateSheet: View {
                     Toggle("Delete device download on remove", isOn: $deleteClientFile)
                 } footer: {
                     Text(
-                        "Removing an episode from this playlist also deletes its downloaded file on the server (unless another playlist still has it) and/or on the removing device."
+                        "Removing an episode from this playlist also deletes its downloaded file on the server (unless "
+                            + "another playlist still has it) and/or on the removing device."
                     )
                 }
                 if let error {
@@ -240,7 +243,6 @@ private struct PlaylistCreateSheet: View {
     }
 }
 
-
 /// Identifiable wrapper (generated DTOs aren't Identifiable).
 private struct RenameBox: Identifiable {
     let playlist: PlaylistData
@@ -275,12 +277,14 @@ struct PlaylistMenu: View {
                     if core.isOffline {
                         // Offline: optimistic flip + queued UpdatePlaylist
                         // (web rule — edits queue offline, go direct online).
+                        guard
+                            await core.ensureQueued(
+                                .updatePlaylist(
+                                    playlistId: playlist.id, name: nil, isDefault: true,
+                                    description: nil, deleteServerFile: nil,
+                                    deleteClientFile: nil))
+                        else { return }
                         model.markDefaultLocally(id: playlist.id)
-                        await core.outbox?.enqueue(
-                            .updatePlaylist(
-                                playlistId: playlist.id, name: nil, isDefault: true,
-                                description: nil, deleteServerFile: nil,
-                                deleteClientFile: nil))
                     } else {
                         do {
                             try await core.makeQueuePlaylist(id: playlist.id)
@@ -314,9 +318,11 @@ struct PlaylistMenu: View {
                     Task {
                         // Durable (web: ReorderPlaylist op) — queues offline
                         // instead of silently dropping the action.
-                        await core.outbox?.enqueue(
-                            .reorderPlaylist(
-                                playlistId: playlist.id, field: field, direction: direction))
+                        guard
+                            await core.ensureQueued(
+                                .reorderPlaylist(
+                                    playlistId: playlist.id, field: field, direction: direction))
+                        else { return }
                         await model.refresh()
                     }
                 }
@@ -356,7 +362,8 @@ struct PlaylistEditSheet: View {
                     Toggle("Delete device download on remove", isOn: $deleteClientFile)
                 } footer: {
                     Text(
-                        "Removing an episode from this playlist also deletes its downloaded file on the server (unless another playlist still has it) and/or on the removing device."
+                        "Removing an episode from this playlist also deletes its downloaded file on the server (unless "
+                            + "another playlist still has it) and/or on the removing device."
                     )
                 }
                 if let error {
@@ -396,16 +403,18 @@ struct PlaylistEditSheet: View {
         if core.isOffline {
             // Offline: optimistic + queued UpdatePlaylist (online goes
             // direct so the form can show server errors — web rule).
+            guard
+                await core.ensureQueued(
+                    .updatePlaylist(
+                        playlistId: playlist.id, name: trimmed, isDefault: makeDefault,
+                        description: desc.isEmpty ? nil : desc,
+                        deleteServerFile: deleteServerFile,
+                        deleteClientFile: deleteClientFile))
+            else { return }
             model.updateLocally(
                 id: playlist.id, name: trimmed, description: desc.isEmpty ? nil : desc,
                 isDefault: makeDefault, deleteServerFile: deleteServerFile,
                 deleteClientFile: deleteClientFile)
-            await core.outbox?.enqueue(
-                .updatePlaylist(
-                    playlistId: playlist.id, name: trimmed, isDefault: makeDefault,
-                    description: desc.isEmpty ? nil : desc,
-                    deleteServerFile: deleteServerFile,
-                    deleteClientFile: deleteClientFile))
             dismiss()
             return
         }

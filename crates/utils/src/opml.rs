@@ -1,10 +1,7 @@
-//! Shared OPML core — parsing, podcast extraction, and serialization.
-//!
-//! Everything here is **pure** (no I/O, only `roxmltree` + string building), so
-//! it compiles to wasm and is shared by the server (import/export handlers) and
-//! the frontend (parse + validate an OPML file before upload). Native-only
-//! helpers that touch the filesystem (e.g. reading an OPML file from a path)
-//! live in the server crate, not here.
+//! Shared OPML core — parsing, podcast extraction, and serialization. Everything here is **pure** (no I/O,
+//! only `roxmltree` + string building), so it compiles to wasm and is shared by the server (import/export
+//! handlers) and the frontend (parse + validate an OPML file before upload). Native-only helpers that touch the
+//! filesystem (e.g. reading an OPML file from a path) live in the server crate, not here.
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -89,10 +86,8 @@ pub fn extract_podcasts_from_opml(opml: &OpmlDocument) -> Vec<(String, String)> 
     podcasts
 }
 
-/// Serialize an [`OpmlDocument`] to an OPML 2.0 XML string.
-///
-/// Attribute values are XML-escaped so titles/URLs containing `& < > "` round-trip
-/// through [`parse_opml_str`]. Outlines without a `type` or `xmlUrl` omit those
+/// Serialize an [`OpmlDocument`] to an OPML 2.0 XML string. Attribute values are XML-escaped so titles/URLs
+/// containing `& < > "` round-trip through [`parse_opml_str`]. Outlines without a `type` or `xmlUrl` omit those
 /// attributes entirely.
 pub fn to_opml_xml(doc: &OpmlDocument) -> String {
     let mut out = String::new();

@@ -1,8 +1,6 @@
-//! Response type for the admin server-log tail endpoint
-//! (`GET /admin/server-logs`).
-//!
-//! Lives here (not in the server) so the API client and the server share a
-//! single definition — the client deserialises exactly what the server emits.
+//! Response type for the admin server-log tail endpoint (`GET /admin/server-logs`). Lives here (not in the
+//! server) so the API client and the server share a single definition — the client deserialises exactly what
+//! the server emits.
 
 use serde::{Deserialize, Serialize};
 

@@ -60,10 +60,14 @@ class ServerDownloads(
     fun download(episode: EpisodeData) {
         val id = episode.id
         if (tasks[id] != null) return
-        progress = progress + (id to 0.0)
-        failed = failed - id
-        removed = removed - id
-        tasks[id] = scope.launch { track(id) }
+        core.enqueueMutation(OutboxOp.Kind.TriggerDownload(id)) {
+            if (tasks[id] == null) {
+                progress = progress + (id to 0.0)
+                failed = failed - id
+                removed = removed - id
+                tasks[id] = scope.launch { poll(id) }
+            }
+        }
     }
 
     /// Watch an already-running server download (rows showing DOWNLOADING).
@@ -71,15 +75,6 @@ class ServerDownloads(
         if (tasks[episodeId] != null) return
         progress = progress + (episodeId to (progress[episodeId] ?: 0.0))
         tasks[episodeId] = scope.launch { poll(episodeId) }
-    }
-
-    private suspend fun track(id: Int) {
-        // Durable trigger (survives offline periods and restarts). While the
-        // op is still queued the poll below simply finds no progress; the
-        // drain ships it when the server is reachable and a later
-        // watch/refresh picks the run back up.
-        core.outbox?.enqueue(OutboxOp.Kind.TriggerDownload(id))
-        poll(id)
     }
 
     private suspend fun poll(id: Int) {

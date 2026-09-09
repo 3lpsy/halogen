@@ -30,11 +30,10 @@ impl TestRoot {
 
         Self::sweep_failed(&suite_dir);
 
-        // Namespace by PID *and* counter: nextest runs each test in its own
-        // process, so the per-process counter alone resets to 0 in every process
-        // and all tests would collide on `<suite>/0/halogen.db`. The PID keeps
-        // concurrent test processes isolated; the counter separates multiple
-        // TestRoots within one process.
+        // Namespace by PID *and* counter: nextest runs each test in its own process, so the per-process counter
+        // alone resets to 0 in every process and all tests would collide on `<suite>/0/halogen.db`. The PID
+        // keeps concurrent test processes isolated; the counter separates multiple TestRoots within one
+        // process.
         let counter = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
         let path = suite_dir.join(format!("{}_{counter}", std::process::id()));
 

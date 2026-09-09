@@ -24,6 +24,7 @@ class JourneyCase: XCTestCase {
         app = XCUIApplication()
         app.launchEnvironment["HALOGEN_RESET"] = "1"
         app.launchEnvironment["HALOGEN_AUTOCONNECT"] = autoconnect
+        if autoconnect == "local" { app.launchEnvironment["HALOGEN_LOCAL_TEST_MODE"] = "1" }
         app.launch()
     }
 
@@ -67,6 +68,33 @@ class JourneyCase: XCTestCase {
             XCTFail("\(what) never appeared (waited \(Int(timeout))s)")
         }
         return element
+    }
+
+    /// Physical SwiftUI menus can accept touches while AX reports them unhittable.
+    /// Restrict the fallback to a visible row-menu; callers assert its resulting actions.
+    func tapMenuTrigger(
+        _ menu: XCUIElement, _ what: String, timeout: TimeInterval = 20
+    ) {
+        let ready = XCTNSPredicateExpectation(
+            predicate: NSPredicate { [self] _, _ in
+                guard menu.exists, menu.identifier == "row-menu" else { return false }
+                let frame = menu.frame
+                return frame.origin.x.isFinite && frame.origin.y.isFinite
+                    && frame.width.isFinite && frame.height.isFinite
+                    && frame.width > 0 && frame.height > 0 && app.frame.contains(frame)
+            }, object: menu)
+        guard XCTWaiter().wait(for: [ready], timeout: timeout) == .completed else {
+            snap("NOT-VISIBLE-\(what)")
+            XCTFail("\(what) did not become visible (waited \(Int(timeout))s)")
+            return
+        }
+        if menu.isHittable {
+            menu.tap()
+        } else if let trigger = menu.buttons.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+            trigger.tap()
+        } else {
+            menu.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
     }
 
     /// Tap a text field and type, re-tapping until it actually holds keyboard

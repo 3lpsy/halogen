@@ -1,0 +1,12 @@
+[package]
+name = "halogen-webui-component-forms"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+
+[features]
+desktop = []
+web = []

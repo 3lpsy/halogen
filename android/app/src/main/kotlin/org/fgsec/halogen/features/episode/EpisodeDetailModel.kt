@@ -17,6 +17,8 @@ class EpisodeDetailModel(
     private val core: HalogenCore,
     private val episodeId: Int,
 ) {
+    private val accountStore = core.store
+
     var episode: EpisodeData? by mutableStateOf(null)
         private set
     var error: String? by mutableStateOf(null)
@@ -24,7 +26,7 @@ class EpisodeDetailModel(
 
     suspend fun load() {
         if (episode == null) {
-            core.store?.load<EpisodeData>(CacheKey.episode(episodeId))?.let { episode = it }
+            accountStore?.load<EpisodeData>(CacheKey.episode(episodeId))?.let { episode = it }
         }
         refresh()
     }
@@ -34,7 +36,7 @@ class EpisodeDetailModel(
             val fresh = core.episodeDetail(episodeId)
             episode = fresh
             error = null
-            core.store?.save(fresh, CacheKey.episode(episodeId))
+            accountStore?.save(fresh, CacheKey.episode(episodeId))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -57,6 +59,6 @@ class EpisodeDetailModel(
             playback_status =
                 if (nowPlayed) PlaybackStatus.Finished else PlaybackStatus.Unplayed)
         episode = current
-        core.store?.save(current, CacheKey.episode(episodeId))
+        accountStore?.save(current, CacheKey.episode(episodeId))
     }
 }

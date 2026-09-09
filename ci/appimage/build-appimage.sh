@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# AppImage from the same prebuilt stage the flatpak uses — lays out an AppDir
-# and squashes it (no dependency discovery). APPIMAGE_EXTRACT_AND_RUN=1 avoids
-# FUSE; --runtime-file uses the baked type2 runtime so nothing downloads.
-# webkit2gtk/gtk3 come from the host distro — the flatpak is the bundled answer.
+# Pack the Flatpak prebuilt stage as an AppImage with the baked runtime and no FUSE/downloads.
+# GTK/WebKit come from the host; Flatpak bundles them.
 
 set -euo pipefail
 

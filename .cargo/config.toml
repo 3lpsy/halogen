@@ -5,11 +5,9 @@
 [build]
 rustc-wrapper = "sccache"
 
-# sccache cache location. Local default only — CI overrides via the SCCACHE_DIR
-# env var (env beats this file). `relative = true` resolves against the repo root
-# (the parent of .cargo/), so it's portable across hosts/VM instead of a
-# hardcoded absolute path. Point sccache elsewhere by exporting SCCACHE_DIR.
-
+# Compile in this job's filesystem; the shared daemon only stores cache objects.
+[env]
+SCCACHE_CLIENT_SIDE = "1"
 
 # Native host linker only.
 [target.x86_64-unknown-linux-gnu]
@@ -22,9 +20,9 @@ rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 linker = "x86_64-w64-mingw32-gcc"
 
 # wasm frontend: select getrandom 0.3's browser backend. Required alongside the
-# `getrandom` `wasm_js` feature (see crates/ui/Cargo.toml). NOTE: a global
+# `getrandom` `wasm_js` feature (see webui/app/Cargo.toml). NOTE: a global
 # RUSTFLAGS env var overrides these target rustflags — don't set RUSTFLAGS when
-# running `dx build`/`just ui-build`, or this cfg (and the build) will be lost.
+# running `just ui-build`, or this cfg (and the build) will be lost.
 [target.wasm32-unknown-unknown]
 rustflags = ["--cfg", 'getrandom_backend="wasm_js"']
 

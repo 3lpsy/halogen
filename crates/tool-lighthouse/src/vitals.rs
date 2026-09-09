@@ -1,15 +1,6 @@
-//! Web-Vitals collection via the browser's own `PerformanceObserver`, plus report
-//! writing.
-//!
-//! [`COLLECTOR`] installs buffered observers into `window.__lh`; [`DRAIN`] returns
-//! everything accumulated since the last drain and resets the window. Driving a
-//! step is therefore: install (once per document) → interact → drain. Because the
-//! observers use `buffered: true`, installing right after a navigation still
-//! recovers that page's load-time shifts / paints / long tasks.
-//!
-//! Layout shifts are recorded with their *source nodes* (the elements that moved,
-//! plus before/after rects), so the report can name the CLS culprit — e.g.
-//! "`div.card` moved Δy +540px" — instead of just a score.
+//! Install buffered PerformanceObservers once per document, interact, then drain/reset window.__lh. Buffered observers
+//! recover navigation events even when installed later. Record layout-shift nodes and before/after rectangles so
+//! reports identify the moved element.
 
 use std::path::Path;
 
@@ -24,10 +15,9 @@ const BLOCKING_THRESHOLD_MS: f64 = 50.0;
 /// Steps whose CLS is at least this get a culprit breakdown in the summary.
 const CULPRIT_CLS_THRESHOLD: f64 = 0.05;
 
-/// Installs the observers (idempotent — guarded on `window.__lh`). Layout-shift →
-/// summed CLS (ignoring shifts within 500ms of input, like CLS proper) PLUS a
-/// per-shift record of its source nodes + rects; long tasks → durations; `event`
-/// timing → max duration (an INP proxy); LCP + FCP from the paint/LCP entries. All
+/// Installs the observers (idempotent — guarded on `window.__lh`). Layout-shift → summed CLS (ignoring shifts
+/// within 500ms of input, like CLS proper) PLUS a per-shift record of its source nodes + rects; long tasks →
+/// durations; `event` timing → max duration (an INP proxy); LCP + FCP from the paint/LCP entries. All
 /// `buffered` so a post-navigation install still sees the load.
 pub const COLLECTOR: &str = r#"
 if (!window.__lh) {
@@ -287,11 +277,9 @@ pub async fn install(driver: &WebDriver) -> Result<()> {
     Ok(())
 }
 
-/// Drain + reset the window, returning this step's vitals under `name`.
-///
-/// `is_load` marks a page-load step: LCP/FCP are load metrics, so on interaction
-/// steps (scroll/search/click) they're zeroed — otherwise a lazy image becoming a
-/// late LCP candidate mid-scroll reports a bogus multi-second "LCP".
+/// Drain + reset the window, returning this step's vitals under `name`. `is_load` marks a page-load step:
+/// LCP/FCP are load metrics, so on interaction steps (scroll/search/click) they're zeroed — otherwise a lazy
+/// image becoming a late LCP candidate mid-scroll reports a bogus multi-second "LCP".
 pub async fn drain(driver: &WebDriver, name: &str, is_load: bool) -> Result<StepVitals> {
     let ret = driver
         .execute(DRAIN, Vec::new())

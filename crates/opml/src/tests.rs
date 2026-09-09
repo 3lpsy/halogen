@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use halogen_migrate::connect_and_migrate;
+use halogen_migrations::connect_and_migrate;
 use halogen_orm::podcast::Column;
 use halogen_orm::podcast::Entity as PodcastEntity;
 use halogen_utils::opml::ImportPodcastResult;

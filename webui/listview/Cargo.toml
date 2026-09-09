@@ -1,0 +1,14 @@
+[package]
+name = "halogen-webui-listview"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire = { path = "../../crates/wire" }
+chrono = { workspace = true }
+serde = { workspace = true }
+url = { workspace = true }
+
+[features]
+desktop = []
+web = []

@@ -38,6 +38,8 @@ data class PodcastListQuery(
 /// refresh overwrites screen + snapshot), owned by the models registry so the tab
 /// keeps list + scroll. Search + sort apply client-side over the loaded pool.
 class PodcastsModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     var podcasts by mutableStateOf<List<PodcastData>>(emptyList())
         private set
@@ -63,7 +65,7 @@ class PodcastsModel(private val core: HalogenCore) {
         set(value) {
             if (value == queryState) return
             queryState = value
-            core.scope.launch { core.store?.save(value, QUERY_KEY) }
+            core.scope.launch { accountStore?.save(value, QUERY_KEY) }
         }
 
     /// The rows the view renders: title+author search, then Title/Added sort
@@ -103,7 +105,7 @@ class PodcastsModel(private val core: HalogenCore) {
     private suspend fun loadTombstonesIfNeeded() {
         if (loadedTombstones) return
         loadedTombstones = true
-        core.store?.load<Set<Int>>(CacheKey.podcastTombstones)?.let {
+        accountStore?.load<Set<Int>>(CacheKey.podcastTombstones)?.let {
             tombstones = tombstones + it
         }
     }
@@ -112,7 +114,7 @@ class PodcastsModel(private val core: HalogenCore) {
     suspend fun tombstone(id: Int) {
         loadTombstonesIfNeeded()
         tombstones = tombstones + id
-        core.store?.save(tombstones, CacheKey.podcastTombstones)
+        accountStore?.save(tombstones, CacheKey.podcastTombstones)
         removeLocally(id)
     }
 
@@ -126,7 +128,7 @@ class PodcastsModel(private val core: HalogenCore) {
         }
         if (kept != tombstones) {
             tombstones = kept
-            core.store?.save(kept.toSet(), CacheKey.podcastTombstones)
+            accountStore?.save(kept.toSet(), CacheKey.podcastTombstones)
         }
     }
 
@@ -137,7 +139,7 @@ class PodcastsModel(private val core: HalogenCore) {
     suspend fun seed() {
         loadTombstonesIfNeeded()
         if (podcasts.isNotEmpty()) return
-        val cached = core.store?.load<List<PodcastData>>(CacheKey.podcasts) ?: return
+        val cached = accountStore?.load<List<PodcastData>>(CacheKey.podcasts) ?: return
         if (podcasts.isEmpty()) {
             podcasts = cached.filter { it.id !in tombstones }
         }
@@ -147,9 +149,9 @@ class PodcastsModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<PodcastListQuery>(QUERY_KEY)?.let { query = it }
+            accountStore?.load<PodcastListQuery>(QUERY_KEY)?.let { query = it }
         }
-        val cached = core.store?.load<List<PodcastData>>(CacheKey.podcasts)
+        val cached = accountStore?.load<List<PodcastData>>(CacheKey.podcasts)
         if (cached != null) {
             loadTombstonesIfNeeded()
             podcasts = cached.filter { it.id !in tombstones }
@@ -175,10 +177,10 @@ class PodcastsModel(private val core: HalogenCore) {
             // CachePodcasts upserts every fetched page into the pool).
             val ids = items.map { it.id }.toSet()
             var snapshot = items
-            core.store?.load<List<PodcastData>>(CacheKey.podcasts)?.let { prior ->
+            accountStore?.load<List<PodcastData>>(CacheKey.podcasts)?.let { prior ->
                 snapshot = snapshot + prior.filter { it.id !in ids && it.id !in tombstones }
             }
-            core.store?.save(snapshot, CacheKey.podcasts)
+            accountStore?.save(snapshot, CacheKey.podcasts)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -198,11 +200,11 @@ class PodcastsModel(private val core: HalogenCore) {
             else podcasts + podcast
         core.scope.launch {
             val cached =
-                core.store?.load<List<PodcastData>>(CacheKey.podcasts)?.toMutableList()
+                accountStore?.load<List<PodcastData>>(CacheKey.podcasts)?.toMutableList()
                     ?: mutableListOf()
             val cachedIdx = cached.indexOfFirst { it.id == podcast.id }
             if (cachedIdx >= 0) cached[cachedIdx] = podcast else cached.add(podcast)
-            core.store?.save(cached.toList(), CacheKey.podcasts)
+            accountStore?.save(cached.toList(), CacheKey.podcasts)
         }
     }
 
@@ -213,8 +215,8 @@ class PodcastsModel(private val core: HalogenCore) {
         podcasts = podcasts.filterNot { it.id == id }
         val fallback = podcasts
         core.scope.launch {
-            val cached = core.store?.load<List<PodcastData>>(CacheKey.podcasts) ?: fallback
-            core.store?.save(cached.filterNot { it.id == id }, CacheKey.podcasts)
+            val cached = accountStore?.load<List<PodcastData>>(CacheKey.podcasts) ?: fallback
+            accountStore?.save(cached.filterNot { it.id == id }, CacheKey.podcasts)
         }
     }
 
@@ -233,7 +235,7 @@ class PodcastsModel(private val core: HalogenCore) {
             }
             hasMore = next.hasMore
             val snapshot = podcasts
-            core.scope.launch { core.store?.save(snapshot, CacheKey.podcasts) }
+            core.scope.launch { accountStore?.save(snapshot, CacheKey.podcasts) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

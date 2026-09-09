@@ -27,3 +27,8 @@ pub fn field_ref(name: &str) -> &'static str {
         .find(|&&x| x == name)
         .unwrap_or(&VALIDATION_REQUEST_FIELD)
 }
+
+#[cfg(feature = "http")]
+pub mod error;
+
+pub mod api;

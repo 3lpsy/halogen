@@ -10,7 +10,7 @@ struct JSONKeyValueView: View {
     /// successful fetch re-snapshots it (the metadata screens — web renders
     /// those from the cached pool). Leave nil for genuinely network-only
     /// surfaces like View Config (network-only on the web too).
-    var cacheKey: String? = nil
+    var cacheKey: String?
 
     @State private var values: [(String, String)] = []
     @State private var error: String?
@@ -50,9 +50,11 @@ struct JSONKeyValueView: View {
         }
         do {
             let dict = try await core.rawJSON(path)
-            values = dict.map { (
-                $0.key, Self.render($0.value)
-            ) }
+            values = dict.map {
+                (
+                    $0.key, Self.render($0.value)
+                )
+            }
             .sorted { $0.0 < $1.0 }
             error = nil
             if let cacheKey {

@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.podcasts
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -156,8 +157,8 @@ fun PodcastConfigFormView(core: HalogenCore, podcast: PodcastData, onBack: (() -
                 // errors) and queue as a durable UpdatePodcastConfig offline
                 // (an existing id is safe to drain later).
                 if (core.isOffline) {
-                    core.outbox?.enqueue(
-                        OutboxOp.Kind.UpdatePodcastConfig(configId = existing.id, data = data))
+                    if (!core.ensureQueued(
+                        OutboxOp.Kind.UpdatePodcastConfig(configId = existing.id, data = data))) return
                     onBack?.invoke()
                     return
                 }
@@ -194,7 +195,7 @@ fun PodcastConfigFormView(core: HalogenCore, podcast: PodcastData, onBack: (() -
             // Remove behaves like edit (an existing id): direct online,
             // durable RemovePodcastConfig op offline (web rule).
             if (core.isOffline) {
-                core.outbox?.enqueue(OutboxOp.Kind.RemovePodcastConfig(podcastId = podcast.id))
+                if (!core.ensureQueued(OutboxOp.Kind.RemovePodcastConfig(podcastId = podcast.id))) return
                 onBack?.invoke()
                 return
             }

@@ -1,17 +1,5 @@
-//! Shared request/response types for the Discover endpoints
-//! (`GET /discover/search`, `GET /discover/providers`).
-//!
-//! Discover is an online-only podcast search: the server fans a query out to
-//! external directories ("providers", e.g. iTunes, gpodder.net), proxying every
-//! outbound call so the client only ever talks to our own origin (CSP rule —
-//! see [`crate`] consumers in the UI and `FRONTEND_CSP` in the server).
-//!
-//! Results are intentionally **bare**: title, feed URL, an optional ~3-line
-//! description and author, plus the provider that returned them. There is no
-//! artwork field by design — the server must never fetch or relay images here.
-//!
-//! These types live in `db` (not the server) so the API client and the server
-//! share one definition.
+//! Shared discovery DTOs for server-proxied online directory searches. Results contain title, feed URL, description,
+//! author, and provider; no artwork is fetched or relayed. Server and clients use the same wire definitions.
 
 use serde::{Deserialize, Serialize};
 
@@ -88,12 +76,9 @@ pub struct DiscoverProviderError {
 }
 
 #[typeshare]
-/// Response body for `GET /discover/search`.
-///
-/// Partial-failure detail lives in [`Self::errors`] — search itself succeeds
-/// (HTTP 200) even when every provider fails; `items` is then empty and `errors`
-/// explains why. (The envelope's own `errors` field is reserved for request
-/// validation.)
+/// Response body for `GET /discover/search`. Partial-failure detail lives in [`Self::errors`] — search itself
+/// succeeds (HTTP 200) even when every provider fails; `items` is then empty and `errors` explains why. (The
+/// envelope's own `errors` field is reserved for request validation.)
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DiscoverSearchData {
     pub items: Vec<DiscoverResultItem>,
@@ -122,3 +107,77 @@ pub struct DiscoverProvidersData {
 }
 
 impl ResponsableData for DiscoverProvidersData {}
+
+/// Query params for a read-only remote feed preview.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoverPodcastParams {
+    pub feed_url: String,
+    pub provider: DiscoverProvider,
+}
+
+#[typeshare]
+/// Remote episode identity belongs to discovery, never to the library database.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverEpisodeItem {
+    pub id: String,
+    pub provider: DiscoverProvider,
+    pub title: String,
+    pub feed_url: String,
+    pub podcast_title: String,
+    pub description: String,
+    pub guid: Option<String>,
+    pub published_at: Option<String>,
+    pub duration_seconds: Option<u32>,
+}
+
+#[typeshare]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverEpisodeSearchData {
+    pub items: Vec<DiscoverEpisodeItem>,
+    pub errors: Vec<DiscoverProviderError>,
+}
+impl ResponsableData for DiscoverEpisodeSearchData {}
+
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverPodcastData {
+    pub podcast: DiscoverResultItem,
+    pub episodes: Vec<DiscoverEpisodeItem>,
+}
+impl ResponsableData for DiscoverPodcastData {}
+
+/// Continue a bounded provider snapshot; an omitted cursor starts a fresh search.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DiscoverPageParams {
+    pub q: String,
+    #[serde(default)]
+    pub providers: Option<Vec<DiscoverProvider>>,
+    #[serde(default)]
+    pub cursor: Option<String>,
+}
+
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverPageInfo {
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+    pub result_limit: u32,
+}
+
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverPodcastPageData {
+    pub items: Vec<DiscoverResultItem>,
+    pub errors: Vec<DiscoverProviderError>,
+    pub page: DiscoverPageInfo,
+}
+impl ResponsableData for DiscoverPodcastPageData {}
+
+#[typeshare]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DiscoverEpisodePageData {
+    pub items: Vec<DiscoverEpisodeItem>,
+    pub errors: Vec<DiscoverProviderError>,
+    pub page: DiscoverPageInfo,
+}
+impl ResponsableData for DiscoverEpisodePageData {}

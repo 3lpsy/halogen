@@ -1,0 +1,27 @@
+[package]
+name = "halogen-webui-episode-actions"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-webui-listview = { path = "../listview" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store = { path = "../store" }
+halogen-webui-player = { path = "../player" }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-webui-component-icons = { path = "../component-icons" }
+halogen-wire = { path = "../../crates/wire" }
+
+[dev-dependencies]
+chrono = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-component-icons/web", "halogen-webui-component-widgets/web", "halogen-webui-config/web", "halogen-webui-hooks/web", "halogen-webui-listview/web", "halogen-webui-logging/web", "halogen-webui-platform/web", "halogen-webui-player/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-config/desktop", "halogen-webui-hooks/desktop", "halogen-webui-listview/desktop", "halogen-webui-logging/desktop", "halogen-webui-platform/desktop", "halogen-webui-player/desktop"]

@@ -1,18 +1,21 @@
 # halogen
 
-Halogen is a self-hostable, local-first podcast application written in Rust:
-one server, three native-feeling clients, and full offline playback.
+Halogen is a self-hostable podcast application with a shared Rust core,
+local libraries and offline playback.
 
-- **Server** (`crates/server`): an Axum REST API that subscribes to RSS
-  feeds, polls them in the background, downloads episodes, and caches
-  artwork — backed by SQLite. Feeds, audio, and artwork are fetched
-  server-side; clients only ever talk to their own server.
-- **Web / desktop app** (`crates/ui*`): a Dioxus frontend that stores
-  episodes on-device and plays them offline; embedded into the server
-  binary for single-binary deploys.
-- **iOS app** (`ios/`): native SwiftUI. **Android app** (`android/`): native
-  Kotlin/Compose. Both talk the same REST API and can run fully standalone
-  by hosting the server in-process ("embedded server" mode, over UniFFI).
+- `crates/server` hosts the Axum API and browser app for remote clients.
+  SQLite stores the library; background jobs poll feeds and cache media.
+- `webui/` contains the Dioxus browser and desktop clients, organized into
+  focused view, provider, hook and player packages.
+- `ios/` is SwiftUI and `android/` is Kotlin/Compose. Local application calls
+  enter the Rust runtime through UniFFI without starting an HTTP server.
+  Desktop calls the same core in process and keeps a small media bridge
+  for webview audio.
+
+Remote clients fetch media through their selected server. Local Only needs no
+Halogen account or synchronization server, while explicit feed and media
+requests may still use the network. Linux releases include Flatpak, AppImage
+and standalone desktop packages; Windows and Android remain supported.
 
 Shared wire types and validation live in `crates/wire*`; Swift and Kotlin
 DTOs are generated from the same Rust definitions.
@@ -35,15 +38,17 @@ env vars, TOML file, runtime overrides) is documented in
 
 ## Building
 
-A `justfile` drives everything — `just` (no args) lists all recipes.
+The justfile lists build, test, device and CI commands. Run `just` to see them.
 
 ```bash
 just build-release    # server binary with the web frontend embedded
 just ui-build         # web frontend -> dist/
 just dev-server       # dev API server on :8080 serving dist/
-just ios-build        # iOS app (needs macOS + Xcode)
+just ios-check        # Linux Swift typecheck with the Darwin SDK
+just ios-device-test  # Linux app/test build and physical-device execution
+just ios-build        # Simulator app with macOS + Xcode
 just android-build    # Android APK (needs the Android SDK/NDK)
-just test-all         # every test tier: unit -> integ -> ui -> e2e
+just check-all        # complete Linux gate, including browser journeys
 ```
 
 Web/server builds need Rust (stable), the `dx` CLI, the `tailwindcss` CLI,

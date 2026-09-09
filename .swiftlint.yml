@@ -1,0 +1,89 @@
+# SwiftLint, tuned to this tree (CI-010). `just ios-lint` runs it --strict, so
+# a warning fails the gate too — every threshold below is therefore a rule the
+# tree meets today, and tightening one is a deliberate, separate change.
+
+included:
+  - ios
+excluded:
+  # typeshare + uniffi output: snake_case wire fields and a machine's layout.
+  - ios/Generated
+  # SwiftPM scratch dirs (generated runner sources).
+  - ios/.build
+  - ios/UITestsPkg/.build
+  - ios/build
+  - ios/.cache
+  - ios/xtool
+
+# Wire DTOs and their locals mirror the Rust/JSON field names (`distance_m`,
+# `energy_kcal`) so Codable needs no CodingKeys; short names are geometry and
+# unit maths (`x`, `cx`, `q`, `kg`). Case and the 40-char cap still apply.
+identifier_name:
+  allowed_symbols: ["_"]
+  min_length: 1
+
+# A wrapped signature or a multi-line `if` puts its brace on its own line —
+# that is standard Swift, and what swift-format produces.
+opening_brace:
+  ignore_multiline_function_signatures: true
+  ignore_multiline_statement_conditions: true
+
+# XCTest cases nest their fixture types one level inside the case class.
+nesting:
+  type_level: 2
+
+# One test helper takes a 4-tuple of provider fixtures.
+large_tuple:
+  warning: 4
+  error: 5
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+# Flat `if let x = cache(...) { v.y = x }` decoders score high without being
+# complex: Preferences.cached() is 23. Switches are already exempt.
+cyclomatic_complexity:
+  ignores_case_statements: true
+  warning: 25
+  error: 40
+
+# Existing audio state machines set these ceilings: PlayerModel and DeviceDownloads.
+# New adapters remain small; playback lifecycle extraction is separate work.
+type_body_length:
+  warning: 825
+  error: 900
+
+file_length:
+  warning: 1100
+  error: 1200
+
+function_body_length:
+  warning: 200
+  error: 300
+
+# 120 is the width .swift-format wraps code to; the gate sits at 150 because
+# every over-120 line in the tree is one user-facing string kept whole so the
+# copy stays greppable against the webui/mock text. Interpolated display lines
+# are exempt outright — breaking them buys nothing and costs readability.
+line_length:
+  warning: 150
+  error: 200
+  ignores_urls: true
+  ignores_interpolated_strings: true
+
+disabled_rules:
+  # swift-format asks for trailing commas in multi-line literals and this rule
+  # forbids them. Following swift-format, so the two stop fighting.
+  - trailing_comma
+  # Foundation's `String(data:encoding:)` is the documented API and the tree
+  # uses it throughout; `String(bytes:encoding:)` buys nothing here.
+  - optional_data_string_conversion
+  # SwiftUI and the local component APIs are built on labelled trailing
+  # closures (`Button { } label: { }`, `WorkoutStrategyRow(...) { }`).
+  - multiple_closures_with_trailing_closure
+  # Exhaustive one-line `switch` expressions are packed onto a single line;
+  # the rule assumes cases each start a line.
+  - switch_case_alignment
+  # The tree writes compact `do { … }` / `catch { … }` pairs with catch on its
+  # own line; the rule's two modes cannot express that.
+  - statement_position

@@ -105,7 +105,8 @@ private struct PodcastScreen: View {
             models.podcasts.upsert(fresh)
             resolved = fresh
         } catch {
-            failure = core.isOffline
+            failure =
+                core.isOffline
                 ? "This podcast hasn't been cached on this device yet."
                 : FriendlyError.message(error)
         }
@@ -166,7 +167,8 @@ private struct PlaylistScreen: View {
             models.playlists.upsert(fresh)
             resolved = fresh
         } catch {
-            failure = core.isOffline
+            failure =
+                core.isOffline
                 ? "This playlist hasn't been cached on this device yet."
                 : FriendlyError.message(error)
         }

@@ -56,7 +56,8 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(
-            (core.models?.prefs.prefs.theme ?? .dark).colorScheme)
+            (core.models?.prefs.prefs.theme ?? .dark).colorScheme
+        )
         .dynamicTypeSize((core.models?.prefs.prefs.uiSize ?? .medium).dynamicType)
         .toastOverlay()
         .task { await core.boot() }
@@ -217,6 +218,8 @@ private struct BootSplash: View {
     }
 }
 
-#Preview {
-    RootView()
-}
+#if !SWIFT_PACKAGE
+    #Preview {
+        RootView()
+    }
+#endif

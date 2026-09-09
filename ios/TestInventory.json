@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "unit": {
+    "tests": [
+      "HalogenTests/AuthRecoveryTests/testConcurrentRequestsShareRefreshAndRetry",
+      "HalogenTests/AuthRecoveryTests/testEarlyRenewalExtendsActiveSessionAndThrottlesShortTokens",
+      "HalogenTests/AuthRecoveryTests/testEarlyRenewalFailureAllowsValidRequestAndThrottlesRetries",
+      "HalogenTests/AuthRecoveryTests/testLateUnauthorizedResponseUsesAlreadyRefreshedToken",
+      "HalogenTests/AuthRecoveryTests/testMalformedRefreshKeepsSession",
+      "HalogenTests/AuthRecoveryTests/testRefreshNetworkFailureKeepsSession",
+      "HalogenTests/AuthRecoveryTests/testRefreshServerFailureKeepsSession",
+      "HalogenTests/AuthRecoveryTests/testRejectedRefreshExpiresSession",
+      "HalogenTests/DiscoverResultsTests/testModeChangeStartsAtFirstPageAndRejectsOlderPage",
+      "HalogenTests/DiscoverResultsTests/testOlderFailureCannotReplaceNewerResults",
+      "HalogenTests/DiscoverResultsTests/testOlderResponseCannotPublishOrClearCurrentLoading",
+      "HalogenTests/DiscoverResultsTests/testPageRetryPreservesCursorAndDeduplicatesWithoutOverlappingRequests",
+      "HalogenTests/HistoryTests/testRecentSortHonorsDirectionAndBreaksTiesByEpisodeId",
+      "HalogenTests/LibraryChangesTests/testAccountSwitchRejectsLatePollCompletion",
+      "HalogenTests/LibraryChangesTests/testDelayedPollCompletionInvalidatesAnAlreadyLoadedLibrary",
+      "HalogenTests/LibraryChangesTests/testDuplicateWatchSharesOneCompletion",
+      "HalogenTests/LibraryChangesTests/testTransientFailureStillObservesPartiallyCommittedFailedJob",
+      "HalogenTests/OutboxEncodingTests/testBackgroundSyncNotifiesAfterDurableSnapshotChanges",
+      "HalogenTests/OutboxEncodingTests/testCursorRoundTripPreservesIdentityAndPosition",
+      "HalogenTests/OutboxEncodingTests/testJournalReplayDoesNotOverwriteNewerCachedPlayback",
+      "HalogenTests/OutboxEncodingTests/testLegacyPlaybackCachePreservesOtherEpisodesDuringReplay",
+      "HalogenTests/OutboxEncodingTests/testQueueInsertionPreservesExplicitFrontPosition",
+      "HalogenTests/OutboxEncodingTests/testSharedPlaylistUpdatePreservesDownloadRemovalFlags",
+      "HalogenTests/OutboxEncodingTests/testSnapshotRecoveryPreservesChangesAfterItsCursor",
+      "HalogenTests/PodcastListTests/testFirstPageRefreshKeepsCachedTailAndUpdatesExistingRows",
+      "HalogenTests/PodcastListTests/testOverlappingPagesUpdateWithoutDuplicatingRows",
+      "HalogenTests/SessionStoreTests/testSavedAccountsSurviveReloadAndTokenUpdate",
+      "HalogenTests/SessionStoreTests/testSuccessfulReadMigratesLegacyProtectionWithoutReplacingCredentials"
+    ],
+    "allowed_skips": []
+  },
+  "functional": {
+    "tests": [
+      "HalogenUITests/DiscoverJourneyTests/testCrossPodcastSearchAndSubscribe",
+      "HalogenUITests/EmbeddedJourneyTests/testEmbeddedFlagshipJourney",
+      "HalogenUITests/RemoteJourneyTests/testRemoteFlagshipJourney"
+    ]
+  },
+  "screenshots": {
+    "tests": [
+      "HalogenUITests/ScreenshotTests/testScreenWalkthrough"
+    ]
+  }
+}

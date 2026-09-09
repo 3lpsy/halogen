@@ -5,7 +5,7 @@ edition.workspace = true
 
 # The native-mobile FFI boundary: the Rust core both native apps link, exposed
 # over UniFFI bindings (Swift for `ios/`, Kotlin for `android/`); hosts the
-# embedded server lifecycle + device-log pump. crate-type: staticlib (iOS),
+# local profiles, shared sync, and device logs. crate-type: staticlib (iOS),
 # cdylib (the Android .so + uniffi-bindgen host metadata), lib (workspace tests).
 [lib]
 name = "halogen_mobile"
@@ -20,8 +20,16 @@ path = "src/bin/uniffi_bindgen.rs"
 required-features = ["bindgen"]
 
 [dependencies]
-halogen-embedded-server = { path = "../embedded-server" }
-halogen-ui-logging = { path = "../ui-logging" }
+halogen-sync-policy = { path = "../sync-policy" }
+halogen-sync = { path = "../sync" }
+halogen-sync-store = { path = "../sync-store" }
+halogen-sync-journal = { path = "../sync-journal" }
+halogen-apiclient = { path = "../apiclient" }
+serde_json = { workspace = true }
+url = { workspace = true }
+halogen-local-runtime = { path = "../local-runtime" }
+tokio = { workspace = true }
+halogen-logging-client = { path = "../logging-client" }
 
 uniffi = { workspace = true, features = ["tokio"] }
 

@@ -1,0 +1,31 @@
+[package]
+name = "halogen-webui-view-playlists"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+halogen-webui-episode-list-page = { path = "../episode-list-page" }
+halogen-webui-library-widgets = { path = "../library-widgets" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-webui-episode-list = { path = "../episode-list" }
+halogen-webui-component-icons = { path = "../component-icons" }
+halogen-wire = { path = "../../crates/wire" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-component-icons/web", "halogen-webui-component-widgets/web", "halogen-webui-episode-list-page/web", "halogen-webui-episode-list/web", "halogen-webui-hooks/web", "halogen-webui-library-widgets/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-episode-list-page/desktop", "halogen-webui-episode-list/desktop", "halogen-webui-hooks/desktop", "halogen-webui-library-widgets/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

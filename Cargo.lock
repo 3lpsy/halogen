@@ -3233,11 +3233,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-api"
-version = "0.1.43"
+name = "halogen-apiclient"
+version = "0.2.1"
 dependencies = [
  "futures-util",
  "halogen-wire",
+ "halogen-wire-meta",
+ "http",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -3249,12 +3251,12 @@ dependencies = [
 
 [[package]]
 name = "halogen-art"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "chrono",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-migrations",
  "halogen-net",
  "halogen-orm",
  "image",
@@ -3267,8 +3269,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "halogen-auth"
+version = "0.2.1"
+dependencies = [
+ "axum",
+ "halogen-orm",
+ "halogen-utils",
+ "halogen-wire-meta",
+ "jsonwebtoken",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "time",
+ "tower",
+ "tracing",
+]
+
+[[package]]
 name = "halogen-config"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "clap",
@@ -3281,27 +3300,31 @@ dependencies = [
 
 [[package]]
 name = "halogen-discover"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
+ "chrono",
  "futures-util",
  "halogen-net",
  "halogen-wire",
+ "rand 0.8.6",
  "reqwest 0.12.28",
+ "rss",
  "serde",
+ "serde_json",
  "tokio",
  "wiremock",
 ]
 
 [[package]]
 name = "halogen-download"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "bytes",
  "chrono",
  "futures-util",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-migrations",
  "halogen-net",
  "halogen-orm",
  "halogen-utils",
@@ -3319,7 +3342,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-e2e"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "futures",
  "halogen-integ",
@@ -3333,37 +3356,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-embedded-server"
-version = "0.1.43"
+name = "halogen-extractors"
+version = "0.2.1"
 dependencies = [
- "anyhow",
  "axum",
- "bcrypt",
- "chrono",
- "halogen-api",
- "halogen-config",
- "halogen-download",
- "halogen-fixture",
- "halogen-migrate",
- "halogen-net",
- "halogen-orm",
- "halogen-polling",
- "halogen-server",
+ "halogen-auth",
+ "halogen-utils",
  "halogen-wire",
- "libc",
- "rand 0.8.6",
- "sea-orm",
+ "halogen-wire-meta",
  "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
+ "serde_qs 1.1.2",
+ "validator",
 ]
 
 [[package]]
 name = "halogen-fixture"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "bcrypt",
@@ -3379,21 +3387,65 @@ dependencies = [
 ]
 
 [[package]]
+name = "halogen-format"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+]
+
+[[package]]
+name = "halogen-guards"
+version = "0.2.1"
+dependencies = [
+ "axum",
+ "halogen-extractors",
+ "halogen-orm",
+ "halogen-utils",
+ "halogen-wire-meta",
+ "sea-orm",
+ "tracing",
+]
+
+[[package]]
+name = "halogen-handlers"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "bcrypt",
+ "chrono",
+ "flate2",
+ "halogen-download",
+ "halogen-fixture",
+ "halogen-migrations",
+ "halogen-orm",
+ "halogen-queries",
+ "halogen-utils",
+ "halogen-wire",
+ "sea-orm",
+ "tokio",
+ "tracing",
+ "validator",
+]
+
+[[package]]
 name = "halogen-integ"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "axum",
  "chrono",
  "flate2",
  "futures-util",
- "halogen-api",
+ "halogen-apiclient",
  "halogen-config",
  "halogen-download",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-migrations",
  "halogen-orm",
  "halogen-polling",
  "halogen-server",
+ "halogen-sync",
+ "halogen-sync-store",
  "halogen-wire",
  "jsonwebtoken",
  "reqwest 0.12.28",
@@ -3409,8 +3461,55 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-migrate"
-version = "0.1.43"
+name = "halogen-local-runtime"
+version = "0.2.1"
+dependencies = [
+ "axum",
+ "chrono",
+ "halogen-apiclient",
+ "halogen-art",
+ "halogen-config",
+ "halogen-fixture",
+ "halogen-migrations",
+ "halogen-net",
+ "halogen-orm",
+ "halogen-polling",
+ "halogen-router",
+ "halogen-routes",
+ "halogen-runtime-control",
+ "halogen-wire",
+ "libc",
+ "sea-orm",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "halogen-logging"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "halogen-config",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "halogen-logging-client"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "js-sys",
+ "serde",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-wasm",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-migrations"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "halogen-utils",
@@ -3423,16 +3522,24 @@ dependencies = [
 
 [[package]]
 name = "halogen-mobile-ffi"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
- "halogen-embedded-server",
- "halogen-ui-logging",
+ "halogen-apiclient",
+ "halogen-local-runtime",
+ "halogen-logging-client",
+ "halogen-sync",
+ "halogen-sync-journal",
+ "halogen-sync-policy",
+ "halogen-sync-store",
+ "serde_json",
+ "tokio",
  "uniffi",
+ "url",
 ]
 
 [[package]]
 name = "halogen-net"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "reqwest 0.12.28",
  "tokio",
@@ -3440,11 +3547,11 @@ dependencies = [
 
 [[package]]
 name = "halogen-opml"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-migrations",
  "halogen-orm",
  "halogen-utils",
  "sea-orm",
@@ -3454,7 +3561,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-orm"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "halogen-utils",
@@ -3468,14 +3575,14 @@ dependencies = [
 
 [[package]]
 name = "halogen-polling"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "bcrypt",
  "chrono",
  "halogen-config",
  "halogen-download",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-migrations",
  "halogen-orm",
  "halogen-rss",
  "halogen-wire",
@@ -3487,52 +3594,51 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-rss"
-version = "0.1.43"
+name = "halogen-queries"
+version = "0.2.1"
 dependencies = [
  "anyhow",
- "bytes",
  "chrono",
- "futures-util",
- "halogen-download",
- "halogen-fixture",
  "halogen-orm",
+ "halogen-sync-enrich",
  "halogen-utils",
  "halogen-wire",
- "reqwest 0.12.28",
- "rss",
+ "rusqlite",
  "sea-orm",
  "serde",
  "serde_json",
- "tokio",
  "tracing",
- "url",
- "wiremock",
+ "validator",
 ]
 
 [[package]]
-name = "halogen-server"
-version = "0.1.43"
+name = "halogen-router"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "axum",
  "bcrypt",
  "chrono",
  "flate2",
- "halogen-api",
+ "halogen-apiclient",
  "halogen-art",
+ "halogen-auth",
  "halogen-config",
  "halogen-discover",
  "halogen-download",
  "halogen-fixture",
- "halogen-migrate",
+ "halogen-handlers",
+ "halogen-migrations",
  "halogen-net",
  "halogen-opml",
  "halogen-orm",
  "halogen-polling",
+ "halogen-routes",
  "halogen-rss",
+ "halogen-runtime-control",
  "halogen-utils",
  "halogen-wire",
+ "halogen-wire-meta",
  "jsonwebtoken",
  "rand 0.8.6",
  "reqwest 0.12.28",
@@ -3555,8 +3661,185 @@ dependencies = [
 ]
 
 [[package]]
+name = "halogen-routes"
+version = "0.2.1"
+dependencies = [
+ "axum",
+ "bcrypt",
+ "chrono",
+ "halogen-art",
+ "halogen-auth",
+ "halogen-config",
+ "halogen-discover",
+ "halogen-download",
+ "halogen-extractors",
+ "halogen-fixture",
+ "halogen-guards",
+ "halogen-handlers",
+ "halogen-logging",
+ "halogen-migrations",
+ "halogen-opml",
+ "halogen-orm",
+ "halogen-polling",
+ "halogen-queries",
+ "halogen-router",
+ "halogen-rss",
+ "halogen-runtime-control",
+ "halogen-utils",
+ "halogen-wire",
+ "halogen-wire-meta",
+ "jsonwebtoken",
+ "reqwest 0.12.28",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_qs 1.1.2",
+ "time",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "validator",
+ "wiremock",
+]
+
+[[package]]
+name = "halogen-rss"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "chrono",
+ "futures-util",
+ "halogen-download",
+ "halogen-fixture",
+ "halogen-orm",
+ "halogen-utils",
+ "halogen-wire",
+ "reqwest 0.12.28",
+ "rss",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+ "wiremock",
+]
+
+[[package]]
+name = "halogen-runtime-control"
+version = "0.2.1"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
+name = "halogen-server"
+version = "0.2.1"
+dependencies = [
+ "axum",
+ "halogen-config",
+ "halogen-download",
+ "halogen-fixture",
+ "halogen-handlers",
+ "halogen-logging",
+ "halogen-migrations",
+ "halogen-net",
+ "halogen-opml",
+ "halogen-orm",
+ "halogen-polling",
+ "halogen-router",
+ "halogen-routes",
+ "halogen-runtime-control",
+ "rust-embed",
+ "sea-orm",
+ "sha2",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+]
+
+[[package]]
+name = "halogen-sync"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "halogen-apiclient",
+ "halogen-fixture",
+ "halogen-sync-policy",
+ "halogen-sync-store",
+ "halogen-wire",
+ "halogen-wire-meta",
+ "tokio",
+]
+
+[[package]]
+name = "halogen-sync-enrich"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "halogen-apiclient",
+ "halogen-wire",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "halogen-sync-import"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "halogen-sync-enrich",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "halogen-sync-journal"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "halogen-sync-enrich",
+ "halogen-sync-import",
+ "halogen-sync-store",
+ "halogen-wire",
+ "rusqlite",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "halogen-sync-policy"
+version = "0.2.1"
+dependencies = [
+ "halogen-apiclient",
+ "halogen-utils",
+ "serde",
+]
+
+[[package]]
+name = "halogen-sync-store"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "halogen-queries",
+ "halogen-sync-enrich",
+ "halogen-wire",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "halogen-tool-lighthouse"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "halogen-e2e",
@@ -3569,7 +3852,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-tool-screenshot"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -3583,19 +3866,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui"
-version = "0.1.43"
+name = "halogen-utils"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "dotenvy",
+ "halogen-format",
+ "regex",
+ "roxmltree",
+ "serde",
+ "tracing",
+ "validator",
+]
+
+[[package]]
+name = "halogen-webui"
+version = "0.2.1"
 dependencies = [
  "dioxus",
  "getrandom 0.3.4",
- "halogen-ui-appstate",
- "halogen-ui-episode-list",
- "halogen-ui-icons",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-state",
- "halogen-ui-views",
- "halogen-ui-widgets",
+ "halogen-webui-app-state",
+ "halogen-webui-hooks",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-routes",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3603,28 +3897,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-accounts"
-version = "0.1.43"
+name = "halogen-webui-accounts"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "base64",
  "dioxus",
- "halogen-api",
- "halogen-ui-cache-purge",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-idb",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-toast",
+ "halogen-apiclient",
+ "halogen-webui-cache-purge",
+ "halogen-webui-commands",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-platform",
+ "halogen-webui-store-idb",
  "idb",
  "serde",
  "serde_json",
 ]
 
 [[package]]
-name = "halogen-ui-appstate"
-version = "0.1.43"
+name = "halogen-webui-app-state"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "halogen-wire",
@@ -3632,15 +3925,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-cache-purge"
-version = "0.1.43"
+name = "halogen-webui-cache-purge"
+version = "0.2.1"
 dependencies = [
  "futures",
- "halogen-ui-idb",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-svc-media",
- "halogen-ui-svc-store",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-store",
+ "halogen-webui-store-idb",
  "idb",
  "js-sys",
  "serde_json",
@@ -3650,26 +3942,94 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-commands"
-version = "0.1.43"
+name = "halogen-webui-commands"
+version = "0.2.1"
 dependencies = [
+ "dioxus",
  "halogen-wire",
  "serde",
 ]
 
 [[package]]
-name = "halogen-ui-config"
-version = "0.1.43"
+name = "halogen-webui-component-forms"
+version = "0.2.1"
+dependencies = [
+ "halogen-apiclient",
+ "halogen-wire",
+]
+
+[[package]]
+name = "halogen-webui-component-icons"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+]
+
+[[package]]
+name = "halogen-webui-component-loading"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-component-navigation"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-webui-component-icons",
+ "halogen-webui-config",
+]
+
+[[package]]
+name = "halogen-webui-component-toast"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-apiclient",
+ "halogen-sync-policy",
+ "halogen-wire",
+ "serde",
+]
+
+[[package]]
+name = "halogen-webui-component-widgets"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-webui-commands",
+ "halogen-webui-component-forms",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-listview",
+ "halogen-webui-platform",
+]
+
+[[package]]
+name = "halogen-webui-config"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "dioxus",
  "futures",
- "halogen-api",
- "halogen-ui-idb",
- "halogen-ui-listview",
- "halogen-ui-logging",
- "halogen-ui-platform",
+ "halogen-apiclient",
  "halogen-utils",
+ "halogen-webui-listview",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-store-idb",
  "halogen-wire",
  "idb",
  "serde",
@@ -3678,44 +4038,1005 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-episode-list"
-version = "0.1.43"
+name = "halogen-webui-episode-actions"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "dioxus",
- "halogen-api",
- "halogen-ui-appstate",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-icons",
- "halogen-ui-listview",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-state",
- "halogen-ui-svc-player",
- "halogen-ui-svc-store",
- "halogen-ui-widgets",
+ "halogen-apiclient",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-listview",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-player",
+ "halogen-webui-store",
  "halogen-wire",
 ]
 
 [[package]]
-name = "halogen-ui-forms"
-version = "0.1.43"
+name = "halogen-webui-episode-list"
+version = "0.2.1"
 dependencies = [
- "halogen-api",
+ "chrono",
+ "dioxus",
+ "halogen-apiclient",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-episode-actions",
+ "halogen-webui-hooks",
+ "halogen-webui-listview",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-player",
+ "halogen-webui-store",
  "halogen-wire",
 ]
 
 [[package]]
-name = "halogen-ui-icons"
-version = "0.1.43"
+name = "halogen-webui-episode-list-page"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-episode-list",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-auth-redirect"
+version = "0.2.1"
 dependencies = [
  "dioxus",
 ]
 
 [[package]]
-name = "halogen-ui-idb"
-version = "0.1.43"
+name = "halogen-webui-hook-confirm-action"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-webui-config",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-context"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-accounts",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-player",
+ "halogen-webui-store",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-deep-link-fetch"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-webui-config",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-dom-stream"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-episodes"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-hook-context",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-form"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-webui-component-forms",
+ "halogen-webui-config",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-is-admin"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-hook-context",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-latest-wins"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-list-view-state"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-config",
+ "halogen-webui-hook-latest-wins",
+ "halogen-webui-listview",
+ "halogen-webui-platform",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-paged-pool"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-webui-config",
+ "halogen-webui-hook-dom-stream",
+ "halogen-webui-hook-latest-wins",
+ "halogen-webui-platform",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-pull-to-refresh"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-hook-context",
+ "halogen-webui-hook-dom-stream",
+ "halogen-webui-hook-is-admin",
+ "halogen-webui-platform",
+ "halogen-webui-sync-engine",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-row-memory"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-wire",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-scroll-memory"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-hook-dom-stream",
+ "halogen-webui-hook-paged-pool",
+ "halogen-webui-listview",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hook-window-event"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-player",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-hooks"
+version = "0.2.1"
+dependencies = [
+ "halogen-webui-hook-confirm-action",
+ "halogen-webui-hook-context",
+ "halogen-webui-hook-deep-link-fetch",
+ "halogen-webui-hook-dom-stream",
+ "halogen-webui-hook-episodes",
+ "halogen-webui-hook-form",
+ "halogen-webui-hook-is-admin",
+ "halogen-webui-hook-latest-wins",
+ "halogen-webui-hook-list-view-state",
+ "halogen-webui-hook-paged-pool",
+ "halogen-webui-hook-pull-to-refresh",
+ "halogen-webui-hook-row-memory",
+ "halogen-webui-hook-scroll-memory",
+ "halogen-webui-hook-window-event",
+]
+
+[[package]]
+name = "halogen-webui-library-widgets"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-listview"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "halogen-wire",
+ "serde",
+ "url",
+]
+
+[[package]]
+name = "halogen-webui-logging"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "halogen-logging-client",
+ "halogen-webui-platform",
+ "halogen-webui-store-idb",
+ "idb",
+ "js-sys",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-media"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-store-idb",
+ "idb",
+ "js-sys",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-page-app"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-webui-player-controls",
+]
+
+[[package]]
+name = "halogen-webui-page-login"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-utils",
+ "halogen-webui-accounts",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-hook-auth-redirect",
+ "halogen-webui-hooks",
+ "halogen-webui-logging",
+ "halogen-webui-provider-local",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-platform"
+version = "0.2.1"
+dependencies = [
+ "directories",
+ "futures-channel",
+ "gloo-timers",
+ "js-sys",
+ "tokio",
+ "tracing",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "halogen-webui-player"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-config",
+ "halogen-webui-logging",
+ "halogen-webui-media",
+ "halogen-webui-platform",
+ "halogen-webui-player-backend",
+ "halogen-webui-player-sleep",
+ "halogen-wire",
+ "js-sys",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-player-backend"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-logging",
+ "halogen-webui-player-types",
+ "js-sys",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-player-controls"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-format",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-platform",
+ "halogen-webui-player",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-player-media-session"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-webui-config",
+ "halogen-webui-player",
+ "js-sys",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-player-sleep"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-webui-logging",
+]
+
+[[package]]
+name = "halogen-webui-player-types"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-media",
+ "js-sys",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-accounts"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-accounts",
+ "halogen-webui-component-loading",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-app"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-loading",
+ "halogen-webui-provider-accounts",
+ "halogen-webui-provider-config",
+ "halogen-webui-provider-connection",
+ "halogen-webui-provider-discover",
+ "halogen-webui-provider-downloads",
+ "halogen-webui-provider-episode",
+ "halogen-webui-provider-history",
+ "halogen-webui-provider-local",
+ "halogen-webui-provider-playback",
+ "halogen-webui-provider-player",
+ "halogen-webui-provider-playlist",
+ "halogen-webui-provider-podcast",
+ "halogen-webui-provider-session",
+ "halogen-webui-provider-sync",
+ "halogen-webui-provider-toast",
+ "halogen-webui-provider-webview-media",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-config"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-loading",
+ "halogen-webui-config",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-connection"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-discover"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-downloads"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-episode"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-history"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-local"
+version = "0.2.1"
+dependencies = [
+ "dioxus",
+ "halogen-apiclient",
+ "halogen-local-runtime",
+ "halogen-webui-accounts",
+ "halogen-webui-commands",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-wire",
+ "rand 0.8.6",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "halogen-webui-provider-playback"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-player"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-config",
+ "halogen-webui-hook-window-event",
+ "halogen-webui-media",
+ "halogen-webui-platform",
+ "halogen-webui-player",
+ "halogen-webui-player-media-session",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-playlist"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-podcast"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-session"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-sync"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-hook-context",
+ "halogen-webui-logging",
+ "halogen-webui-media",
+ "halogen-webui-platform",
+ "halogen-webui-provider-local",
+ "halogen-webui-store",
+ "halogen-webui-sync-engine",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-toast"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-toast",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-provider-webview-media"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "dioxus",
+ "futures",
+ "halogen-apiclient",
+ "halogen-webui-app-state",
+ "halogen-webui-config",
+ "halogen-webui-logging",
+ "halogen-webui-media",
+ "halogen-webui-player",
+ "js-sys",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-routes"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-accounts",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-navigation",
+ "halogen-webui-component-toast",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hook-auth-redirect",
+ "halogen-webui-hooks",
+ "halogen-webui-library-widgets",
+ "halogen-webui-logging",
+ "halogen-webui-page-app",
+ "halogen-webui-page-login",
+ "halogen-webui-player-controls",
+ "halogen-webui-provider-app",
+ "halogen-webui-provider-local",
+ "halogen-webui-view-admin-users",
+ "halogen-webui-view-cache-control",
+ "halogen-webui-view-config",
+ "halogen-webui-view-config-overrides",
+ "halogen-webui-view-configure-swipes",
+ "halogen-webui-view-discover",
+ "halogen-webui-view-dock-config",
+ "halogen-webui-view-downloads",
+ "halogen-webui-view-episode",
+ "halogen-webui-view-history",
+ "halogen-webui-view-home",
+ "halogen-webui-view-latest",
+ "halogen-webui-view-logs",
+ "halogen-webui-view-menu",
+ "halogen-webui-view-not-found",
+ "halogen-webui-view-playlists",
+ "halogen-webui-view-podcasts",
+ "halogen-webui-view-polling",
+ "halogen-webui-view-queue",
+ "halogen-webui-view-server-errors",
+ "halogen-webui-view-settings",
+ "halogen-webui-view-user-edit",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-store"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "halogen-apiclient",
+ "halogen-sync-enrich",
+ "halogen-sync-store",
+ "halogen-webui-platform",
+ "halogen-webui-store-idb",
+ "halogen-wire",
+ "idb",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "halogen-webui-store-idb"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "futures-util",
@@ -3729,169 +5050,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-listview"
-version = "0.1.43"
-dependencies = [
- "chrono",
- "halogen-wire",
- "serde",
- "url",
-]
-
-[[package]]
-name = "halogen-ui-logging"
-version = "0.1.43"
+name = "halogen-webui-sync-engine"
+version = "0.2.1"
 dependencies = [
  "anyhow",
+ "async-trait",
  "chrono",
- "halogen-ui-idb",
- "halogen-ui-platform",
- "idb",
- "js-sys",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "tracing-wasm",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "halogen-ui-platform"
-version = "0.1.43"
-dependencies = [
- "directories",
- "futures-channel",
+ "dioxus",
+ "futures",
  "gloo-timers",
- "js-sys",
- "tokio",
- "tracing",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "halogen-ui-state"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "axum",
- "dioxus",
- "futures",
- "halogen-api",
- "halogen-embedded-server",
- "halogen-ui-accounts",
- "halogen-ui-appstate",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-forms",
- "halogen-ui-listview",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-svc-media",
- "halogen-ui-svc-player",
- "halogen-ui-svc-store",
- "halogen-ui-svc-sync",
- "halogen-ui-toast",
+ "halogen-apiclient",
+ "halogen-sync",
+ "halogen-sync-journal",
+ "halogen-sync-policy",
+ "halogen-sync-store",
+ "halogen-utils",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-toast",
+ "halogen-webui-config",
+ "halogen-webui-logging",
+ "halogen-webui-media",
+ "halogen-webui-platform",
+ "halogen-webui-store",
+ "halogen-webui-transport-ws",
  "halogen-wire",
  "js-sys",
- "rand 0.8.6",
- "serde",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "halogen-ui-svc-media"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "async-trait",
- "halogen-ui-idb",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "idb",
- "js-sys",
- "serde",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "halogen-ui-svc-player"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dioxus",
- "futures",
- "halogen-ui-appstate",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-svc-media",
- "halogen-wire",
- "js-sys",
- "serde_json",
- "tokio",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "halogen-ui-svc-store"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "halogen-api",
- "halogen-ui-idb",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-wire",
- "idb",
  "rusqlite",
  "serde",
  "serde_json",
  "tokio",
-]
-
-[[package]]
-name = "halogen-ui-svc-sync"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "dioxus",
- "futures",
- "gloo-timers",
- "halogen-api",
- "halogen-ui-appstate",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-svc-media",
- "halogen-ui-svc-store",
- "halogen-ui-svc-ws",
- "halogen-ui-toast",
- "halogen-utils",
- "halogen-wire",
- "js-sys",
- "serde",
- "serde_json",
- "tokio",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3899,15 +5087,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-svc-ws"
-version = "0.1.43"
+name = "halogen-webui-transport-ws"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "futures",
  "gloo-net",
- "halogen-api",
- "halogen-ui-logging",
- "halogen-ui-platform",
+ "halogen-apiclient",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
  "js-sys",
  "serde_json",
  "tokio",
@@ -3915,37 +5103,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-toast"
-version = "0.1.43"
-dependencies = [
- "dioxus",
- "halogen-api",
- "halogen-wire",
- "serde",
-]
-
-[[package]]
-name = "halogen-ui-views"
-version = "0.1.43"
+name = "halogen-webui-view-admin-users"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "dioxus",
  "futures",
- "halogen-api",
- "halogen-ui-accounts",
- "halogen-ui-appstate",
- "halogen-ui-cache-purge",
- "halogen-ui-commands",
- "halogen-ui-config",
- "halogen-ui-episode-list",
- "halogen-ui-icons",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-state",
- "halogen-ui-svc-player",
- "halogen-ui-toast",
- "halogen-ui-widgets",
- "halogen-utils",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-webui-view-user-edit",
  "halogen-wire",
  "tokio",
  "url",
@@ -3953,31 +5119,369 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-ui-widgets"
-version = "0.1.43"
+name = "halogen-webui-view-cache-control"
+version = "0.2.1"
 dependencies = [
+ "chrono",
  "dioxus",
- "halogen-ui-config",
- "halogen-ui-forms",
- "halogen-ui-icons",
- "halogen-ui-listview",
- "halogen-ui-platform",
- "halogen-ui-state",
- "halogen-ui-toast",
+ "futures",
+ "halogen-webui-accounts",
+ "halogen-webui-cache-purge",
+ "halogen-webui-component-icons",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-provider-local",
+ "tokio",
+ "url",
+ "web-sys",
 ]
 
 [[package]]
-name = "halogen-ui-worker"
-version = "0.1.43"
+name = "halogen-webui-view-config"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-config-overrides"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-configure-swipes"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-episode-list",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-discover"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-dock-config"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-navigation",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-downloads"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-episode"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-episode-list",
+ "halogen-webui-hooks",
+ "halogen-webui-library-widgets",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-history"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-home"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-latest"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-logs"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-logging",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-menu"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-navigation",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-not-found"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-playlists"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "halogen-webui-library-widgets",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-podcasts"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-utils",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "halogen-webui-library-widgets",
+ "halogen-webui-logging",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-polling"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-queue"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-app-state",
+ "halogen-webui-commands",
+ "halogen-webui-episode-list",
+ "halogen-webui-episode-list-page",
+ "halogen-webui-hooks",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-server-errors"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-settings"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-utils",
+ "halogen-webui-commands",
+ "halogen-webui-component-icons",
+ "halogen-webui-component-widgets",
+ "halogen-webui-config",
+ "halogen-webui-hooks",
+ "halogen-webui-logging",
+ "halogen-webui-platform",
+ "halogen-webui-provider-local",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-view-user-edit"
+version = "0.2.1"
+dependencies = [
+ "chrono",
+ "dioxus",
+ "futures",
+ "halogen-webui-accounts",
+ "halogen-webui-component-widgets",
+ "halogen-webui-hooks",
+ "halogen-wire",
+ "tokio",
+ "url",
+ "web-sys",
+]
+
+[[package]]
+name = "halogen-webui-worker"
+version = "0.2.1"
 dependencies = [
  "futures",
- "halogen-ui-appstate",
- "halogen-ui-commands",
- "halogen-ui-logging",
- "halogen-ui-platform",
- "halogen-ui-svc-media",
- "halogen-ui-svc-store",
- "halogen-ui-svc-sync",
+ "halogen-webui-commands",
+ "halogen-webui-logging",
+ "halogen-webui-media",
+ "halogen-webui-store",
+ "halogen-webui-sync-engine",
  "js-sys",
  "serde_json",
  "wasm-bindgen",
@@ -3986,23 +5490,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "halogen-utils"
-version = "0.1.43"
-dependencies = [
- "anyhow",
- "chrono",
- "chrono-tz",
- "dotenvy",
- "regex",
- "roxmltree",
- "serde",
- "tracing",
- "validator",
-]
-
-[[package]]
 name = "halogen-wire"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "halogen-utils",
@@ -4016,8 +5505,9 @@ dependencies = [
 
 [[package]]
 name = "halogen-wire-meta"
-version = "0.1.43"
+version = "0.2.1"
 dependencies = [
+ "axum",
  "chrono",
  "halogen-utils",
  "sea-orm",

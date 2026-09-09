@@ -4,12 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+halogen-format = { path = "../format" }
 tracing = { workspace = true }
 anyhow = { workspace = true }
 dotenvy = "0.15.7"
 validator = { workspace = true }
-chrono = { workspace = true }
-chrono-tz = { workspace = true }
 serde = { workspace = true }
 regex = { workspace = true }
 roxmltree = { workspace = true }

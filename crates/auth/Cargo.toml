@@ -1,0 +1,17 @@
+[package]
+name = "halogen-auth"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire-meta = { path = "../wire-meta", features = ["http"] }
+halogen-utils = { path = "../utils" }
+axum = { workspace = true }
+halogen-orm = { path = "../orm" }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tower = "0.5.3"
+tracing = { workspace = true }
+jsonwebtoken = { workspace = true }
+time = "0.3.47"

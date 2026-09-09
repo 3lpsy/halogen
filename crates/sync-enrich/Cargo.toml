@@ -1,0 +1,11 @@
+[package]
+name = "halogen-sync-enrich"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde_json = { workspace = true }
+chrono = { workspace = true }
+halogen-apiclient = { path = "../apiclient" }
+halogen-wire = { path = "../wire" }
+serde = { workspace = true }

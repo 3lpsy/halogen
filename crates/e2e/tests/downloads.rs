@@ -1,12 +1,5 @@
-//! Download-to-device journey — TRUE byte storage. A user clicks the per-item
-//! download control; the client waits for the server's copy (mock download
-//! service), pulls the actual bytes, and stores them in IndexedDB
-//! (`halogen.media`). The badge is honest: spinner while in flight
-//! ("Downloading to device…"), trash ("Downloaded on device — remove") only
-//! once the bytes are really on the device. A reload re-hydrates the Downloads
-//! page from the byte store — not from a persisted flag.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Device-download journey verifies real IndexedDB bytes, in-flight/completed badges, and Downloads rehydration after
+//! reload. Server audio comes from mock-download fixtures. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, idb_audio_count, ingest_feed, login_via_ui, require_dist,

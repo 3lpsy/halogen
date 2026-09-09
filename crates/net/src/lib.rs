@@ -1,18 +1,6 @@
-//! Outbound-fetch SSRF guard.
-//!
-//! Feed / art / episode-media URLs originate in (user-supplied) RSS feeds, so we
-//! reject hosts that resolve to a non-public address (loopback, private, link-local,
-//! CGNAT, cloud-metadata, …) to stop requests being aimed at internal services.
-//!
-//! Enforcement is a custom reqwest DNS resolver ([`PublicOnlyResolver`]) installed on
-//! the feed / download / art clients. reqwest re-resolves **every** connection through
-//! it — including each redirect hop — so the whole request chain is covered, not just
-//! the initial URL.
-//!
-//! The policy is a process global, OFF (allow everything) until [`configure`] flips
-//! it — which only `main` does, from `cfg.allow_private_network`. Unit tests and the
-//! in-process integ/e2e harness (which build the router directly, never running
-//! `main`) keep fetching their `127.0.0.1` mock servers freely.
+//! SSRF resolver rejects non-public addresses for every outbound connection, including redirect hops. Feed/art/media
+//! URLs may be attacker-controlled. The process policy starts permissive until configure applies allow_private_network;
+//! direct-router test harnesses can therefore reach loopback mocks.
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
@@ -38,13 +26,10 @@ pub fn configure_user_agent(user_agent: Option<String>) {
         .unwrap_or_else(|p| p.into_inner()) = value;
 }
 
-/// The User-Agent an outbound client should send: the configured override when
-/// set, else `Halogen/<version> (+<purpose>)`.
-///
-/// NOT cosmetic — media CDNs behind Cloudflare bot management (Buzzsprout,
-/// verified) 403 a request with no User-Agent or a known-automation one. Any
-/// honest self-identifying UA passes: podcast hosts want real clients to fetch
-/// (that's their download analytics), they block anonymous scrapers.
+/// The User-Agent an outbound client should send: the configured override when set, else `Halogen/<version>
+/// (+<purpose>)`. NOT cosmetic — media CDNs behind Cloudflare bot management (Buzzsprout, verified) 403 a
+/// request with no User-Agent or a known-automation one. Any honest self-identifying UA passes: podcast hosts
+/// want real clients to fetch (that's their download analytics), they block anonymous scrapers.
 pub fn user_agent(purpose: &str) -> String {
     if let Some(ua) = USER_AGENT_OVERRIDE
         .read()
@@ -73,16 +58,8 @@ pub fn dns_resolver() -> Arc<PublicOnlyResolver> {
     Arc::new(PublicOnlyResolver)
 }
 
-/// A `reqwest::ClientBuilder` pre-wired with the SSRF DNS guard. EVERY outbound
-/// client (feed, download, art, discover) should start here and then layer on its
-/// own timeouts / redirect policy / gzip / user-agent, so the guard is installed
-/// in exactly one place and can't be forgotten — which it had been on the discover
-/// client, the one hole this closes.
-///
-/// A default `connect_timeout` is applied here too so a slow/hostile host can't
-/// stall the TCP+TLS handshake on any client — it had been forgotten on the feed
-/// and chapters clients. Callers may still override it; it bounds only connection
-/// establishment, not the (per-client) total/read timeout.
+/// Start every outbound client here to install the SSRF resolver and a default TCP/TLS connect timeout. Callers add
+/// their own total/read timeouts, redirects, gzip, and user agent, and may override the connect timeout.
 pub fn guarded_client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
         .dns_resolver(dns_resolver())
@@ -141,3 +118,32 @@ fn is_blocked_ip(ip: IpAddr) -> bool {
 
 #[cfg(test)]
 mod tests;
+
+/// Validate initial URLs as well as redirects: literal IPs bypass the DNS resolver.
+pub fn validate_url(url: &reqwest::Url) -> Result<(), String> {
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
+        return Err("Expected an HTTP(S) URL without credentials".into());
+    }
+    let host = url.host_str().unwrap_or_default().trim_matches(['[', ']']);
+    if BLOCK_PRIVATE.load(Ordering::Relaxed) && host.parse::<IpAddr>().is_ok_and(is_blocked_ip) {
+        return Err("Non-public addresses are blocked".into());
+    }
+    Ok(())
+}
+
+/// Guard literal-IP redirect targets before reqwest opens a connection.
+pub fn guarded_redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() >= 10 {
+            return attempt.error("Too many redirects");
+        }
+        match validate_url(attempt.url()) {
+            Ok(()) => attempt.follow(),
+            Err(error) => attempt.error(error),
+        }
+    })
+}

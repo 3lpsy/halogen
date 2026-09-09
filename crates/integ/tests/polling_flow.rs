@@ -1,12 +1,6 @@
-//! Polling journey — the background poller control plane via the `ApiClient`
-//! methods (`poll_status`/`start_polling`/`stop_polling`/`poll_now`). The control
-//! routes are **admin-only** and `status` is authed, so the journey runs as the
-//! seeded admin: status (idle) → start → start-again is a conflict → stop →
-//! status (idle) → manual poll → non-admin is forbidden. The harness uses a ZERO
-//! poll interval, so a started service never actually ticks — we assert the
-//! control-plane responses and the idle-flag transitions, not sync side effects.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(polling_flow)'`
+//! Exercise admin poll control: idle, start, duplicate-start conflict, stop, manual poll, and non-admin rejection. A
+//! zero interval prevents background ticks, isolating responses and idle-state transitions. Run the halogen-integ
+//! polling_flow binary.
 
 use halogen_integ::*;
 
@@ -27,8 +21,8 @@ async fn polling_journey() {
     assert_eq!(started.message, "Polling service started");
 
     // 3) Status is still reachable while a task exists. (With a ZERO interval the
-    //    spawned loop exits immediately, so the `running` flag is racy — we assert
-    //    the endpoint decodes, not a specific value.)
+    //  spawned loop exits immediately, so the `running` flag is racy — we assert
+    //  the endpoint decodes, not a specific value.)
     let _ = client.poll_status().await.expect("status").running;
 
     // 4) Starting again while a task is registered is a conflict (409).
@@ -46,7 +40,7 @@ async fn polling_journey() {
     );
 
     // 7) A manual poll runs a sync cycle synchronously and reports success (no
-    //    podcasts subscribed, so it's a no-op sync).
+    //  podcasts subscribed, so it's a no-op sync).
     let polled = client.poll_now().await.expect("poll");
     assert_eq!(polled.message, "Poll completed successfully");
 

@@ -1,24 +1,13 @@
-//! Shared, sanitised view of the server's reconciled runtime configuration.
-//!
-//! This is a plain data-transfer struct — **not** a database entity. It carries
-//! the runtime config (after defaults < TOML < env < CLI < overrides file are
-//! layered) from the server to API clients / the frontend for the admin "view
-//! config" screen, including which fields the overrides file changed.
-//!
-//! It deliberately **omits secret fields** (the JWT signing secret / API token
-//! and the admin password): they are never represented here, so they cannot be
-//! serialised out. The server builds this from its internal `Config`; clients
-//! deserialise it.
+//! Shared admin-view DTO for resolved runtime config and override provenance. JWT secrets and admin passwords have no
+//! fields here and therefore cannot be serialized. The server projects Config; clients deserialize this type.
 
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use super::ResponsableData;
 
-/// Sanitised projection of the server's reconciled runtime config.
-///
-/// Every runtime setting is represented **except** the two secrets
-/// (`auth_token_secret`, `admin_password`). Filesystem paths are strings and
+/// Sanitised projection of the server's reconciled runtime config. Every runtime setting is represented
+/// **except** the two secrets (`auth_token_secret`, `admin_password`). Filesystem paths are strings and
 /// `Duration`s are whole seconds for a stable JSON shape.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConfigData {
@@ -80,16 +69,9 @@ pub struct ConfigData {
 
 impl ResponsableData for ConfigData {}
 
-/// The writable subset of runtime config (the allowlist) that may be supplied
-/// via the overrides file / `POST /config-overrides`.
-///
-/// Every field is optional: a partial patch sets only the keys it carries, and
-/// the persisted file likewise only lists overridden keys. Field names mirror
-/// [`ConfigData`] (durations as whole seconds) for a stable JSON shape.
-///
-/// Deliberately **excludes** secrets (`auth_token_secret`, `admin_password`),
-/// the `config_overrides_*` knobs themselves, and the run-once binding/identity
-/// fields (listen address/port, db path, media root, migrations, admin seed).
+/// Allowlisted runtime overrides with optional fields and whole-second durations matching ConfigData. Omitted fields
+/// are absent from the saved replacement set. Exclude secrets, override-file knobs, and startup binding/identity
+/// fields.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Validate)]
 pub struct ConfigOverridesData {
     pub subscription_fallback_poll_interval_secs: Option<u64>,

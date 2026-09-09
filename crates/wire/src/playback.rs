@@ -22,12 +22,9 @@ pub struct PlaybackData {
 impl ResponsableData for PlaybackData {}
 
 #[typeshare]
-/// Create/update payload for a playback row.
-///
-/// `user_id` is intentionally absent: the server derives the owner from the
-/// authenticated JWT, never from the request body (prevents writing another
-/// user's playback). Played/unplayed is carried by `completed`, so `cursor`
-/// stays a real position (`>= 0`) instead of a sentinel.
+/// Create/update payload for a playback row. `user_id` is intentionally absent: the server derives the owner
+/// from the authenticated JWT, never from the request body (prevents writing another user's playback).
+/// Played/unplayed is carried by `completed`, so `cursor` stays a real position (`>= 0`) instead of a sentinel.
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct PlaybackStoreData {
     #[validate(range(min = 1, message = "Episode ID must be a valid integer"))]

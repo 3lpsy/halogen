@@ -1,0 +1,44 @@
+[package]
+name = "halogen-webui-provider-app"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-component-loading = { path = "../component-loading" }
+halogen-webui-provider-local = { path = "../provider-local" }
+halogen-webui-provider-toast = { path = "../provider-toast" }
+halogen-webui-provider-config = { path = "../provider-config" }
+halogen-webui-provider-downloads = { path = "../provider-downloads" }
+halogen-webui-provider-discover = { path = "../provider-discover" }
+halogen-webui-provider-session = { path = "../provider-session" }
+halogen-webui-provider-player = { path = "../provider-player" }
+halogen-webui-provider-playlist = { path = "../provider-playlist" }
+halogen-webui-provider-connection = { path = "../provider-connection" }
+halogen-webui-provider-playback = { path = "../provider-playback" }
+halogen-webui-provider-webview-media = { path = "../provider-webview-media" }
+halogen-webui-provider-history = { path = "../provider-history" }
+halogen-webui-provider-sync = { path = "../provider-sync" }
+halogen-webui-provider-accounts = { path = "../provider-accounts" }
+halogen-webui-provider-episode = { path = "../provider-episode" }
+halogen-webui-provider-podcast = { path = "../provider-podcast" }
+dioxus = { workspace = true, features = ["router"] }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-component-loading/web", "halogen-webui-provider-accounts/web", "halogen-webui-provider-config/web", "halogen-webui-provider-connection/web", "halogen-webui-provider-discover/web", "halogen-webui-provider-downloads/web", "halogen-webui-provider-episode/web", "halogen-webui-provider-history/web", "halogen-webui-provider-local/web", "halogen-webui-provider-playback/web", "halogen-webui-provider-player/web", "halogen-webui-provider-playlist/web", "halogen-webui-provider-podcast/web", "halogen-webui-provider-session/web", "halogen-webui-provider-sync/web", "halogen-webui-provider-toast/web", "halogen-webui-provider-webview-media/web"]
+desktop = ["dioxus/desktop", "halogen-webui-component-loading/desktop", "halogen-webui-provider-accounts/desktop", "halogen-webui-provider-config/desktop", "halogen-webui-provider-connection/desktop", "halogen-webui-provider-discover/desktop", "halogen-webui-provider-downloads/desktop", "halogen-webui-provider-episode/desktop", "halogen-webui-provider-history/desktop", "halogen-webui-provider-local/desktop", "halogen-webui-provider-playback/desktop", "halogen-webui-provider-player/desktop", "halogen-webui-provider-playlist/desktop", "halogen-webui-provider-podcast/desktop", "halogen-webui-provider-session/desktop", "halogen-webui-provider-sync/desktop", "halogen-webui-provider-toast/desktop", "halogen-webui-provider-webview-media/desktop"]

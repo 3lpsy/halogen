@@ -1,0 +1,11 @@
+[package]
+name = "halogen-webui-component-icons"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]

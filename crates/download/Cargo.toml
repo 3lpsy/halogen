@@ -34,7 +34,7 @@ rustix = { version = "1", features = ["fs"] }
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
-halogen-migrate = { path = "../migrate" }
+halogen-migrations = { path = "../migrations" }
 halogen-fixture = { path = "../fixture", features = ["test-support"] }
 tokio = { workspace = true }
 wiremock = { workspace = true }

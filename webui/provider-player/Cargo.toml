@@ -1,0 +1,35 @@
+[package]
+name = "halogen-webui-provider-player"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-player-media-session = { path = "../player-media-session" }
+halogen-webui-hook-window-event = { path = "../hook-window-event" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-media = { path = "../media" }
+halogen-webui-player = { path = "../player" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["halogen-webui-player-media-session/web", "dioxus/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-config/web", "halogen-webui-hook-window-event/web", "halogen-webui-media/web", "halogen-webui-platform/web", "halogen-webui-player/web"]
+desktop = ["halogen-webui-player-media-session/desktop", "dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-config/desktop", "halogen-webui-hook-window-event/desktop", "halogen-webui-media/desktop", "halogen-webui-platform/desktop", "halogen-webui-player/desktop"]

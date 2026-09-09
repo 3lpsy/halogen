@@ -1,13 +1,5 @@
-//! Playlist detail journey — offline-first, lazy, id-list-driven.
-//!
-//! A playlist is metadata + an ordered list of episode ids (the pivot). The detail
-//! view (`/playlists/:id`, reached from the cards) reuses the same lazy path as the
-//! Queue: resolve the visible window of ids from the local episode pool, fill any
-//! missing ids by request, and grow the window on scroll. We seed a playlist with
-//! 35 episodes (> one window of 30) and assert the card links through, the list
-//! renders, and scrolling reveals the whole membership.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Open a 35-episode playlist from its card and scroll beyond the 30-row window, exercising cached ID resolution and
+//! missing-episode fetches. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click, login_via_ui, require_dist, run_session, scroll_to_count,

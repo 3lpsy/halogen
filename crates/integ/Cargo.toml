@@ -6,7 +6,7 @@ publish = false
 
 # Tier-1 HTTP integration journeys: a real axum server + migrated SQLite (only
 # upstream RSS is faked via wiremock), driven through the real
-# `halogen_api::ApiClient`. Also OWNS the real-server harness (`support`) the
+# `halogen_apiclient::ApiClient`. Also OWNS the real-server harness (`support`) the
 # browser e2e tier reuses. Run with: `just test-integ`
 
 [dependencies]
@@ -14,12 +14,12 @@ publish = false
 # feature any more — the harness lives here and uses the server's public API.
 halogen-server = { path = "../server" }
 # The typed UI gateway: tests call its methods exactly as the frontend does.
-halogen-api = { path = "../api" }
+halogen-apiclient = { path = "../apiclient" }
 # Entities/data types for direct seeding + the shared seed helpers (`db` feature
 # matches how the server pulls it).
 halogen-wire = { path = "../wire", features = ["db"] }
 halogen-orm = { path = "../orm" }
-halogen-migrate = { path = "../migrate" }
+halogen-migrations = { path = "../migrations" }
 # db_transfer_flow: gunzip the export to inspect the snapshot.
 flate2 = "1"
 halogen-fixture = { path = "../fixture" }
@@ -47,6 +47,8 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [dev-dependencies]
+halogen-sync = { path = "../sync" }
+halogen-sync-store = { path = "../sync-store" }
 # Connectivity-WebSocket journey: a real WS client drives the `/ws` upgrade over
 # loopback (plain ws://, so no TLS feature). Same 0.29 the server already uses.
 tokio-tungstenite = { workspace = true, features = ["connect"] }

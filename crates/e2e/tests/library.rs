@@ -1,8 +1,6 @@
-//! Library journey — a podcast subscribed + ingested on the server shows up in
-//! the browser UI after the in-app sync worker pulls it. Exercises the whole
-//! loop: mocked RSS → server ingestion → in-browser worker → list rendering.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Library journey — a podcast subscribed + ingested on the server shows up in the browser UI after the in-app
+//! sync worker pulls it. Exercises the whole loop: mocked RSS → server ingestion → in-browser worker → list
+//! rendering. `#[ignore]` by default; run via `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, ingest_feed, login_via_ui, require_dist, run_session, wait_for_text,

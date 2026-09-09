@@ -37,8 +37,9 @@ extension HalogenClient {
             if let token {
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             }
-            let (data, response) = try await URLSession.shared.data(for: request)
-            let status = (response as! HTTPURLResponse).statusCode
+            let (data, response) = try await LocalTransport.data(for: request)
+            guard let response = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+            let status = response.statusCode
             guard (200..<300).contains(status) else { throw ClientError.http(status) }
             let lossy = String(decoding: data, as: UTF8.self)
             if let redata = lossy.data(using: .utf8),

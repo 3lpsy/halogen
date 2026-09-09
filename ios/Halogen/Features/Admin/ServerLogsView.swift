@@ -37,7 +37,7 @@ struct ServerLogsView: View {
                         systemImage: "doc.text",
                         description: Text(
                             logs.path == nil
-                                ? "This server has no log file configured (embedded servers log to the app console)."
+                                ? "No log file is configured. Local Only logs are available in Device logs."
                                 : "The log file is empty.")
                     )
                 } else {

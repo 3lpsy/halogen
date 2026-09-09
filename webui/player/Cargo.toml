@@ -1,0 +1,38 @@
+[package]
+name = "halogen-webui-player"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-player-sleep = { path = "../player-sleep" }
+halogen-webui-player-backend = { path = "../player-backend" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-wire = { path = "../../crates/wire" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-media = { path = "../media" }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Navigator", "HtmlMediaElement", "HtmlAudioElement", "MediaError",
+    "Document", "Element", "Node", "Event", "EventTarget", "Url"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-config/web", "halogen-webui-logging/web", "halogen-webui-media/web", "halogen-webui-platform/web", "halogen-webui-player-backend/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-config/desktop", "halogen-webui-logging/desktop", "halogen-webui-media/desktop", "halogen-webui-platform/desktop", "halogen-webui-player-backend/desktop"]
+
+[dev-dependencies]
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

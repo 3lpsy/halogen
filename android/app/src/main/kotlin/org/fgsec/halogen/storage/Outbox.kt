@@ -1,17 +1,23 @@
 package org.fgsec.halogen.storage
 
 import java.util.UUID
-import kotlin.math.min
+import org.fgsec.halogen.components.ToastCenter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import uniffi.halogen_mobile.SyncQueue
+import uniffi.halogen_mobile.SyncDrainReport
+import uniffi.halogen_mobile.openSyncQueue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import org.fgsec.halogen.core.DeviceLog
-import org.fgsec.halogen.networking.HalogenClient
 import org.fgsec.halogen.wire.OrderDirection
 import org.fgsec.halogen.wire.PlaylistReorderField
 import org.fgsec.halogen.wire.PodcastConfigUpdateData
@@ -113,33 +119,22 @@ data class OutboxOp(val id: String, val kind: Kind) {
     }
 }
 
-/// Persisted FIFO of offline mutations: models apply OPTIMISTICALLY, enqueue, the
-/// drain syncs when reachable. Failure taxonomy (web drain): permanent (4xx)
-/// dead-letters immediately; countable (5xx/empty) retries with backoff, dropped
-/// after `DEAD_LETTER_ATTEMPTS`; transient (transport, 401/408/429) retries forever.
+/** Native UI adapter over the shared Rust journal and retry engine. */
 class Outbox private constructor(
     private val store: LocalStore,
-    /// Executes one op against the API. Injected by the core (owns the client).
-    private val perform: suspend (OutboxOp) -> Unit,
-    /// Fired when an op is dead-lettered — the user must hear about a
-    /// discarded change (toast + sync-failures record).
+    private val queue: SyncQueue,
+    private val perform: suspend (SyncQueue) -> SyncDrainReport,
+    private val pull: suspend (SyncQueue) -> String?,
     private val onDeadLetter: suspend (OutboxOp, Throwable) -> Unit,
     initial: List<OutboxOp>,
 ) {
-    /// Retry bookkeeping for a failing FIFO head. In-memory only — a relaunch
-    /// grants a fresh budget (same as the web).
-    private data class HeadRetry(val opId: String, val failures: Int, val skipDrains: Int)
-
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutex = Mutex()
-    private val ops: MutableList<OutboxOp> = initial.toMutableList()
-
-    /// The core flips this with the manual-offline toggle: ops queue but
-    /// never drain while suspended.
-    var suspended = false
-        private set
-
+    private val gate = JournalGate.forPath(store.syncDatabasePath)
+    private val ops = initial.toMutableList()
     private var draining = false
-    private var headRetry: HeadRetry? = null
+    @Volatile var suspended = false
+        private set
 
     suspend fun pendingCount(): Int = mutex.withLock { ops.size }
 
@@ -169,208 +164,109 @@ class Outbox private constructor(
         ops.any { it.kind is OutboxOp.Kind.MovePlaylist }
     }
 
-    /// Discard every queued op (the purge screen). Irreversible.
     suspend fun clearAll() {
-        mutex.withLock {
+        gate.withLock { mutex.withLock {
+            queue.clearAll()
             ops.clear()
-            headRetry = null
-            persist()
-        }
+            store.saveDurably(ops.toList(), KEY)
+        } }
     }
 
-    suspend fun enqueue(kind: OutboxOp.Kind) {
-        mutex.withLock {
-            // Cursor writes coalesce: a fresh save supersedes any queued one
-            // for the same episode; a played-toggle writes the cursor too (0),
-            // so it supersedes queued cursor saves the same way.
-            val coalesceEpisode = when (kind) {
-                is OutboxOp.Kind.SetCursor -> kind.episodeId
-                is OutboxOp.Kind.SetPlayed -> kind.episodeId
-                else -> null
-            }
-            if (coalesceEpisode != null) {
-                ops.removeAll { (it.kind as? OutboxOp.Kind.SetCursor)?.episodeId == coalesceEpisode }
-            }
-            ops.add(OutboxOp(kind))
-            persist()
-        }
-        drain()
-    }
+    suspend fun enqueue(kind: OutboxOp.Kind): Boolean = enqueueBatch(listOf(kind))
 
-    suspend fun setSuspended(value: Boolean) {
-        mutex.withLock { suspended = value }
-    }
-
-    /// Pump the queue FIFO — see the class doc for the failure taxonomy.
-    /// Draining stops at the head's first transient/backing-off failure so
-    /// dependent ops can never replay out of order.
-    suspend fun drain() {
-        mutex.withLock {
-            if (suspended || draining) return
-            draining = true
-        }
+    suspend fun enqueueBatch(kinds: List<OutboxOp.Kind>): Boolean {
+        var journaled = false
         try {
-            drainLoop()
-        } finally {
-            mutex.withLock { draining = false }
+            gate.withLock { mutex.withLock {
+                val operations = kinds.map(::OutboxOp)
+                queue.importOperations(operations.map { it.sharedOperation() })
+                journaled = true
+                for (operation in operations) store.project(operation)
+                val pending = queue.pendingIds().toSet()
+                ops.removeAll { it.id !in pending }
+                ops.addAll(operations.filter { it.id in pending })
+                // Rebuilt from canonical pending entries if this derived mirror write fails.
+                store.save(ops.toList(), KEY)
+            } }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            DeviceLog.error("sync persistence failed: $error")
+            ToastCenter.error(if (journaled) "The change is queued, but its local cache could not update. Reopen the app to recover it." else "Couldn't save this change. Please try again.")
+            return false
         }
+        scope.launch { yield(); drain() }
+        return true
     }
 
-    private suspend fun drainLoop() {
-        // A head op backing off after countable failures skips whole drains
-        // per its budget. A different head means the old entry is stale —
-        // drop it for a fresh budget.
-        mutex.withLock {
-            val head = ops.firstOrNull()
-            if (head != null) {
-                val retry = headRetry
-                if (retry != null && retry.opId == head.id) {
-                    if (retry.skipDrains > 0) {
-                        headRetry = retry.copy(skipDrains = retry.skipDrains - 1)
-                        return
-                    }
-                } else {
-                    headRetry = null
-                }
-            }
-        }
+    suspend fun pendingOperations(): List<OutboxOp> = mutex.withLock { ops.toList() }
 
-        while (true) {
-            val op = mutex.withLock { ops.firstOrNull() } ?: return
-            try {
-                perform(op)
+    suspend fun setSuspended(value: Boolean) { mutex.withLock { suspended = value } }
+
+    suspend fun drain() {
+        mutex.withLock { if (suspended || draining) return; draining = true }
+        val failures = mutableListOf<Pair<OutboxOp, Throwable>>()
+        try {
+            gate.withLock {
+                if (suspended) return@withLock
+                val submitted = mutex.withLock { ops.toList() }
+                queue.importOperations(submitted.map { it.sharedOperation() })
+                val report = perform(queue)
+                projectAndCheckpoint(store, queue)
+                if (!suspended && !report.authPaused) pull(queue)?.let { store.projectSnapshot(it) }
+                val rejected = queue.quarantinedIds().toSet()
+                val pending = queue.pendingIds().toSet()
                 mutex.withLock {
-                    if (headRetry?.opId == op.id) headRetry = null
-                    removeHead(op)
-                    persist()
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                when (classify(e)) {
-                    FailureClass.PERMANENT -> {
-                        // The server will never accept this op — dead-letter it
-                        // so it stops blocking the head of the FIFO every drain.
-                        DeviceLog.warn("outbox: dropped op after API rejection: $e")
-                        mutex.withLock {
-                            if (headRetry?.opId == op.id) headRetry = null
-                            removeHead(op)
-                            persist()
-                        }
-                        onDeadLetter(op, e)
-                    }
-                    FailureClass.COUNTABLE -> {
-                        // 5xx/empty could equally be a transient outage or a
-                        // deterministic server bug on this payload — retry,
-                        // but against a budget.
-                        val attempt = mutex.withLock {
-                            (headRetry?.takeIf { it.opId == op.id }?.failures ?: 0) + 1
-                        }
-                        if (attempt >= DEAD_LETTER_ATTEMPTS) {
-                            DeviceLog.warn(
-                                "outbox: op failed every budgeted retry ($attempt); dropping: $e"
-                            )
-                            mutex.withLock {
-                                headRetry = null
-                                removeHead(op)
-                                persist()
-                            }
-                            onDeadLetter(op, e)
-                        } else {
-                            DeviceLog.warn(
-                                "outbox: op failed (attempt $attempt); retrying with backoff: $e"
-                            )
-                            mutex.withLock {
-                                headRetry = HeadRetry(op.id, attempt, drainSkips(attempt))
-                            }
-                            return
-                        }
-                    }
-                    FailureClass.TRANSIENT -> {
-                        val pending = mutex.withLock { ops.size }
-                        DeviceLog.info("outbox: drain paused (retryable $e), $pending pending")
-                        return
-                    }
+                    for (op in ops.filter { it.id in rejected }) failures.add(op to IllegalStateException(report.lastError ?: "Change rejected by the server"))
+                    ops.removeAll { it.id !in pending }
+                    store.saveDurably(ops.toList(), KEY)
                 }
             }
-        }
-    }
-
-    /// Remove `op` if it is still the head (a concurrent clearAll may have
-    /// emptied the queue while `perform` was in flight).
-    private fun removeHead(op: OutboxOp) {
-        if (ops.firstOrNull()?.id == op.id) ops.removeAt(0)
-    }
-
-    private enum class FailureClass { PERMANENT, COUNTABLE, TRANSIENT }
-
-    /// The web's permanent/countable/transient taxonomy over the client's
-    /// error shape.
-    private fun classify(error: Throwable): FailureClass = when (error) {
-        // Validation: the server rejected the payload — permanent.
-        is HalogenClient.ClientError.Api -> FailureClass.PERMANENT
-        is HalogenClient.ClientError.Http -> when {
-            // Token may refresh / explicit throttle-and-retry.
-            error.code == 401 || error.code == 408 || error.code == 429 ->
-                FailureClass.TRANSIENT
-            error.code in 400..499 -> FailureClass.PERMANENT
-            error.code >= 500 -> FailureClass.COUNTABLE
-            else -> FailureClass.TRANSIENT
-        }
-        is HalogenClient.ClientError.EmptyData -> FailureClass.COUNTABLE
-        // Never counts against an op — waits for reconnect/re-auth.
-        is HalogenClient.ClientError.Offline -> FailureClass.TRANSIENT
-        is HalogenClient.ClientError.SignedOut -> FailureClass.TRANSIENT
-        // Version skew: the op executed but its response no longer decodes as
-        // this build expects. Deterministic — burn the countable budget
-        // instead of wedging the head as "offline" forever.
-        is SerializationException -> FailureClass.COUNTABLE
-        // IOException and friends: offline — keep the op, wait for reconnect.
-        else -> FailureClass.TRANSIENT
-    }
-
-    private suspend fun persist() {
-        store.save(ops.toList(), KEY)
+        } catch (error: CancellationException) { throw error }
+        catch (error: Exception) { DeviceLog.warn("sync paused: $error") }
+        finally { mutex.withLock { draining = false } }
+        for ((operation, error) in failures) onDeadLetter(operation, error)
     }
 
     companion object {
         private const val KEY = "outbox"
-
-        /// Consecutive countable failures of the same head op before it is
-        /// dead-lettered (web: OUTBOX_DEAD_LETTER_ATTEMPTS).
-        private const val DEAD_LETTER_ATTEMPTS = 10
-
         private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-        /// Drains to skip before re-attempting a head op with `failures`
-        /// consecutive countable failures: 1, 3, 7, then 15 (cap) — the web's
-        /// `drain_skips` backoff curve.
-        private fun drainSkips(failures: Int): Int = (1 shl min(failures, 4)) - 1
+        private suspend fun projectAndCheckpoint(store: LocalStore, queue: SyncQueue) {
+            val delivered = queue.deliveredIds().toSet()
+            val confirmed = mutableListOf<String>()
+            for (operation in restoreSharedQueue(queue.pending())) {
+                if (store.project(operation) && operation.id in delivered) confirmed.add(operation.id)
+            }
+            if (confirmed.isNotEmpty()) {
+                queue.confirmCached(confirmed)
+                store.forgetJournalMarkers(confirmed.toSet())
+            }
+        }
 
         suspend fun create(
             store: LocalStore,
-            perform: suspend (OutboxOp) -> Unit,
+            perform: suspend (SyncQueue) -> SyncDrainReport,
+            pull: suspend (SyncQueue) -> String?,
             onDeadLetter: suspend (OutboxOp, Throwable) -> Unit = { _, _ -> },
         ): Outbox {
-            // Per-op lossy decode: ONE op persisted by a different build
-            // (unknown kind / changed payload) must not wipe the whole queue —
-            // an all-or-nothing decode would drop every survivor on the next
-            // persist.
-            val boxed = store.load<List<JsonElement>>(KEY) ?: emptyList()
-            val ops = boxed.mapNotNull { element ->
-                try {
-                    json.decodeFromJsonElement(OutboxOp.serializer(), element)
-                } catch (e: Exception) {
-                    DeviceLog.warn("outbox: op decode failed — ${e::class.simpleName}: ${e.message}")
-                    null
-                }
+            val failures = mutableListOf<OutboxOp>()
+            val outbox = JournalGate.forPath(store.syncDatabasePath).withLock {
+                val original = store.prepareOutboxMigration()
+                val ops = original?.let { json.decodeFromString<List<OutboxOp>>(it) } ?: emptyList()
+                val queue = withContext(Dispatchers.IO) { openSyncQueue(store.syncDatabasePath) }
+                queue.importOperations(ops.map { it.sharedOperation() })
+                queue.cachedSnapshot()?.let { store.projectSnapshot(it) }
+                val rejected = queue.quarantinedIds().toSet()
+                failures.addAll(ops.filter { it.id in rejected })
+                projectAndCheckpoint(store, queue)
+                val active = queue.pendingIds().toSet()
+                val remaining = restoreSharedQueue(queue.pending()).filter { it.id in active }
+                store.saveDurably(remaining, KEY)
+                Outbox(store, queue, perform, pull, onDeadLetter, remaining)
             }
-            if (ops.size < boxed.size) {
-                DeviceLog.warn(
-                    "outbox: dropped ${boxed.size - ops.size} undecodable persisted op(s); kept ${ops.size}"
-                )
-            }
-            return Outbox(store, perform, onDeadLetter, ops)
+            for (op in failures) onDeadLetter(op, IllegalStateException("Change rejected by the server"))
+            return outbox
         }
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "halogen-sync-import"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-sync-enrich = { path = "../sync-enrich" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

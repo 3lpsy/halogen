@@ -39,14 +39,9 @@ impl crate::common::Sortable for Entity {
 /// the same region) and never participate in allocation.
 pub const SENTINEL_ID_FLOOR: i32 = i32::MAX - 1024;
 
-/// Next id for a NEW user row — always allocated explicitly, never left to
-/// sqlite's implicit `max(rowid)+1`: the seeded initial admin sits at the
-/// fixed `i32::MAX` sentinel, so the implicit successor overflows `i32` on the
-/// very first user created after the seed. Counts only ids below the whole
-/// sentinel REGION — filtering just `< i32::MAX` handed out `i32::MAX` itself
-/// whenever a second sentinel row sat at `MAX - 1` (the dev seed), colliding
-/// with the admin. Callers race-guard via the unique primary key (a
-/// concurrent create surfaces as a conflict, not a corruption).
+/// Allocate explicit user IDs below the reserved sentinel region. SQLite max(rowid)+1 would overflow i32 after the
+/// seeded admin at i32::MAX; excluding only that ID can also collide with other sentinels. Concurrent creation is
+/// guarded by the primary key and reports conflict.
 pub async fn next_available_id<C: sea_orm::ConnectionTrait>(
     conn: &C,
 ) -> Result<i32, sea_orm::DbErr> {

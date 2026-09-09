@@ -1,13 +1,7 @@
-//! Auth journeys. `auth_journey` is one ordered flow whose steps build on each
-//! other: public health probe → reject anonymous → reject bad creds → log in →
-//! use the issued token → refresh → logout, driven through the real
-//! `halogen_api::ApiClient` (the exact gateway the UI uses). Two raw-HTTP tests
-//! cover what the typed client can't see: the `auth_media` cookie lifecycle +
-//! login-issued-cookie streaming, and refresh rejecting a media-scoped token.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(auth_flow)'`
+//! Exercise health, authentication rejection, login, token use, refresh, and logout through ApiClient. Raw HTTP also
+//! checks media-cookie lifecycle/streaming and rejects media tokens on refresh. Run the halogen-integ auth_flow binary.
 
-use halogen_api::{LoginData, TokenData};
+use halogen_apiclient::{LoginData, TokenData};
 use halogen_integ::*;
 
 #[tokio::test]
@@ -16,7 +10,7 @@ async fn auth_journey() {
     let anon = anon_api(&app);
 
     // 1) The public health probe works without auth and decodes to StatusData,
-    //    reporting the server is up.
+    //  reporting the server is up.
     let health = anon.health().await.expect("health probe");
     assert!(health.running, "healthz reports the server is up");
 
@@ -47,7 +41,7 @@ async fn auth_journey() {
     assert!(!token.is_empty(), "token should be non-empty");
 
     // 5) The freshly-issued token unlocks the protected route and returns data
-    //    (an empty list — nothing seeded yet — not just a 200).
+    //  (an empty list — nothing seeded yet — not just a 200).
     let client = api(&app, &token);
     let page = client
         .list_episodes(ep_page(0, 10))
@@ -73,11 +67,10 @@ async fn auth_journey() {
     client.logout().await.expect("logout succeeds");
 }
 
-/// The `auth_media` cookie lifecycle over raw HTTP (the typed client discards
-/// response headers): login SETS it, logout and refresh CLEAR/re-issue it. And
-/// the full issuance→consumption loop: log in, capture the cookie, and stream
-/// audio with it → 200/206 (the existing media_flow mints the JWT directly;
-/// this proves the login-issued cookie actually authorizes media).
+/// The `auth_media` cookie lifecycle over raw HTTP (the typed client discards response headers): login SETS it,
+/// logout and refresh CLEAR/re-issue it. And the full issuance→consumption loop: log in, capture the cookie,
+/// and stream audio with it → 200/206 (the existing media_flow mints the JWT directly; this proves the
+/// login-issued cookie actually authorizes media).
 #[tokio::test]
 async fn auth_media_cookie_lifecycle_and_streaming() {
     let app = spawn().await;

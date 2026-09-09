@@ -1,8 +1,6 @@
-//! Playlist journey — create a playlist, add/remove episodes, and walk the full
-//! CRUD (get/update/delete) plus the `EpisodeIds` membership projection the sync
-//! worker uses. Driven through the `ApiClient`, asserting membership + order.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(playlist_flow)'`
+//! Playlist journey — create a playlist, add/remove episodes, and walk the full CRUD (get/update/delete) plus
+//! the `EpisodeIds` membership projection the sync worker uses. Driven through the `ApiClient`, asserting
+//! membership + order. Run with: `cargo nextest run -p halogen-integ -E 'binary(playlist_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{
@@ -18,7 +16,7 @@ fn lists_with_ids() -> DefaultListParams<PlaylistInclude> {
 }
 
 /// The ordered `EpisodeIds` projection for one playlist (the sync-worker path).
-async fn episode_ids(client: &halogen_api::ApiClient, playlist_id: i32) -> Vec<i32> {
+async fn episode_ids(client: &halogen_apiclient::ApiClient, playlist_id: i32) -> Vec<i32> {
     client
         .list_playlists(lists_with_ids())
         .await
@@ -89,8 +87,8 @@ async fn playlist_journey() {
     }
 
     // 4) All three are members. `GET /playlists/{id}/episodes` returns them in
-    //    the default episode order (published-desc), not pivot order — so assert
-    //    the membership *set* here; position order is checked via EpisodeIds next.
+    //  the default episode order (published-desc), not pivot order — so assert
+    //  the membership *set* here; position order is checked via EpisodeIds next.
     let body = client
         .list_playlist_episodes(playlist_id, ep_page(0, 200))
         .await
@@ -102,7 +100,7 @@ async fn playlist_journey() {
     assert_eq!(got, want, "all added episodes are members");
 
     // 5) The `EpisodeIds` projection (the sync worker path) preserves the pivot
-    //    *position* order we inserted in (e2, e0, e1).
+    //  *position* order we inserted in (e2, e0, e1).
     assert_eq!(
         episode_ids(&client, playlist_id).await,
         vec![e2, e0, e1],
@@ -115,7 +113,7 @@ async fn playlist_journey() {
     assert_eq!(got.name, "Favourites");
 
     // 7) Remove the middle-inserted one; it's gone from the membership and the
-    //    EpisodeIds order closes up to (e2, e1).
+    //  EpisodeIds order closes up to (e2, e1).
     client
         .remove_episode(playlist_id, e0)
         .await
@@ -160,11 +158,10 @@ async fn playlist_journey() {
     assert_eq!(status_of(&err), 404, "deleted playlist is gone");
 }
 
-/// Reorder within a playlist via `POST /playlists/{id}/episodes/{episode_id}/move`.
-/// The server pulls the episode out and re-inserts it at the target index, then
-/// rewrites every position to 0..n — so the `EpisodeIds` projection reflects the
-/// new order. Out-of-range targets clamp to the last slot, an unchanged target is
-/// a no-op, and moving a non-member episode is a 404.
+/// Reorder within a playlist via `POST /playlists/{id}/episodes/{episode_id}/move`. The server pulls the
+/// episode out and re-inserts it at the target index, then rewrites every position to 0..n — so the
+/// `EpisodeIds` projection reflects the new order. Out-of-range targets clamp to the last slot, an unchanged
+/// target is a no-op, and moving a non-member episode is a 404.
 #[tokio::test]
 async fn playlist_move_reorders_positions() {
     let app = spawn().await;
@@ -517,7 +514,7 @@ async fn delete_on_remove_flags_flow() {
     );
 
     // 2) e1 is also a member of a second (unflagged) playlist; both episodes are
-    //    members of the flagged one and have staged server downloads.
+    //  members of the flagged one and have staged server downloads.
     let other = client
         .create_playlist(PlaylistStoreData {
             name: "Keeper".into(),

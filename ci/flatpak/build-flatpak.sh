@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# Flatpak from PREBUILT pieces via plain file/ostree plumbing — no
-# flatpak-builder (its bwrap can't nest in this runner) and no sandbox needed.
-# Inputs: a stage dir (app, libs, .desktop, metainfo, icon) + the GNOME
-# runtimes installed. FLATPAK_GNOME_BRANCH must match setup-flatpak.sh.
+# Package a prebuilt stage with file/ostree tools; nested bwrap prevents flatpak-builder here.
+# Requires installed GNOME runtimes; FLATPAK_GNOME_BRANCH must match setup-flatpak.sh.
 
 set -euo pipefail
 
@@ -18,7 +16,7 @@ FFMPEG_BRANCH="${FLATPAK_FFMPEG_BRANCH:-25.08}"
 # runtime that dropped webkit2gtk at build time, not on users' machines.
 runtime_files="${FLATPAK_USER_DIR:-$HOME/.local/share/flatpak}/runtime/org.gnome.Platform/x86_64/${RUNTIME_BRANCH}/active/files"
 if [ ! -d "${runtime_files}" ]; then
-  echo "::error::org.gnome.Platform//${RUNTIME_BRANCH} not installed (expected ${runtime_files}) — flatpak install flathub org.gnome.Platform//${RUNTIME_BRANCH} (CI: ci/internal/setup-flatpak.sh)" >&2
+  echo "::error::org.gnome.Platform//${RUNTIME_BRANCH} not installed (expected ${runtime_files}) — flatpak install flathub org.gnome.Platform//${RUNTIME_BRANCH} (CI: ci/internal/runner/setup-flatpak.sh)" >&2
   exit 1
 fi
 missing=0

@@ -9,9 +9,26 @@ import Observation
 final class DiscoverModel {
     private unowned let core: HalogenCore
 
-    var query = ""
-    private(set) var results: [DiscoverResultItem] = []
-    private(set) var searching = false
+    var query = "" {
+        didSet {
+            if query != oldValue {
+                searchGeneration += 1
+                pages.invalidate()
+            }
+        }
+    }
+    var mode: DiscoverSearchMode = .podcast {
+        didSet {
+            if mode != oldValue {
+                searchGeneration += 1
+                pages.invalidate(clear: true)
+            }
+        }
+    }
+    private var searchGeneration = 0
+    let pages: DiscoverResultsModel
+    var results: [DiscoverResultItem] { pages.podcasts }
+    var searching: Bool { pages.isLoading }
     private(set) var error: String?
     private(set) var subscribedFeeds: Set<String> = []
     /// The server's provider list (chips). Empty = not loaded yet.
@@ -23,6 +40,9 @@ final class DiscoverModel {
 
     init(core: HalogenCore) {
         self.core = core
+        pages = DiscoverResultsModel(
+            fetch: { [unowned core] key, cursor in try await core.discoverPage(key, cursor: cursor) },
+            errorMessage: FriendlyError.message)
     }
 
     var isOffline: Bool { core.isOffline }
@@ -48,6 +68,8 @@ final class DiscoverModel {
 
     /// Toggle a provider chip; the disabled set persists across restarts.
     func toggleProvider(_ provider: DiscoverProvider) {
+        searchGeneration += 1
+        pages.invalidate(clear: true)
         core.models?.prefs.update { prefs in
             if let idx = prefs.disabledDiscoverProviders.firstIndex(of: provider.rawValue) {
                 prefs.disabledDiscoverProviders.remove(at: idx)
@@ -64,6 +86,8 @@ final class DiscoverModel {
     }
 
     func search() async {
+        searchGeneration += 1
+        let request = searchGeneration
         let q = query.trimmingCharacters(in: .whitespaces)
         // The web requires >= 2 chars before searching.
         guard q.count >= 2 else { return }
@@ -76,6 +100,7 @@ final class DiscoverModel {
         // instead of a dead search (web rule).
         if providers.isEmpty {
             await loadProviders()
+            guard request == searchGeneration else { return }
             if providers.isEmpty {
                 if providerError {
                     error = "Search providers failed to load — retry above."
@@ -83,38 +108,33 @@ final class DiscoverModel {
                 return
             }
         }
+        guard request == searchGeneration else { return }
         let enabled = enabledProviders
         guard !enabled.isEmpty else {
             error = "Enable at least one provider"
             return
         }
-        searching = true
-        defer { searching = false }
-        do {
-            let data = try await core.discoverSearch(query: q, providers: enabled)
-            results = data.items
-            // Per-provider partial failures surface even when other
-            // providers returned results (web: one toast per failed provider).
-            if let errors = data.errors, !errors.isEmpty {
-                error = errors
-                    .map { "\(providerLabel($0.provider)) search failed: \($0.message)" }
-                    .joined(separator: "\n")
-            }
-            refreshSubscribed()
-        } catch {
-            self.error = FriendlyError.message(error)
+        let selected = mode == .episode ? enabled.filter { $0 == .itunes } : enabled
+        guard !selected.isEmpty else {
+            error = "Enable iTunes to search episodes. gpodder supports podcast search only."
+            return
         }
+        error = nil
+        await pages.search(DiscoverSearchKey(query: q, mode: mode, providers: selected))
+        refreshSubscribed()
     }
 
     func subscribe(_ item: DiscoverResultItem) async {
         // Durable subscribe (web: OutboxOp::Subscribe) — queues offline and
         // survives restarts; the library refresh reconciles once it drains.
-        await core.outbox?.enqueue(
-            .subscribe(
-                feedUrl: item.feed_url,
-                title: item.title,
-                description: (item.description?.isEmpty ?? true) ? nil : item.description
-            ))
+        guard
+            await core.ensureQueued(
+                .subscribe(
+                    feedUrl: item.feed_url,
+                    title: item.title,
+                    description: (item.description?.isEmpty ?? true) ? nil : item.description
+                ))
+        else { return }
         subscribedFeeds.insert(item.feed_url)
         await core.models?.podcasts.refresh()
     }

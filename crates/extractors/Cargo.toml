@@ -1,0 +1,14 @@
+[package]
+name = "halogen-extractors"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire-meta = { path = "../wire-meta", features = ["http"] }
+halogen-utils = { path = "../utils" }
+axum = { workspace = true }
+halogen-auth = { path = "../auth" }
+halogen-wire = { path = "../wire" }
+serde = { workspace = true }
+serde_qs = { workspace = true, features = ["axum"] }
+validator = { workspace = true }

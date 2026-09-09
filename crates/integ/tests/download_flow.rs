@@ -1,10 +1,7 @@
-//! Download journey — the on-demand server-side fetch trigger and its removal.
-//! Ingesting a feed creates episodes as NOT_DOWNLOADED; `trigger_download`
-//! acknowledges immediately (202) and fetches in the background;
-//! `remove_server_download` resets a downloaded episode. Driven through the
-//! `ApiClient`, asserting the client-visible `download_status`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(download_flow)'`
+//! Download journey — the on-demand server-side fetch trigger and its removal. Ingesting a feed creates
+//! episodes as NOT_DOWNLOADED; `trigger_download` acknowledges immediately (202) and fetches in the background;
+//! `remove_server_download` resets a downloaded episode. Driven through the `ApiClient`, asserting the
+//! client-visible `download_status`. Run with: `cargo nextest run -p halogen-integ -E 'binary(download_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{DownloadStatus, PlaybackStatus};
@@ -35,11 +32,11 @@ async fn download_journey() {
     assert_eq!(status_of(&err), 401, "anonymous download => 401");
 
     // 2) Authed trigger is accepted (202 → Ok). The real fetch runs in a spawned
-    //    task; we only assert the synchronous acknowledgement here.
+    //  task; we only assert the synchronous acknowledgement here.
     client.trigger_download(episode_id).await.expect("trigger");
 
     // 3) Removal path on a separate, deterministically "downloaded" episode (no
-    //    background race): force Downloaded, then remove resets to NotDownloaded.
+    //  background race): force Downloaded, then remove resets to NotDownloaded.
     let other = app
         .seed_episode(
             podcast_id,

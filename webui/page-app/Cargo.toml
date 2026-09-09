@@ -1,0 +1,14 @@
+[package]
+name = "halogen-webui-page-app"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-webui-player-controls = { path = "../player-controls" }
+halogen-webui-hooks = { path = "../hooks" }
+
+[features]
+web = ["dioxus/web", "halogen-webui-component-widgets/web", "halogen-webui-player-controls/web", "halogen-webui-hooks/web"]
+desktop = ["dioxus/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-player-controls/desktop", "halogen-webui-hooks/desktop"]

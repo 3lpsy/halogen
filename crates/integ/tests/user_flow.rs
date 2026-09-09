@@ -1,11 +1,5 @@
-//! User journey — admin account management: list users, fetch self/by id, update
-//! a user, and delete a user. There is no create-user *route* (admins are seeded
-//! or provisioned out of band), so a second user is inserted directly via the
-//! harness to exercise update + delete without touching the admin we're authed as
-//! (the delete handler refuses self-deletion with a 400). Driven through the
-//! `ApiClient`, asserting the resulting data.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(user_flow)'`
+//! Exercise admin user list/get/update/delete through ApiClient. Seed a second user directly because there is no create
+//! route and self-deletion returns 400. Run the halogen-integ user_flow binary.
 
 use halogen_integ::*;
 use halogen_wire::UserUpdateData;

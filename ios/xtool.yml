@@ -1,0 +1,6 @@
+# The dev bundle coexists with TestFlight and uses the development signing profile.
+version: 1
+bundleID: org.fgsec.halogen.dev
+product: Halogen
+infoPath: DevInfo.plist
+iconPath: Halogen/Assets.xcassets/AppIcon.appiconset/icon-1024.png

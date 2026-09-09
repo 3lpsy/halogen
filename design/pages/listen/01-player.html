@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Halogen · Playback · Episode and full player</title>
+<link rel="stylesheet" href="../../system/halogen.css">
+</head>
+<body>
+<nav class="sheet-nav">
+<a href="../../master.html">All screens</a> · <a href="01-player.png">PNG</a>
+</nav>
+<h1 class="sheet-title">Playback · Episode and full player</h1>
+<p class="sheet-sub">Current implementation, reconstructed as editable HTML. iOS 26 device chrome; default dock order. The full player is a native sheet. Transport, chapters, speed, sleep timer and continuation controls come from the current player.</p>
+<div class="row">
+<figure id="C4" class="">
+<span class="fid">C4 · iOS · Episode detail</span>
+<div class="phone ">
+<div data-status>
+</div>
+<header class="appbar">
+<span class="leading">‹ Acquired</span>
+<h2>Episode</h2>
+<span class="trailing">
+</span>
+</header>
+<main class="content">
+<div class="detail-head">
+<img class="art big" src="../../system/assets/ferrari.jpg" alt="Ferrari artwork">
+<div>
+<h3>Ferrari</h3>
+<span class="meta blue">Acquired</span>
+<span class="meta">3 hr 59 min</span>
+</div>
+</div>
+<div class="episode-actions">
+<span class="button" style="flex:1;margin:0;height:36px">Play</span>
+<span class="blue" data-icon="queue">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span class="blue" data-icon="check">
+</span>
+</div>
+<hr style="border:0;border-top:1px solid #333;margin-top:22px">
+<p style="font-size:17px;color:#bbb">Ferrari is the pinnacle of luxury scarcity.</p>
+<h3>Chapters</h3>
+<div class="chapter"><span class="timestamp">00:00</span><span>Introduction</span></div>
+<div class="chapter"><span class="timestamp">12:48</span><span>The early years</span></div>
+<div class="chapter"><span class="timestamp">44:06</span><span>Building the business</span></div>
+</main>
+<div data-mini>
+</div>
+<div data-tabs="Podcasts">
+</div>
+</div>
+<figcaption>Metadata and available chapters. Chapter data is illustrative; controls follow EpisodeDetailView.</figcaption>
+</figure>
+<figure id="C5" class="">
+<span class="fid">C5 · iOS · Full player</span>
+<div class="phone">
+<div data-status>
+</div>
+<div class="player">
+<div class="handle">
+</div>
+<div class="upnext">
+<img class="art" src="../../system/assets/formula-1.jpg" alt="Formula 1 artwork">
+<div class="grow">
+<span class="meta">UP NEXT</span>
+<span class="title">Formula 1</span>
+<span class="meta">Acquired</span>
+</div><span data-icon="next"></span></div>
+<img class="art hero" src="../../system/assets/ferrari.jpg" alt="Ferrari artwork">
+<div class="player-title">Ferrari<span class="meta">Acquired</span>
+</div>
+<div class="progress">
+<i>
+</i>
+</div>
+<div class="time">
+<span>1:23:39</span>
+<span>−2:35:21</span>
+</div>
+<div class="transport">
+<span data-icon="previous"></span>
+<span class="blue" data-icon="rewind">
+</span>
+<span class="icon main" data-icon="pause">
+</span>
+<span class="blue" data-icon="skip">
+</span>
+<span data-icon="next"></span>
+</div>
+<div class="tools">
+<span>Chapters</span>
+<span>1×</span>
+<span class="blue" data-icon="advance"></span>
+<span class="sleep-control"><span data-icon="moon"></span> Off</span>
+</div>
+</div>
+</div>
+<figcaption>PlayerSheet composition from code. The artwork, up-next preview and controls are current capabilities. Elapsed time is sample data.</figcaption>
+</figure>
+</div>
+<p class="source">Source: <a href="../../../ios/Halogen/Features/Episode/EpisodeDetailView.swift">ios/Halogen/Features/Episode/EpisodeDetailView.swift</a> · <a href="../../../ios/Halogen/Features/Player/PlayerSheet.swift">ios/Halogen/Features/Player/PlayerSheet.swift</a>
+</p>
+<script src="../../system/halogen.js">
+</script>
+</body>
+</html>

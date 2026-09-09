@@ -1,9 +1,7 @@
-//! Shared response types for the background polling control endpoints
-//! (`/status`, `/poll`, `/start`, `/stop`) and the on-demand poll-job endpoints
-//! (`/poll-job`, `/poll-job/{id}`, `/poll-jobs`).
-//!
-//! These live here (not in the server) so the API client and the server share a
-//! single definition — the client deserialises exactly what the server emits.
+//! Shared response types for the background polling control endpoints (`/status`, `/poll`, `/start`, `/stop`)
+//! and the on-demand poll-job endpoints (`/poll-job`, `/poll-job/{id}`, `/poll-jobs`). These live here (not in
+//! the server) so the API client and the server share a single definition — the client deserialises exactly
+//! what the server emits.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

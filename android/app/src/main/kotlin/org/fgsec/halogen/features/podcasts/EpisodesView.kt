@@ -1,5 +1,7 @@
 package org.fgsec.halogen.features.podcasts
 
+import org.fgsec.halogen.core.enqueueMutation
+import org.fgsec.halogen.core.ensureQueuedBatch
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -322,6 +324,8 @@ private class EpisodesScreenState(
     private val core: HalogenCore,
     private val podcast: PodcastData,
 ) {
+    private val accountStore = core.store
+
     var episodes by mutableStateOf<List<EpisodeData>>(emptyList())
     var error by mutableStateOf<String?>(null)
     var loaded by mutableStateOf(false)
@@ -350,7 +354,7 @@ private class EpisodesScreenState(
         // use_list_view_state("podcast") — one key across all podcasts).
         if (!loadedQuery) {
             loadedQuery = true
-            val saved = core.store?.load<ListQuery>(ListQueryKeys.podcastEpisodes)
+            val saved = accountStore?.load<ListQuery>(ListQueryKeys.podcastEpisodes)
             if (saved != null && saved != query) {
                 // Adopt and let LaunchedEffect(query) refire for the restored value.
                 query = saved
@@ -358,7 +362,7 @@ private class EpisodesScreenState(
             }
         }
         val snapshot = query
-        core.scope.launch { core.store?.save(snapshot, ListQueryKeys.podcastEpisodes) }
+        core.scope.launch { accountStore?.save(snapshot, ListQueryKeys.podcastEpisodes) }
         if (query.search.isNotEmpty()) delay(300)
         if (isDeviceSet) {
             val device = core.models?.device
@@ -374,7 +378,7 @@ private class EpisodesScreenState(
             return
         }
         if (episodes.isEmpty() && isDefaultQuery) {
-            core.store?.load<List<EpisodeData>>(cacheKey)?.let {
+            accountStore?.load<List<EpisodeData>>(cacheKey)?.let {
                 episodes = it
                 loaded = true
             }
@@ -394,10 +398,10 @@ private class EpisodesScreenState(
                 // user scrolled through stay renderable offline.
                 val ids = first.items.map { it.id }.toSet()
                 var snap = first.items
-                core.store?.load<List<EpisodeData>>(cacheKey)?.let { prior ->
+                accountStore?.load<List<EpisodeData>>(cacheKey)?.let { prior ->
                     snap = snap + prior.filter { it.id !in ids }
                 }
-                core.store?.save(snap, cacheKey)
+                accountStore?.save(snap, cacheKey)
             }
         } catch (e: CancellationException) {
             throw e
@@ -431,7 +435,7 @@ private class EpisodesScreenState(
             hasMore = next.hasMore
             if (isDefaultQuery) {
                 // Extend the offline snapshot with the appended page.
-                core.store?.save(episodes, cacheKey)
+                accountStore?.save(episodes, cacheKey)
             }
         } catch (e: CancellationException) {
             throw e
@@ -638,8 +642,8 @@ private fun BulkActionsMenu(
             // Remove-then-trigger in outbox order (web RedownloadOnServer).
             forEachSelected { episode ->
                 core.scope.launch {
-                    core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id))
-                    core.models?.serverDownloads?.download(episode)
+                    if (!core.ensureQueuedBatch(listOf(OutboxOp.Kind.RemoveServerDownload(episode.id), OutboxOp.Kind.TriggerDownload(episode.id)))) return@launch
+                    core.models?.serverDownloads?.watch(episode.id)
                 }
             }
         },
@@ -661,10 +665,8 @@ private fun BulkActionsMenu(
         colors = destructive,
         onClick = {
             forEachSelected { episode ->
-                // Optimistic overlay first — rows flip immediately.
-                core.models?.serverDownloads?.markRemovedLocally(episode.id)
-                core.scope.launch {
-                    core.outbox?.enqueue(OutboxOp.Kind.RemoveServerDownload(episode.id))
+                core.enqueueMutation(OutboxOp.Kind.RemoveServerDownload(episode.id)) {
+                    core.models?.serverDownloads?.markRemovedLocally(episode.id)
                 }
             }
         },

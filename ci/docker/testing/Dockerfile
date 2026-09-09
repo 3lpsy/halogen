@@ -1,12 +1,11 @@
 # syntax=docker/dockerfile:1
-# Full test matrix image (run-tests.sh: fmt → checks → unit/ui/doc/integ/e2e);
-# cargo-chef cooks deps, toolchain via the TOOLCHAIN build-arg.
+# Full test matrix with cargo-chef dependencies and TOOLCHAIN base.
 # Build: docker build -f ci/docker/testing/Dockerfile -t halogen:testing .
-# Run:   docker run --rm halogen:testing [just test-integ]
+# Run: docker run --rm halogen:testing [just test-integ]
 
 # REQUIRED build-arg (no default — keeps the internal registry host out of the
 # repo): registry.${SERVICES_ROOT_DOMAIN}/halogen-toolchain:latest in CI, or
-# halogen-toolchain:local after `just image-toolchain`.
+# halogen-toolchain:local after `just docker-build-toolchain`.
 ARG TOOLCHAIN
 FROM ${TOOLCHAIN} AS chef
 WORKDIR /workspace
@@ -44,15 +43,17 @@ ENV RUSTC_WRAPPER=""
 COPY .cargo .cargo
 COPY --from=planner /workspace/recipe.json recipe.json
 RUN cargo chef cook --workspace --tests --recipe-path recipe.json \
- && cargo chef cook --release --target wasm32-unknown-unknown \
-        -p halogen-ui --no-default-features --features web \
-        --recipe-path recipe.json
+ && cargo chef cook --profile wasm-release --target wasm32-unknown-unknown \
+        -p halogen-webui --no-default-features --features web \
+        --recipe-path recipe.json \
+ && cargo chef cook --profile wasm-release --target wasm32-unknown-unknown \
+        -p halogen-webui-worker --recipe-path recipe.json
 
 # Real source.
 COPY . .
 # npm ci in a subshell so its `cd` doesn't leak into `install` (which resolves
 # run-tests.sh from WORKDIR).
-RUN (cd crates/ui && npm ci) \
+RUN (cd webui/app && npm ci) \
     && install -m 0755 ci/docker/testing/run-tests.sh /usr/local/bin/run-tests
 
 # Default: run the whole matrix. Override with any command (e.g. `just test-e2e`).

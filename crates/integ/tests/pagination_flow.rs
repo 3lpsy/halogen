@@ -1,14 +1,5 @@
-//! Pagination contract for the list endpoints.
-//!
-//! The in-browser sync worker pages playlists/playbacks through in full, and
-//! the lazy episode/podcast lists advance a server cursor as you scroll (plus
-//! `filter[ids]` fetches for id-list windows). All of it only works if the
-//! server paginates predictably. These tests pin that
-//! contract — including the size-10 default that silently capped the client when
-//! it forgot to send a page size — driving the real `ApiClient` so the
-//! `serde_qs` query the UI builds is what's exercised.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(pagination_flow)'`
+//! Verify predictable pagination, including the size-10 default, through ApiClient's real serde_qs encoding. This
+//! supports full worker pulls and lazy list/ID windows. Run the halogen-integ pagination_flow binary.
 
 use halogen_integ::*;
 use halogen_wire::{

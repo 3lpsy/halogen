@@ -213,7 +213,7 @@ object ConfigOverrideParams {
 /// Config-overrides editor (admin): typed editing of the allowlisted
 /// parameters (wire ConfigOverridesData). POST replaces the set wholesale;
 /// changes apply after a server restart — the web's config-overrides page
-/// (crates/ui-views config_overrides_form) key-for-key.
+/// (webui/views config_overrides_form) key-for-key.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigOverridesView(core: HalogenCore, onBack: (() -> Unit)? = null) {

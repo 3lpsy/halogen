@@ -1,0 +1,15 @@
+[package]
+name = "halogen-webui-component-toast"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-sync-policy = { path = "../../crates/sync-policy" }
+dioxus = { workspace = true }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+serde = { workspace = true }
+
+[features]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]

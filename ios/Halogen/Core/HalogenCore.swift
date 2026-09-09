@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// App-wide core state: session lifecycle, embedded-server FFI boot, API
+/// App-wide core state: session lifecycle, local-profile FFI boot, API
 /// client, the account's LocalStore + Outbox, and the feature-model registry.
 /// Views read `phase` and call typed helpers; nothing else touches FFI or URLs.
 @MainActor
@@ -38,6 +38,7 @@ final class HalogenCore {
     private(set) var isAdmin = false
     /// Navbar reachability dot. Probes whatever server the session points at.
     let connection = ConnectionMonitor()
+    let libraryChanges = LibraryChanges()
     /// Set when a REMOTE session's auth died (401 the silent refresh couldn't
     /// heal): the connect page pre-fills this server + username so re-login
     /// is one password away (web: RootGuard redirects to Login with the
@@ -47,9 +48,6 @@ final class HalogenCore {
     /// In-flight auth-expiry recovery — collapses the burst of 401s a dead
     /// token produces into a single transition.
     private var reauthTask: Task<Void, Never>?
-    /// Embedded silent re-login is bounded (web: 3 attempts) so a server
-    /// that keeps rejecting fresh tokens degrades to signed-out, not a loop.
-    private var embeddedReloginAttempts = 0
     /// The periodic drain+pull loop (web: PULL_INTERVAL_SECS) — lives for the
     /// session, torn down with it.
     private var pullTask: Task<Void, Never>?
@@ -69,11 +67,16 @@ final class HalogenCore {
         guard phase == .idle else { return }
         phase = .starting
         initCore()
-        guard let session = SessionStore.load().active else {
-            phase = .needsAuth
-            return
+        do {
+            guard let session = try SessionStore.loadDurably().active else {
+                phase = .needsAuth
+                return
+            }
+            await resume(session)
+        } catch {
+            DeviceLog.warn("session restore failed: \(error)")
+            phase = .failed(error.localizedDescription)
         }
-        await resume(session)
     }
 
     /// Resume any stored session (boot + account switch share this).
@@ -82,7 +85,7 @@ final class HalogenCore {
         switch session.kind {
         case .embedded:
             do {
-                try await startEmbedded(as: session)
+                try await startLocalProfile(as: session)
             } catch {
                 DeviceLog.warn("embedded resume failed — \(error)")
                 phase = .failed(FriendlyError.message(error))
@@ -149,7 +152,7 @@ final class HalogenCore {
     /// create_embedded_user parity: lowercase + 3-char minimum + duplicate
     /// guard, admin by policy, secret persisted only after the create succeeds.
     func addEmbeddedUser(username raw: String) async throws {
-        guard let baseUrl, case .embedded = account?.kind else {
+        guard case .embedded = account?.kind else {
             throw ConnectError.invalidUrl
         }
         let username = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -160,29 +163,12 @@ final class HalogenCore {
             throw EmbeddedUserError.exists(username)
         }
 
-        let password: String
-        if let stored = EmbeddedSecrets.password(for: username) {
-            // Known credential without a registered session (the account was
-            // removed): reconnect with it — a fresh create would 409.
-            password = stored
-        } else {
-            password = UUID().uuidString
-            // Every embedded user is an admin of the on-device server (web:
-            // the add-user form locks the toggle on). Create server-side
-            // FIRST; persist the secret only on success.
-            _ = try await requireClient().createUser(
-                username: username, password: password, isAdmin: true)
-            EmbeddedSecrets.remember(username: username, password: password)
-        }
-        let client = HalogenClient(baseUrl: baseUrl)
-        let jwt = try await client.login(username: username, password: password)
-        let session = Session(
-            kind: .embedded, serverUrl: nil, username: username, token: jwt,
-            password: password)
-        SessionStore.upsertActive(session)
+        _ = try await requireClient().createUser(
+            username: username, password: UUID().uuidString, isAdmin: true)
+        let session = Session(kind: .embedded, serverUrl: nil, username: username, token: "")
         teardownSession()
         phase = .starting
-        await resume(session)
+        try await startLocalProfile(as: session)
     }
 
     /// Recreate the per-account models over the same session (post-purge).
@@ -207,12 +193,11 @@ final class HalogenCore {
     /// next account or the landing page.
     func destroyEmbeddedServer() async throws {
         let root = try Self.embeddedRoot()
-        try await destroyEmbedded(dataRoot: root.path)
-        try? FileManager.default.removeItem(at: root)
+        try await destroyLocal(dataRoot: root.path)
         // The server-side users are gone — their silent-login credentials too.
         EmbeddedSecrets.clear()
 
-        var registry = SessionStore.load()
+        var registry = try SessionStore.loadDurably()
         let activeWasEmbedded =
             registry.active.map { $0.kind == .embedded } ?? false
         // The embedded sessions' CLIENT caches must die with the library — a
@@ -227,7 +212,8 @@ final class HalogenCore {
             for session in registry.sessions where session.kind == .embedded {
                 // Embedded namespaces are "e{userId}" (AccountContext) — the
                 // user id rides the session token's sub claim.
-                guard let sub = AccountContext.jwtSub(session.token) else { continue }
+                guard let sub = session.localUserId.map(String.init) ?? AccountContext.jwtSub(session.token)
+                else { continue }
                 try? FileManager.default.removeItem(
                     at: clientRoot.appendingPathComponent("e\(sub)"))
             }
@@ -236,7 +222,7 @@ final class HalogenCore {
         if activeWasEmbedded {
             registry.activeId = registry.sessions.last?.id
         }
-        SessionStore.save(registry)
+        try SessionStore.saveDurably(registry)
 
         if activeWasEmbedded {
             teardownSession()
@@ -270,7 +256,7 @@ final class HalogenCore {
         let client = HalogenClient(baseUrl: normalized)
         try await client.health()
         let jwt = try await client.login(username: username, password: password)
-        SessionStore.upsertActive(
+        try SessionStore.upsertActive(
             Session(kind: .remote, serverUrl: normalized, username: username, token: jwt)
         )
         await finish(
@@ -282,11 +268,11 @@ final class HalogenCore {
         )
     }
 
-    /// Landing page: use this device's own library (the embedded server).
+    /// Landing page: use this device's own library (the local runtime).
     func useLocalLibrary() async {
         phase = .starting
         do {
-            try await startEmbedded(as: nil)
+            try await startLocalProfile(as: nil)
         } catch {
             DeviceLog.warn("embedded start failed — \(error)")
             phase = .failed(FriendlyError.message(error))
@@ -294,17 +280,15 @@ final class HalogenCore {
     }
 
     /// Boot-failure screen: try the stored session again (a transient
-    /// embedded-server hiccup shouldn't strand the user on an error page).
+    /// local-core failure shouldn't strand the user on an error page).
     func retryBoot() async {
         guard case .failed = phase else { return }
         phase = .idle
         await boot()
     }
 
-    /// A 401 the token refresh couldn't heal — auth is dead. Embedded accounts
-    /// re-login silently with on-disk credentials; remote accounts return to
-    /// the connect page with session and cache KEPT, so re-login resumes the
-    /// same account namespace (web: RootGuard routes to a prefilled Login).
+    /// Explicitly rejected remote credentials return to sign-in while retaining the cache.
+    /// Local profile rejection surfaces an unavailable-profile error.
     private func handleAuthExpired() {
         guard phase == .ready, reauthTask == nil else { return }
         reauthTask = Task { [weak self] in
@@ -317,38 +301,8 @@ final class HalogenCore {
         guard phase == .ready, let account else { return }
         switch account.kind {
         case .embedded:
-            embeddedReloginAttempts += 1
-            if embeddedReloginAttempts <= 3 {
-                var password = EmbeddedSecrets.password(for: account.username)
-                if password == nil,
-                    let root = try? Self.embeddedRoot(),
-                    let creds = try? await recoverUser(
-                        dataRoot: root.path, username: account.username)
-                {
-                    // No stored credential for this username (pre-gating
-                    // server-side rename): rotate the row in the DB and adopt
-                    // the fresh secret (web: recover_user on the 401 path).
-                    EmbeddedSecrets.remember(
-                        username: creds.username, password: creds.password)
-                    password = creds.password
-                }
-                if let password,
-                    let jwt = try? await client?.login(
-                        username: account.username, password: password)
-                {
-                    // login() already refreshed the shared TokenBox; mirror it
-                    // into the saved session + art loader like a refresh would.
-                    client?.tokenBox.onRefresh?(jwt)
-                    DeviceLog.info("auth: embedded session re-authenticated silently")
-                    return
-                }
-            }
-            // Out of budget (or the secret is gone): degrade to the landing
-            // page. The session stays saved — the next boot retries the
-            // full embedded resume path.
-            DeviceLog.warn("auth: embedded silent re-login failed")
-            teardownSession()
-            phase = .needsAuth
+            DeviceLog.error("local profile is unavailable")
+            phase = .failed("Local profile is unavailable")
         case .remote(let serverUrl):
             DeviceLog.warn("auth: remote session expired; returning to connect page")
             let username = account.username
@@ -375,6 +329,10 @@ final class HalogenCore {
     }
 
     private func teardownSession() {
+        libraryChanges.cancel()
+        models?.player.stop()
+        ArtLoader.shared.configure(token: nil)
+        LocalTransport.remove(base: client?.base)
         pullTask?.cancel()
         pullTask = nil
         reauthTask?.cancel()
@@ -383,6 +341,7 @@ final class HalogenCore {
         client = nil
         account = nil
         store = nil
+        if let outbox { Task { await outbox.setSuspended(true) } }
         outbox = nil
         syncFailures = nil
         storageFailure = nil
@@ -494,6 +453,20 @@ final class HalogenCore {
         try await requireClient().discoverSearch(query: query, providers: providers)
     }
 
+    func discoverPage(_ key: DiscoverSearchKey, cursor: String?) async throws -> DiscoverResultsPage {
+        let client = try requireClient()
+        switch key.mode {
+        case .podcast:
+            return .podcasts(try await client.discoverPodcastPage(query: key.query, providers: key.providers, cursor: cursor))
+        case .episode:
+            return .episodes(try await client.discoverEpisodePage(query: key.query, providers: key.providers, cursor: cursor))
+        }
+    }
+
+    func discoverPodcast(feedURL: String, provider: DiscoverProvider) async throws -> DiscoverPodcastData {
+        try await requireClient().discoverPodcast(feedURL: feedURL, provider: provider)
+    }
+
     func discoverProviders() async throws -> DiscoverProvidersData {
         try await requireClient().discoverProviders()
     }
@@ -507,7 +480,14 @@ final class HalogenCore {
 
     /// The streaming audio URL for AVPlayer (`nil` while signed out).
     func audioURL(episodeId: Int32) -> URL? {
-        try? requireClient().audioURL(episodeId: episodeId)
+        guard !isEmbeddedAccount else { return nil }
+        return try? requireClient().audioURL(episodeId: episodeId)
+    }
+
+    func localAudioURL(episodeId: Int32) async throws -> URL? {
+        let client = try requireClient()
+        let local = try LocalTransport.core(for: client.base)
+        return try await local.audioPath(episodeId: episodeId).map { URL(fileURLWithPath: $0) }
     }
 
     /// The raw API JWT — AVURLAsset needs it as a literal header (it can't go
@@ -526,7 +506,7 @@ final class HalogenCore {
         }
         // Persisted: a relaunch must come back in the chosen mode (web
         // ClientConfig.manual_offline). Embedded never persists true — the
-        // on-device server is always reachable.
+        // local runtime is always reachable.
         let persisted = offline && !isEmbeddedAccount
         Task { [store] in await store?.save(persisted, key: CacheKey.manualOffline) }
         DeviceLog.info(offline ? "went manually offline" : "back online (manual)")
@@ -548,7 +528,7 @@ final class HalogenCore {
     }
 
     /// The strategy playback actually uses: embedded accounts always stream
-    /// (their media already lives on this device inside the server).
+    /// (their media already lives on this device in the local library).
     var effectivePlaybackStrategy: ClientPrefs.PlaybackStrategy {
         isEmbeddedAccount
             ? .streamOnly : (models?.prefs.prefs.playbackStrategy ?? .downloadOnly)
@@ -594,42 +574,15 @@ final class HalogenCore {
     /// then a reconcile refresh (which filters against the tombstone, so it
     /// is safe even while the delete is still queued).
     func unsubscribePodcast(id: Int32) async {
-        await models?.podcasts.tombstone(id: id)
-        await purgePodcastLocalData(podcastId: id)
-        await outbox?.enqueue(.unsubscribe(podcastId: id))
-        await models?.podcasts.refresh()
-    }
-
-    /// The web's `delete_podcast` cascade, native (ui-svc-store store.rs):
-    /// prune every local trace of an unsubscribed podcast so no snapshot can
-    /// rehydrate it. Episode ids resolve from the podcast's episode snapshot
-    /// FIRST (playbacks are keyed by episode id) — same order as the web.
-    private func purgePodcastLocalData(podcastId: Int32) async {
-        guard let store else { return }
-        let episodes =
-            await store.load([EpisodeData].self, key: CacheKey.podcastEpisodes(podcastId)) ?? []
-        for episode in episodes {
-            models?.playbacks.purge(episodeId: episode.id)
-            await store.remove(key: CacheKey.episode(episode.id))
-            await store.remove(key: CacheKey.metadata("episodes/\(episode.id)"))
-        }
-        await store.remove(key: CacheKey.podcastEpisodes(podcastId))
-        await store.remove(key: CacheKey.autoPlaylists(podcastId))
-        await store.remove(key: CacheKey.metadata("podcasts/\(podcastId)"))
-        // Cross-podcast list snapshots (latest-*/downloads-*): their
-        // prefix-merge would otherwise keep this podcast's rows as tail
-        // forever (server truth only ever rewrites page 0).
-        for key in await store.listKeys()
-        where (key.hasPrefix("latest-") || key.hasPrefix("downloads-"))
-            && key != CacheKey.latestScrollAnchor
-        {
-            guard var rows = await store.load([EpisodeData].self, key: key) else { continue }
-            let before = rows.count
-            rows.removeAll { $0.podcast_id == podcastId }
-            if rows.count != before { await store.save(rows, key: key) }
-        }
-        models?.latest.removePodcastLocally(podcastId)
-        models?.downloads.removePodcastLocally(podcastId)
+        let sourceStore = store
+        let sourceModels = models
+        let episodes = await sourceStore?.load([EpisodeData].self, key: CacheKey.podcastEpisodes(id)) ?? []
+        guard store === sourceStore, await ensureQueued(.unsubscribe(podcastId: id)) else { return }
+        for episode in episodes { sourceModels?.playbacks.removeProjected(episodeId: episode.id) }
+        sourceModels?.podcasts.tombstoneProjected(id: id)
+        sourceModels?.latest.removePodcastLocally(id)
+        sourceModels?.downloads.removePodcastLocally(id)
+        await sourceModels?.podcasts.refresh()
     }
 
     func createPodcastConfig(podcastId: Int32, data: PodcastConfigStoreData) async throws {
@@ -683,22 +636,14 @@ final class HalogenCore {
         try await requireClient().dbImport(payload)
     }
 
-    /// After an embedded DB import: users the import created got RANDOM
-    /// passwords the app doesn't know — rotate each into EmbeddedSecrets so
-    /// switching to them silently just works (web: align_imported_users).
-    /// Best-effort per user; returns the usernames that couldn't be aligned.
+    /// Imported local profiles need no passwords; verify that each profile is available.
     func alignImportedUsers(_ usernames: [String]) async -> [String] {
-        guard isEmbeddedAccount, let root = try? Self.embeddedRoot() else {
-            return usernames
-        }
+        guard isEmbeddedAccount, let root = try? Self.embeddedRoot() else { return usernames }
         var failed: [String] = []
         for username in usernames {
             do {
-                let creds = try await recoverUser(dataRoot: root.path, username: username)
-                EmbeddedSecrets.remember(username: creds.username, password: creds.password)
+                _ = try await startLocal(dataRoot: root.path, username: username)
             } catch {
-                DeviceLog.warn(
-                    "db import: couldn't align '\(username)' for silent login: \(error)")
                 failed.append(username)
             }
         }
@@ -718,7 +663,14 @@ final class HalogenCore {
     }
 
     func startPollJob() async throws -> UInt64 {
-        try await requireClient().startPollJob()
+        let source = try requireClient()
+        let jobId = try await source.startPollJob()
+        guard client?.tokenBox === source.tokenBox else { return jobId }
+        libraryChanges.watch(jobId: jobId) {
+            let job: PollJobData = try await source.get("admin/poll-job/\(jobId)")
+            return job.status
+        }
+        return jobId
     }
 
     func serverLogs() async throws -> ServerLogsData {
@@ -763,31 +715,7 @@ final class HalogenCore {
         var description: String { "Server URL must start with http:// or https://" }
     }
 
-    /// Which self-heal a failed embedded login triggers (web `Recovery`):
-    /// seeded-admin recovers via `recover_admin` (also ADOPTS a renamed admin
-    /// row); a specific user rotates via `recover_user`, falling back to admin
-    /// adoption when the row under that name is gone.
-    private enum EmbeddedRecovery {
-        case admin
-        case user(String)
-    }
-
-    private func recoverEmbeddedCredentials(
-        root: String, _ recovery: EmbeddedRecovery
-    ) async throws -> EmbeddedCredentials {
-        switch recovery {
-        case .admin:
-            return try await recoverAdmin(dataRoot: root)
-        case .user(let username):
-            do {
-                return try await recoverUser(dataRoot: root, username: username)
-            } catch {
-                return try await recoverAdmin(dataRoot: root)
-            }
-        }
-    }
-
-    /// The embedded server's on-disk library (Application Support container).
+    /// The local runtime's on-disk library (Application Support container).
     private static func embeddedRoot() throws -> URL {
         let support = try FileManager.default.url(
             for: .applicationSupportDirectory,
@@ -798,72 +726,24 @@ final class HalogenCore {
         return support.appendingPathComponent("halogen-server", isDirectory: true)
     }
 
-    /// Boot (or reuse) the in-process server, then silent-login (provisioned
-    /// admin, or a stored embedded user's app-managed credentials). Rejected
-    /// credentials self-heal by rotating the row's password in the DB — an
-    /// embedded account never lands on a password prompt.
-    private func startEmbedded(as session: Session?) async throws {
+    /// Open the profile through FFI, retaining its existing cache identity.
+    private func startLocalProfile(as session: Session?) async throws {
         let root = try Self.embeddedRoot()
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-
-        let url = try startServer(dataRoot: root.path)
-        _ = try await waitReady()
-        // The embedded server's tracing is only visible through the core's
-        // device-log ring — start folding it into the native Device Logs.
+        let local = try await startLocal(dataRoot: root.path, username: session?.username)
+        let username = local.username()
+        let url = LocalTransport.install(local)
         DeviceLog.shared.startCorePump()
-
-        let recovery: EmbeddedRecovery =
-            session.map { .user($0.username) } ?? .admin
-        var (username, password): (String, String)
-        if let session, let stored = session.password {
-            (username, password) = (session.username, stored)
-        } else if let session, let stored = EmbeddedSecrets.password(for: session.username) {
-            // The app-side secrets mirror (survives session removal) — the
-            // web's per-username secrets.json lookup.
-            (username, password) = (session.username, stored)
-        } else if session != nil {
-            // A stored session with NO credential anywhere — e.g. the account
-            // was renamed server-side before the rename gating landed, so the
-            // secrets track the old name. Rotate the row in the DB instead of
-            // stranding the user on the landing page.
-            let creds = try await recoverEmbeddedCredentials(root: root.path, recovery)
-            (username, password) = (creds.username, creds.password)
-        } else {
-            let creds = try credentials(dataRoot: root.path)
-            (username, password) = (creds.username, creds.password)
-        }
-        let client = HalogenClient(baseUrl: url)
-        let jwt: String
-        do {
-            jwt = try await client.login(username: username, password: password)
-        } catch {
-            // Credential drift (stale secrets, out-of-band change): rotate
-            // the password in the DB and retry once (web: login_with).
-            DeviceLog.warn("auth: embedded credentials rejected — running recovery")
-            let fresh = try await recoverEmbeddedCredentials(root: root.path, recovery)
-            (username, password) = (fresh.username, fresh.password)
-            jwt = try await client.login(username: username, password: password)
-        }
-        // Mirror the working credential into the app-side secrets store so a
-        // later session removal never strands this account (web parity:
-        // sign-out is always recoverable, nothing is deleted).
-        EmbeddedSecrets.remember(username: username, password: password)
-        var saved =
-            session
-            ?? Session(kind: .embedded, serverUrl: nil, username: username, token: jwt)
-        // Recovery may have ADOPTED a renamed admin row — the session must
-        // track the username that actually signed in.
+        var saved = session ?? Session(kind: .embedded, serverUrl: nil, username: username, token: "")
         saved.username = username
-        saved.password = password
-        saved.token = jwt
-        SessionStore.upsertActive(saved)
+        saved.token = ""
+        saved.localUserId = local.userId()
+        saved.password = nil
+        try SessionStore.upsertActive(saved)
         await finish(
-            client: client,
-            kind: .embedded,
-            serverUrl: url,
-            username: username,
-            jwt: jwt
-        )
+            client: HalogenClient(baseUrl: url), kind: .embedded,
+            serverUrl: url, username: username, jwt: "",
+            localAccount: AccountContext(kind: .embedded, userId: local.userId(), username: username),
+            localIsAdmin: local.isAdmin())
     }
 
     private func finish(
@@ -871,18 +751,20 @@ final class HalogenCore {
         kind: AccountContext.Kind,
         serverUrl: String,
         username: String,
-        jwt: String
+        jwt: String,
+        localAccount: AccountContext? = nil,
+        localIsAdmin: Bool = false
     ) async {
         self.client = client
         self.baseUrl = serverUrl
-        let account = AccountContext.from(kind: kind, username: username, jwt: jwt)
+        let account = localAccount ?? AccountContext.from(kind: kind, username: username, jwt: jwt)
         self.account = account
         // Admin gating (web: ClientConfig.is_admin): embedded users are
         // always admins by policy; remote resolves from the current user
         // after login. Best-effort and UI-only — the server is the authority.
         switch kind {
         case .embedded:
-            isAdmin = true
+            isAdmin = localIsAdmin
         case .remote:
             isAdmin = false
             if let account {
@@ -910,36 +792,64 @@ final class HalogenCore {
         if let store {
             let failures = SyncFailures(store: store)
             self.syncFailures = failures
-            self.outbox = await Outbox(
-                store: store,
-                perform: { [weak self] op in try await self?.execute(op) },
-                onDeadLetter: { [weak self] op, error in
-                    await failures.record(op: op, error: error)
-                    await self?.healAfterDeadLetter(op)
-                }
-            )
+            do {
+                self.outbox = try await Outbox(
+                    store: store,
+                    perform: { queue in
+                        if client.base.scheme == "halogen-local" {
+                            return try await queue.drainLocal(core: LocalTransport.core(for: client.base))
+                        }
+                        let report = try await queue.drainRemote(baseUrl: serverUrl, token: client.token ?? "")
+                        if report.authPaused, let account { _ = try await client.getUser(id: account.userId) }
+                        return report
+                    },
+                    synchronize: { queue, cursor in
+                        if client.base.scheme == "halogen-local" {
+                            return try await queue.pullLocal(
+                                core: LocalTransport.core(for: client.base), projectedCursor: cursor)
+                        }
+                        return try await queue.pullRemote(
+                            baseUrl: serverUrl, token: client.token ?? "", projectedCursor: cursor)
+                    },
+                    onSnapshot: { [weak self, weak box = client.tokenBox] in
+                        guard let self, let box, self.client?.tokenBox === box else { return }
+                        await self.models?.podcasts.reloadSnapshot()
+                        self.libraryChanges.invalidate()
+                    },
+                    onDeadLetter: { [weak self, weak box = client.tokenBox] op, error in
+                        failures.record(op: op, error: error)
+                        guard let self, let box, self.client?.tokenBox === box else { return }
+                        await self.healAfterDeadLetter(op)
+                    }
+                )
+            } catch {
+                storageFailure = "Sync storage is unavailable. Pending changes have been preserved."
+                DeviceLog.error("sync initialization failed: \(error)")
+            }
         }
         ArtLoader.shared.configure(token: client.token, namespace: account?.namespace)
-        client.tokenBox.onRefresh = { fresh in
-            // Keep the persisted session + art loader on the fresh token.
+        let sessionId = SessionStore.load().activeId
+        client.tokenBox.onRefresh = { [weak self, weak box = client.tokenBox] fresh in
+            // An old request may refresh after an account switch; update its own session only.
             var registry = SessionStore.load()
-            if let idx = registry.sessions.firstIndex(where: { $0.id == registry.activeId }) {
+            if let idx = registry.sessions.firstIndex(where: { $0.id == sessionId }) {
                 registry.sessions[idx].token = fresh
                 SessionStore.save(registry)
             }
-            ArtLoader.shared.configure(token: fresh)
+            if let self, let box, self.client?.tokenBox === box {
+                ArtLoader.shared.configure(token: fresh, namespace: self.account?.namespace)
+            }
         }
-        client.tokenBox.onAuthExpired = { [weak self, box = client.tokenBox] in
+        client.tokenBox.onAuthExpired = { [weak self, weak box = client.tokenBox] in
             Task { @MainActor in
                 // Ignore stale sessions: an in-flight request from before an
                 // account switch must not kick the NEW session to the
                 // connect page.
-                guard let self, self.client?.tokenBox === box else { return }
+                guard let self, let box, self.client?.tokenBox === box else { return }
                 self.handleAuthExpired()
             }
         }
         reauthHint = nil
-        embeddedReloginAttempts = 0
         connection.onOnline = { [weak self] in
             Task { await self?.resyncAfterReconnect() }
         }
@@ -1007,8 +917,7 @@ final class HalogenCore {
                 try? await Task.sleep(for: .seconds(60))
                 guard !Task.isCancelled, let self else { return }
                 guard self.connection.status == .online else { continue }
-                await self.outbox?.drain()
-                await self.models?.queue.refresh()
+                await self.resyncAfterReconnect()
             }
         }
     }
@@ -1020,8 +929,7 @@ final class HalogenCore {
     func foregroundSync() async {
         await connection.probe()
         guard phase == .ready else { return }
-        await outbox?.drain()
-        await models?.queue.refresh()
+        await resyncAfterReconnect()
     }
 
     private func resyncAfterReconnect() async {
@@ -1041,58 +949,6 @@ final class HalogenCore {
         async let history: Void = models.history.loaded ? models.history.refresh() : ()
         async let downloads: Void = models.downloads.loaded ? models.downloads.refresh() : ()
         _ = await (latest, podcasts, history, downloads)
-    }
-
-    /// The Outbox's executor — one queued op against the API.
-    private func execute(_ op: OutboxOp) async throws {
-        let client = try requireClient()
-        switch op.kind {
-        case .addToPlaylist(let playlistId, let episodeId, let position):
-            try await client.addEpisode(
-                playlistId: playlistId, episodeId: episodeId, position: position)
-        case .removeFromPlaylist(let playlistId, let episodeId):
-            try await client.removeEpisode(playlistId: playlistId, episodeId: episodeId)
-        case .moveInPlaylist(let playlistId, let episodeId, let to):
-            try await client.moveEpisode(playlistId: playlistId, episodeId: episodeId, to: to)
-        case .setCursor(let episodeId, let cursor):
-            try await client.upsertPlayback(episodeId: episodeId, cursor: cursor, completed: false)
-        case .setPlayed(let episodeId, let played):
-            // Same shape the web outbox sends: cursor 0 + the completed flag.
-            try await client.upsertPlayback(episodeId: episodeId, cursor: 0, completed: played)
-        case .reorderPlaylist(let playlistId, let field, let direction):
-            try await client.reorderPlaylist(id: playlistId, field: field, direction: direction)
-        case .updatePlaylist(
-            let playlistId, let name, let isDefault,
-            let description, let deleteServerFile, let deleteClientFile):
-            try await client.updatePlaylist(
-                id: playlistId, name: name, isDefault: isDefault, description: description,
-                deleteServerFile: deleteServerFile, deleteClientFile: deleteClientFile)
-        case .movePlaylist(let playlistId, let to):
-            try await client.movePlaylist(id: playlistId, to: to)
-        case .subscribe(let feedUrl, let title, let description):
-            // The DTO requires a 1-256 char title; fall back to the feed URL —
-            // the RSS ingest heals it to the channel title (web parity).
-            // Clamp the description too: an oversize directory blurb would
-            // 422 and permanently drop the queued subscription.
-            let trimmed = title?.trimmingCharacters(in: .whitespaces) ?? ""
-            _ = try await client.createPodcast(
-                title: String((trimmed.isEmpty ? feedUrl : trimmed).prefix(256)),
-                feedUrl: feedUrl,
-                description: description.map { String($0.prefix(4096)) })
-        case .unsubscribe(let podcastId):
-            try await client.deletePodcast(id: podcastId)
-        case .triggerDownload(let episodeId):
-            try await client.triggerDownload(episodeId: episodeId)
-        case .removeServerDownload(let episodeId):
-            try await client.removeServerDownload(episodeId: episodeId)
-        case .updatePodcastConfig(let configId, let data):
-            try await client.updatePodcastConfig(configId: configId, data: data)
-        case .removePodcastConfig(let podcastId):
-            try await client.deletePodcastConfig(podcastId: podcastId)
-        case .setAutoPlaylists(let podcastId, let playlistIds, let addToStart):
-            try await client.setAutoPlaylists(
-                podcastId: podcastId, playlistIds: playlistIds, addToStart: addToStart)
-        }
     }
 
     private func artURL(kind: String, id: Int32, small: Bool) -> URL? {

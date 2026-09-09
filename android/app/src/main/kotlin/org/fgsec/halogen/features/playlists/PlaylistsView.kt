@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.playlists
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -377,10 +378,7 @@ fun PlaylistMenu(
                             // Durable (web: ReorderPlaylist op) — queues
                             // offline instead of silently dropping the action.
                             core.scope.launch {
-                                core.outbox?.enqueue(
-                                    OutboxOp.Kind.ReorderPlaylist(
-                                        playlistId = playlist.id,
-                                        field = field, direction = direction))
+                                if (!core.ensureQueued(OutboxOp.Kind.ReorderPlaylist(playlistId = playlist.id, field = field, direction = direction))) return@launch
                                 model.refresh()
                             }
                         },
@@ -396,9 +394,9 @@ private fun makeQueue(core: HalogenCore, model: PlaylistsModel, playlist: Playli
         if (core.isOffline) {
             // Offline: optimistic flip + queued UpdatePlaylist (web rule —
             // edits queue offline, go direct online).
+            if (!core.ensureQueued(
+                OutboxOp.Kind.UpdatePlaylist(playlistId = playlist.id, isDefault = true))) return@launch
             model.markDefaultLocally(playlist.id)
-            core.outbox?.enqueue(
-                OutboxOp.Kind.UpdatePlaylist(playlistId = playlist.id, isDefault = true))
         } else {
             try {
                 core.makeQueuePlaylist(playlist.id)
@@ -528,27 +526,27 @@ fun PlaylistEditSheet(
         if (core.isOffline) {
             // Offline: optimistic + queued UpdatePlaylist (online goes
             // direct so the form can show server errors — web rule).
+            if (!core.ensureQueued(
+                OutboxOp.Kind.UpdatePlaylist(
+                    playlistId = playlist.id, name = trimmed, isDefault = makeDefault,
+                    description = desc,
+                    deleteServerFile = deleteServerFile,
+                    deleteClientFile = deleteClientFile,
+                ))) return
             model.updateLocally(
                 id = playlist.id, name = trimmed,
-                description = desc.ifEmpty { null },
+                description = desc,
                 isDefault = makeDefault,
                 deleteServerFile = deleteServerFile,
                 deleteClientFile = deleteClientFile,
             )
-            core.outbox?.enqueue(
-                OutboxOp.Kind.UpdatePlaylist(
-                    playlistId = playlist.id, name = trimmed, isDefault = makeDefault,
-                    description = desc.ifEmpty { null },
-                    deleteServerFile = deleteServerFile,
-                    deleteClientFile = deleteClientFile,
-                ))
             onDismiss()
             return
         }
         try {
             core.updatePlaylist(
                 id = playlist.id, name = trimmed,
-                description = desc.ifEmpty { null },
+                description = desc,
                 isDefault = makeDefault,
                 deleteServerFile = deleteServerFile,
                 deleteClientFile = deleteClientFile,

@@ -1,0 +1,55 @@
+[package]
+name = "halogen-webui-sync-engine"
+version.workspace = true
+edition.workspace = true
+
+# The background sync worker: owns the canonical `EpisodeState`, pulls from the server,
+# drains the offline outbox, applies optimistic mutations, spawns device downloads,
+# and maps connectivity events to status. Also `poll_job` (admin poll orchestration
+# + `PullPhase`). The heaviest UI service — consumes store/media/ws + commands.
+[dependencies]
+halogen-sync-journal = { path = "../../crates/sync-journal" }
+halogen-sync = { path = "../../crates/sync" }
+halogen-sync-policy = { path = "../../crates/sync-policy" }
+dioxus = { workspace = true }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+halogen-utils = { path = "../../crates/utils" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-store = { path = "../store" }
+halogen-webui-media = { path = "../media" }
+halogen-webui-transport-ws = { path = "../transport-ws" }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { workspace = true }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = ["Worker", "MessageEvent", "ErrorEvent"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+
+[dev-dependencies]
+halogen-sync-store = { path = "../../crates/sync-store" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-component-toast/web", "halogen-webui-config/web"]
+desktop = ["dioxus/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+rusqlite = { workspace = true }
+tokio = { workspace = true }

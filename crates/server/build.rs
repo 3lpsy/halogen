@@ -1,47 +1,58 @@
-//! Build script — force a recompile (and thus a fresh rust-embed bake of the
-//! frontend) whenever `dist/` changes.
-//!
-//! With the `embed-frontend` feature + `debug-embed`, `dist/` is baked into the
-//! binary at COMPILE time. Cargo fingerprints source files, not the directory a
-//! proc-macro happens to read, so a `just ui-build` that rewrites `dist/` (e.g. a
-//! new wasm bundle) does NOT by itself invalidate the cached server binary —
-//! cargo reuses the old build with STALE embedded assets. That bit the E2E
-//! suite: an old wasm kept calling the (now-authed) `/status` for its
-//! login page's health probe instead of the public `/healthz`, so the probe 401'd
-//! and the login form never appeared.
-//!
-//! Emitting `rerun-if-changed` for every file under `dist/` ties the server's
-//! fingerprint to the embedded assets, so any `ui-build` forces a re-embed.
+//! Track frontend content in both Cargo's rebuild graph and sccache's compiler key.
 
+use sha2::{Digest, Sha256};
 use std::path::Path;
 
 fn main() {
-    // Only the embedded-frontend build bakes `dist/` in; otherwise there's
-    // nothing to keep fresh. Cargo exports `CARGO_FEATURE_<NAME>` for active
-    // features during build-script runs.
     if std::env::var_os("CARGO_FEATURE_EMBED_FRONTEND").is_none() {
         return;
     }
-
-    // `dist/` lives at the workspace root (two levels up from crates/server).
     let dist = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../dist");
-    // Track the directory itself (covers add/remove) and every file within.
     println!("cargo:rerun-if-changed={}", dist.display());
-    track_dir(&dist);
+    assert!(
+        dist.join("index.html").is_file(),
+        "embed-frontend requires `just ui-build` first"
+    );
+    let mut digest = Sha256::new();
+    let mut dependencies = String::new();
+    hash_dir(&dist, &dist, &mut digest, &mut dependencies);
+    let output =
+        std::path::PathBuf::from(std::env::var_os("OUT_DIR").expect("build output directory"));
+    std::fs::write(output.join("frontend_dependencies.rs"), dependencies)
+        .expect("write frontend compiler dependencies");
+    // env! records this value in rustc's dependency info, which sccache hashes.
+    println!(
+        "cargo:rustc-env=HALOGEN_FRONTEND_DIGEST={:x}",
+        digest.finalize()
+    );
 }
 
-/// Recursively emit `rerun-if-changed` for every entry under `dir`. Silently
-/// no-ops if `dist/` is absent (a non-embed build, or before the first
-/// `ui-build`) — the feature-gated embed just falls back to its own error path.
-fn track_dir(dir: &Path) {
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
+fn hash_dir(root: &Path, dir: &Path, digest: &mut Sha256, dependencies: &mut String) {
+    let mut entries = std::fs::read_dir(dir)
+        .expect("read frontend directory")
+        .map(|entry| entry.expect("read frontend entry").path())
+        .collect::<Vec<_>>();
+    entries.sort();
+    for path in entries {
         println!("cargo:rerun-if-changed={}", path.display());
         if path.is_dir() {
-            track_dir(&path);
+            hash_dir(root, &path, digest, dependencies);
+        } else {
+            use std::fmt::Write as _;
+            let absolute = path.canonicalize().expect("resolve frontend asset");
+            writeln!(
+                dependencies,
+                "const _: &[u8] = include_bytes!({:?});",
+                absolute
+            )
+            .expect("record frontend compiler dependency");
+            let relative = path.strip_prefix(root).expect("frontend-relative path");
+            let name = relative.to_str().expect("UTF-8 frontend asset path");
+            let bytes = std::fs::read(&path).expect("read frontend asset");
+            digest.update((name.len() as u64).to_le_bytes());
+            digest.update(name.as_bytes());
+            digest.update((bytes.len() as u64).to_le_bytes());
+            digest.update(bytes);
         }
     }
 }

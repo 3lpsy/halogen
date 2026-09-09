@@ -7,6 +7,8 @@ import Observation
 @MainActor
 @Observable
 final class DownloadsModel {
+    private let accountStore: LocalStore?
+
     enum Facet: String, CaseIterable, Identifiable {
         case onDevice = "on_device"
         case downloaded
@@ -40,7 +42,7 @@ final class DownloadsModel {
         didSet {
             guard query != oldValue else { return }
             let snapshot = query
-            Task { [store = core.store] in
+            Task { [store = accountStore] in
                 await store?.save(snapshot, key: "listquery-downloads")
             }
         }
@@ -54,6 +56,7 @@ final class DownloadsModel {
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
         if core.isEmbeddedAccount {
             facet = .downloaded
         }
@@ -73,7 +76,7 @@ final class DownloadsModel {
         error = nil
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(ListQuery.self, key: "listquery-downloads")
             {
                 query = saved
@@ -86,7 +89,7 @@ final class DownloadsModel {
         let facetChanged = paintedFacet != facet
         if episodes.isEmpty || facetChanged, query.search.isEmpty {
             if facetChanged { episodes = [] }
-            if let store = core.store,
+            if let store = accountStore,
                 let cached = await store.load(
                     [EpisodeData].self, key: CacheKey.downloads(facet.rawValue))
             {
@@ -115,7 +118,7 @@ final class DownloadsModel {
             return
         }
         do {
-            let first = try await core.latestEpisodesRaw(
+            let first = try await core.forAccount(accountStore).latestEpisodesRaw(
                 extra: [URLQueryItem(name: "filter[download_status]", value: facet.token)]
                     + query.queryItems,
                 page: 0, pageSize: 20)
@@ -129,12 +132,12 @@ final class DownloadsModel {
                 // stay renderable offline.
                 let ids = Set(first.items.map(\.id))
                 var snapshot = first.items
-                if let prior = await core.store?.load(
+                if let prior = await accountStore?.load(
                     [EpisodeData].self, key: CacheKey.downloads(facet.rawValue))
                 {
                     snapshot += prior.filter { !ids.contains($0.id) }
                 }
-                await core.store?.save(snapshot, key: CacheKey.downloads(facet.rawValue))
+                await accountStore?.save(snapshot, key: CacheKey.downloads(facet.rawValue))
             }
         } catch {
             if episodes.isEmpty { self.error = FriendlyError.message(error) }
@@ -148,7 +151,7 @@ final class DownloadsModel {
         defer { loadingMore = false }
         loadMoreFailed = false
         do {
-            let next = try await core.latestEpisodesRaw(
+            let next = try await core.forAccount(accountStore).latestEpisodesRaw(
                 extra: [URLQueryItem(name: "filter[download_status]", value: facet.token)]
                     + query.queryItems,
                 page: page + 1, pageSize: 20)
@@ -165,16 +168,19 @@ final class DownloadsModel {
     /// server file — durable (web: RemoveServerDownload op), so it queues
     /// offline instead of silently failing.
     func removeDownload(_ episode: EpisodeData) async {
-        episodes.removeAll { $0.id == episode.id }
         if facet == .onDevice {
+            episodes.removeAll { $0.id == episode.id }
             core.models?.device.remove(episode.id)
             return
         }
+        guard await core.ensureQueued(originStore: accountStore, .removeServerDownload(episodeId: episode.id)) else {
+            return
+        }
+        episodes.removeAll { $0.id == episode.id }
         // Optimistic overlay (every row/menu flips immediately) AND snapshot
         // patch — load()'s cache-paint must not resurrect the removed row.
         core.models?.serverDownloads.markRemovedLocally(episode.id)
         let snapshot = episodes
-        await core.store?.save(snapshot, key: CacheKey.downloads(facet.rawValue))
-        await core.outbox?.enqueue(.removeServerDownload(episodeId: episode.id))
+        await accountStore?.save(snapshot, key: CacheKey.downloads(facet.rawValue))
     }
 }

@@ -1,57 +1,45 @@
 import SwiftUI
 
-/// Discover: online podcast search across the server's providers. Bare
-/// results by design (no artwork — the server never proxies images here);
-/// subscribing creates the podcast and the next poll ingests episodes.
-/// Online-only, like the web.
 struct DiscoverView: View {
     @Bindable var model: DiscoverModel
     let core: HalogenCore
 
-    @State private var detail: DiscoverDetailBox?
-
     var body: some View {
-        Group {
-            if model.results.isEmpty && !model.searching {
-                ContentUnavailableView(
-                    model.query.isEmpty ? "Search podcasts" : "No results",
-                    systemImage: "magnifyingglass",
-                    description: Text(
-                        model.query.isEmpty
-                            ? "Search the server's providers. Searches need at least 2 characters."
-                            : "Nothing matched \"\(model.query)\".")
-                )
-            } else {
-                List(model.results, id: \.id) { item in
-                    Button {
-                        detail = DiscoverDetailBox(item: item)
+        List {
+            if model.mode == .podcast {
+                ForEach(model.results, id: \.id) { item in
+                    NavigationLink {
+                        DiscoverPodcastView(item: item, model: model, core: core)
                     } label: {
-                        DiscoverRow(
-                            item: item,
-                            providerLabel: model.providerLabel(item.provider),
-                            subscribed: model.isSubscribed(item),
-                            subscribe: { Task { await model.subscribe(item) } }
-                        )
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(item.title).font(.headline)
+                            if let author = item.author { Text(author).font(.caption).foregroundStyle(.secondary) }
+                            if let description = item.description, !description.isEmpty {
+                                Text(HTMLText.preview(description)).font(.subheadline).foregroundStyle(.secondary)
+                                    .lineLimit(3)
+                            }
+                            Text(model.providerLabel(item.provider)).font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .buttonStyle(.plain)
                 }
-                .listStyle(.plain)
+            } else {
+                ForEach(model.pages.episodes, id: \.id) { item in
+                    NavigationLink {
+                        DiscoverEpisodeView(item: item, model: model, core: core)
+                    } label: {
+                        DiscoverEpisodeRow(item: item)
+                    }
+                    .accessibilityIdentifier("discover-episode-\(item.title)")
+                }
             }
+            searchFooter
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            statusBar
-        }
+        .accessibilityIdentifier("discover-results")
+        .listStyle(.plain)
+        .safeAreaInset(edge: .top, spacing: 0) { searchControls }
         .halogenNavbar(core: core)
-        .searchable(text: $model.query, prompt: "Podcast name")
-        .onSubmit(of: .search) {
-            Task { await model.search() }
-        }
-        .overlay {
-            if model.searching { ProgressView() }
-        }
-        .sheet(item: $detail) { box in
-            DiscoverDetailSheet(item: box.item, model: model)
-        }
+        .task { await model.loadProviders() }
         .alert(
             "Search failed",
             isPresented: Binding(
@@ -63,157 +51,84 @@ struct DiscoverView: View {
         } message: {
             Text(model.error ?? "")
         }
-        .task { await model.loadProviders() }
     }
 
-    /// Offline banner / provider-fetch retry / provider toggle chips —
-    /// the web Discover page's pre-results block.
-    @ViewBuilder
-    private var statusBar: some View {
-        VStack(spacing: 6) {
+    private var searchControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                TextField("Search", text: $model.query)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.search)
+                    .onSubmit { Task { await model.search() } }
+                    .accessibilityLabel("Search Discover")
+                    .disabled(model.isOffline || model.providers.isEmpty)
+                Picker("Search by", selection: $model.mode) {
+                    ForEach(DiscoverSearchMode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .accessibilityIdentifier("discover-mode")
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
             if model.isOffline {
-                Label("Discover needs an internet connection.", systemImage: "wifi.slash")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else if model.providerError && model.providers.isEmpty {
+                Text("Discover needs an internet connection.").font(.footnote).foregroundStyle(.secondary)
+            } else if model.providerError {
                 HStack {
-                    Text("Couldn't load the search providers.")
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                    Spacer()
+                    Text("Couldn't load search providers.").font(.footnote)
                     Button("Retry") { model.retryProviders() }
-                        .font(.footnote)
                 }
             }
-            if !model.providers.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(model.providers, id: \.id) { info in
-                        providerChip(info)
+            HStack(spacing: 12) {
+                ForEach(model.providers, id: \.id) { info in
+                    Button {
+                        model.toggleProvider(info.id)
+                    } label: {
+                        Label(info.label, systemImage: model.isEnabled(info.id) ? "checkmark.circle.fill" : "circle")
+                            .font(.caption)
                     }
-                    Spacer()
+                    .disabled(!info.available || (model.mode == .episode && info.id == .gpodder))
                 }
+            }
+            if model.mode == .episode {
+                Text("gpodder supports podcast search only.").font(.caption).foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, model.providers.isEmpty && !model.isOffline && !model.providerError ? 0 : 8)
+        .padding(16)
         .background(.bar)
     }
 
-    /// One provider toggle chip: on = searched, off/unavailable = skipped.
-    private func providerChip(_ info: DiscoverProviderInfo) -> some View {
-        let on = info.available && model.isEnabled(info.id)
-        return Button {
-            model.toggleProvider(info.id)
-        } label: {
-            Text(info.label)
-                .font(.caption.weight(.medium))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule().fill(on ? Color.accentColor.opacity(0.2) : Color(.secondarySystemFill))
-                )
-                .foregroundStyle(on ? Color.accentColor : .secondary)
+    @ViewBuilder
+    private var searchFooter: some View {
+        if let error = model.pages.error {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(error).font(.footnote).foregroundStyle(.red)
+                HStack {
+                    Button("Retry") { Task { await model.pages.loadMore() } }
+                    Button("Search again") { Task { await model.search() } }
+                }
+            }
+        } else if model.searching {
+            HStack {
+                Spacer(); ProgressView("Loading results…"); Spacer()
+            }
+        } else if model.pages.hasMore {
+            HStack {
+                Spacer(); ProgressView("Loading more…"); Spacer()
+            }
+            // Loading replaces this footer; the request must survive that view change.
+            .onAppear { Task { await model.pages.loadMore() } }
+        } else if model.pages.hasSearched {
+            if model.results.isEmpty && model.pages.episodes.isEmpty {
+                Text("No results found.").foregroundStyle(.secondary)
+            }
+            Text("Provider limit: up to \(model.pages.resultLimit) results per search.")
+                .font(.caption).foregroundStyle(.secondary)
+        } else {
+            Text("Search podcasts or episodes. Enter at least 2 characters.")
+                .foregroundStyle(.secondary)
         }
-        .buttonStyle(.plain)
-        .disabled(!info.available)
-        .opacity(info.available ? 1 : 0.5)
-    }
-}
-
-private struct DiscoverRow: View {
-    let item: DiscoverResultItem
-    let providerLabel: String
-    let subscribed: Bool
-    let subscribe: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.title).font(.subheadline.weight(.medium))
-                if let author = item.author, !author.isEmpty {
-                    Text(author).font(.caption).foregroundStyle(.secondary)
-                }
-                if let description = item.description, !description.isEmpty {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                }
-                Text(providerLabel)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            Spacer()
-            Button {
-                subscribe()
-            } label: {
-                Image(systemName: subscribed ? "checkmark.circle.fill" : "plus.circle")
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(subscribed ? .green : Color.accentColor)
-            .disabled(subscribed)
+        ForEach(model.pages.providerErrors, id: \.provider) { error in
+            Text("\(model.providerLabel(error.provider)): \(error.message)")
+                .font(.footnote).foregroundStyle(.red)
         }
-        .padding(.vertical, 2)
-    }
-}
-
-
-/// Identifiable wrapper for sheet presentation.
-struct DiscoverDetailBox: Identifiable {
-    let item: DiscoverResultItem
-    var id: String { item.id }
-}
-
-/// Per-result detail (the web's /discover/:id): full description, provider,
-/// feed URL, subscribe.
-struct DiscoverDetailSheet: View {
-    let item: DiscoverResultItem
-    let model: DiscoverModel
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(item.title).font(.title3.bold())
-                    if let author = item.author, !author.isEmpty {
-                        Text(author).font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    Text(model.providerLabel(item.provider))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Text(item.feed_url)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                    if let description = item.description, !description.isEmpty {
-                        Divider()
-                        Text(description).font(.callout)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-            }
-            .navigationTitle("Podcast")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(model.isSubscribed(item) ? "Subscribed" : "Subscribe") {
-                        Task {
-                            await model.subscribe(item)
-                            dismiss()
-                        }
-                    }
-                    .disabled(model.isSubscribed(item))
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
     }
 }

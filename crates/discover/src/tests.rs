@@ -151,3 +151,29 @@ async fn search_filter_queries_only_selected_provider() {
         "filtered-out provider must not be queried"
     );
 }
+
+#[tokio::test]
+async fn episode_mapping_partial_errors_and_filter() {
+    use wiremock::matchers::query_param;
+    let server = MockServer::start().await;
+    Mock::given(path("/search"))
+        .and(query_param("entity", "podcastEpisode"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"results":[{"kind":"podcast-episode","trackId":12,"trackName":"Episode","collectionName":"Show","feedUrl":"https://example.com/feed","episodeGuid":"guid","description":"Full text","releaseDate":"2026-09-08T00:00:00Z","trackTimeMillis":125000},{"kind":"podcast","trackName":"Wrong kind"}]}"#))
+        .expect(2)
+        .mount(&server).await;
+    let svc = DiscoverService::with_bases(format!("{}/search", server.uri()), String::new());
+    let result = svc.search_episodes("episode", None).await;
+    assert_eq!(result.items.len(), 1);
+    assert_eq!(result.items[0].duration_seconds, Some(125));
+    assert_eq!(result.items[0].podcast_title, "Show");
+    assert_eq!(result.errors[0].provider, DiscoverProvider::Gpodder);
+    let result = svc
+        .search_episodes("episode", Some(&[DiscoverProvider::Itunes]))
+        .await;
+    assert!(result.errors.is_empty());
+    let result = svc
+        .search_episodes("episode", Some(&[DiscoverProvider::Gpodder]))
+        .await;
+    assert!(result.items.is_empty());
+    assert_eq!(result.errors.len(), 1);
+}

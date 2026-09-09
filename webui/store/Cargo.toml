@@ -1,0 +1,32 @@
+[package]
+name = "halogen-webui-store"
+version.workspace = true
+edition.workspace = true
+
+# Local metadata persistence service: the `LocalStore` trait + `StoreHandle`, the
+# per-user web (IndexedDB) and native (SQLite) backends, the offline `outbox`
+# op log, and the episode query/filter/sort/paginate model. The renderer-agnostic
+# cache the sync worker reads/writes. No dioxus; per-target backends are cfg-gated.
+[dependencies]
+halogen-sync-store = { path = "../../crates/sync-store" }
+halogen-sync-enrich = { path = "../../crates/sync-enrich" }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store-idb = { path = "../store-idb" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rusqlite = { workspace = true }
+
+[dev-dependencies]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

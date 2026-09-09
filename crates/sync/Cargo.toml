@@ -1,0 +1,16 @@
+[package]
+name = "halogen-sync"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-apiclient = { path = "../apiclient" }
+halogen-sync-store = { path = "../sync-store" }
+halogen-sync-policy = { path = "../sync-policy" }
+halogen-wire = { path = "../wire" }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+halogen-wire-meta = { path = "../wire-meta" }
+tokio = { workspace = true }

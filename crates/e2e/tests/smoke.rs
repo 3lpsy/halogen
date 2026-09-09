@@ -1,8 +1,6 @@
-//! Browser smoke test: the embedded frontend boots in a real browser.
-//!
-//! `#[ignore]` by default — needs Chrome/Chromium + `chromedriver` on PATH and a
-//! built `dist/`. Run via `just test-e2e`. The server serves the bundled `dist/`
-//! from memory (embed-frontend), exactly like a release build.
+//! Browser smoke test: the embedded frontend boots in a real browser. `#[ignore]` by default — needs
+//! Chrome/Chromium + `chromedriver` on PATH and a built `dist/`. Run via `just test-e2e`. The server serves the
+//! bundled `dist/` from memory (embed-frontend), exactly like a release build.
 
 use halogen_e2e::{body_text, browser_session, require_dist, run_session, wait_for_text};
 use halogen_integ::support;

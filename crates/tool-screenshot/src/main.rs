@@ -1,19 +1,6 @@
-//! `tool-screenshot` — drive a real Chrome through the whole app and capture a
-//! screenshot of every screen in every reachable state.
-//!
-//! Two modes (mirroring `tool-lighthouse`):
-//!   - **self-hosted** (default): spawn a real, seeded axum server over the built
-//!     `dist/`, log in as the seeded admin, and walk the app.
-//!   - **`--base-url URL`** (+ `--user`/`--pass` or `SHOT_USER`/`SHOT_PASS`): drive
-//!     a live server; no dist build or seeding.
-//!
-//! Mobile viewport (412×823, via CDP device-metrics), default theme. Full-page
-//! PNGs land in `data/screenshots/web/<datetime>/`, and the newest run is mirrored
-//! to `data/screenshots/web/latest/` (the whole tree is git-ignored). Every step is
-//! best-effort: a missing selector logs and the walk continues, so one
-//! unreachable state never aborts the run.
-//!
-//! Run via `just screenshots` (needs chromedriver + Chrome, like `just e2e`).
+//! Capture app states through Chrome, using seeded dist/ by default or --base-url with --user/--pass or
+//! SHOT_USER/SHOT_PASS. Mobile 412x823 full-page PNGs go under design/screenshots/web/<datetime> and latest; missing
+//! selectors log and continue. Run `just web-screenshots-local` with Chrome/chromedriver.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -54,7 +41,7 @@ fn parse_args() -> Args {
                      USAGE: tool-screenshot [--base-url URL --user U --pass P] [--out DIR]\n\
                      \n\
                      Default (no --base-url): spawns a seeded server over dist/ and logs in\n\
-                     as the seeded admin. Output: data/screenshots/web/<datetime>/ (+ latest/).\n\
+                     as the seeded admin. Output: design/screenshots/web/<datetime>/ (+ latest/).\n\
                      Env: SHOT_USER / SHOT_PASS / SHOT_OUT."
                 );
                 std::process::exit(0);
@@ -490,11 +477,11 @@ async fn run_flow(
 
 // ── main ──────────────────────────────────────────────────────────────────────
 
-/// Compute the run directory `data/screenshots/web/<datetime>/`, resolving `data/`
+/// Compute the run directory `design/screenshots/web/<datetime>/`, resolving `data/`
 /// relative to the repo (or `--out`). Creates it.
 fn run_dir(out_base: Option<PathBuf>) -> Result<(PathBuf, PathBuf)> {
     let base = out_base.unwrap_or_else(|| {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/screenshots/web")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../design/screenshots/web")
     });
     let stamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
     let dir = base.join(&stamp);

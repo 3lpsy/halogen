@@ -17,6 +17,9 @@ struct PodcastsView: View {
                 LoadErrorView(title: "Couldn't load podcasts", message: error) {
                     await model.refresh()
                 }
+            } else if !model.loaded && model.podcasts.isEmpty {
+                ProgressView("Loading podcasts")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if model.loaded && model.podcasts.isEmpty {
                 ContentUnavailableView(
                     "No podcasts yet",
@@ -28,10 +31,39 @@ struct PodcastsView: View {
             } else {
                 List {
                     ForEach(model.displayed, id: \.id) { podcast in
-                    HStack(spacing: 8) {
-                        PodcastRow(podcast: podcast, artURL: core.podcastArtURL(podcast))
-                        Spacer(minLength: 0)
-                        Menu {
+                        HStack(spacing: 8) {
+                            PodcastRow(podcast: podcast, artURL: core.podcastArtURL(podcast))
+                            Spacer(minLength: 0)
+                            Menu {
+                                PodcastManageMenu(
+                                    manage: Binding(
+                                        get: { manageTarget?.route },
+                                        set: { route in
+                                            manageTarget = route.map {
+                                                PodcastManageTarget(podcastId: podcast.id, route: $0)
+                                            }
+                                        }
+                                    ),
+                                    confirmDelete: Binding(
+                                        get: { deleteTarget?.id == podcast.id },
+                                        set: { if $0 { deleteTarget = podcast } }
+                                    )
+                                )
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 32, height: 32)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .background(
+                            NavigationLink(value: AppRoute.podcast(podcast.id)) { EmptyView() }
+                                .opacity(0)
+                        )
+                        // Long-press mirror of the ellipsis menu (same shared
+                        // content — the two can't drift).
+                        .contextMenu {
                             PodcastManageMenu(
                                 manage: Binding(
                                     get: { manageTarget?.route },
@@ -46,36 +78,7 @@ struct PodcastsView: View {
                                     set: { if $0 { deleteTarget = podcast } }
                                 )
                             )
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .foregroundStyle(.secondary)
-                                .frame(width: 32, height: 32)
-                                .contentShape(Rectangle())
                         }
-                        .buttonStyle(.borderless)
-                    }
-                    .background(
-                        NavigationLink(value: AppRoute.podcast(podcast.id)) { EmptyView() }
-                            .opacity(0)
-                    )
-                    // Long-press mirror of the ellipsis menu (same shared
-                    // content — the two can't drift).
-                    .contextMenu {
-                        PodcastManageMenu(
-                            manage: Binding(
-                                get: { manageTarget?.route },
-                                set: { route in
-                                    manageTarget = route.map {
-                                        PodcastManageTarget(podcastId: podcast.id, route: $0)
-                                    }
-                                }
-                            ),
-                            confirmDelete: Binding(
-                                get: { deleteTarget?.id == podcast.id },
-                                set: { if $0 { deleteTarget = podcast } }
-                            )
-                        )
-                    }
                     }
                     // The sentinel pages the raw browse order; a live search
                     // shows every loaded match instead (web: `if !searching`).

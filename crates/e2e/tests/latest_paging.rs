@@ -1,12 +1,5 @@
-//! `/latest` server-side pagination journey.
-//!
-//! `/latest` no longer holds the whole library in memory: it pages from the
-//! server offline-first (cache → revalidate), fetching the next page when the
-//! sentinel scrolls into view. This seeds well over two server pages (page size
-//! is 30) so the scroll has to cross multiple server-page boundaries to reveal
-//! the whole set — proving pages are fetched and accumulated, not loaded at once.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Seed more than two 30-item pages and scroll `/latest` across page boundaries, verifying cached-first rendering and
+//! accumulated server pages. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, require_dist, run_session, scroll_to_count,

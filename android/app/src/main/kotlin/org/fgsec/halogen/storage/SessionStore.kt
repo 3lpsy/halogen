@@ -27,6 +27,7 @@ data class Session(
     val token: String,
     // Embedded non-admin users: app-managed password for silent re-login.
     val password: String? = null,
+    val localUserId: Int? = null,
 ) {
     @Serializable
     enum class Kind {

@@ -1,0 +1,23 @@
+[package]
+name = "halogen-webui-hooks"
+version.workspace = true
+edition.workspace = true
+[dependencies]
+halogen-webui-hook-row-memory = { path = "../hook-row-memory" }
+halogen-webui-hook-confirm-action = { path = "../hook-confirm-action" }
+halogen-webui-hook-context = { path = "../hook-context" }
+halogen-webui-hook-latest-wins = { path = "../hook-latest-wins" }
+halogen-webui-hook-list-view-state = { path = "../hook-list-view-state" }
+halogen-webui-hook-is-admin = { path = "../hook-is-admin" }
+halogen-webui-hook-episodes = { path = "../hook-episodes" }
+halogen-webui-hook-deep-link-fetch = { path = "../hook-deep-link-fetch" }
+halogen-webui-hook-scroll-memory = { path = "../hook-scroll-memory" }
+halogen-webui-hook-pull-to-refresh = { path = "../hook-pull-to-refresh" }
+halogen-webui-hook-dom-stream = { path = "../hook-dom-stream" }
+halogen-webui-hook-window-event = { path = "../hook-window-event" }
+halogen-webui-hook-form = { path = "../hook-form" }
+halogen-webui-hook-paged-pool = { path = "../hook-paged-pool" }
+
+[features]
+desktop = ["halogen-webui-hook-confirm-action/desktop", "halogen-webui-hook-context/desktop", "halogen-webui-hook-deep-link-fetch/desktop", "halogen-webui-hook-dom-stream/desktop", "halogen-webui-hook-episodes/desktop", "halogen-webui-hook-form/desktop", "halogen-webui-hook-is-admin/desktop", "halogen-webui-hook-latest-wins/desktop", "halogen-webui-hook-list-view-state/desktop", "halogen-webui-hook-paged-pool/desktop", "halogen-webui-hook-pull-to-refresh/desktop", "halogen-webui-hook-row-memory/desktop", "halogen-webui-hook-scroll-memory/desktop", "halogen-webui-hook-window-event/desktop"]
+web = ["halogen-webui-hook-confirm-action/web", "halogen-webui-hook-context/web", "halogen-webui-hook-deep-link-fetch/web", "halogen-webui-hook-dom-stream/web", "halogen-webui-hook-episodes/web", "halogen-webui-hook-form/web", "halogen-webui-hook-is-admin/web", "halogen-webui-hook-latest-wins/web", "halogen-webui-hook-list-view-state/web", "halogen-webui-hook-paged-pool/web", "halogen-webui-hook-pull-to-refresh/web", "halogen-webui-hook-row-memory/web", "halogen-webui-hook-scroll-memory/web", "halogen-webui-hook-window-event/web"]

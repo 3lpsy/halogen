@@ -1,9 +1,88 @@
 [workspace]
 resolver = "2"
-members  = ["crates/api", "crates/server", "crates/wire", "crates/wire-meta", "crates/orm", "crates/migrate", "crates/fixture", "crates/net", "crates/discover", "crates/config", "crates/download", "crates/rss", "crates/polling", "crates/art", "crates/opml", "crates/embedded-server", "crates/utils", "crates/ui", "crates/ui-icons", "crates/ui-state", "crates/ui-widgets", "crates/ui-episode-list", "crates/ui-views", "crates/e2e", "crates/integ", "crates/ui-commands", "crates/ui-forms", "crates/ui-listview", "crates/ui-toast", "crates/ui-appstate", "crates/ui-platform", "crates/ui-idb", "crates/ui-logging", "crates/ui-config", "crates/ui-svc-store", "crates/ui-svc-media", "crates/ui-svc-ws", "crates/ui-cache-purge", "crates/ui-svc-sync", "crates/ui-svc-player", "crates/ui-accounts", "crates/ui-worker", "crates/tool-lighthouse", "crates/tool-screenshot", "crates/mobile-ffi"]
+members = [
+    "crates/sync-import",
+    "crates/format",
+    "crates/queries",
+    "crates/sync-journal",
+    "crates/sync",
+    "crates/sync-enrich",
+    "crates/sync-store",
+    "crates/sync-policy",
+    "crates/auth",
+    "crates/extractors",
+    "crates/guards",
+    "webui/*",
+    "crates/local-runtime",
+    "crates/handlers",
+    "crates/routes",
+    "crates/router",
+    "crates/logging",
+    "crates/logging-client",
+    "crates/runtime-control",
+    "crates/apiclient",
+    "crates/server",
+    "crates/wire",
+    "crates/wire-meta",
+    "crates/orm",
+    "crates/migrations",
+    "crates/fixture",
+    "crates/net",
+    "crates/discover",
+    "crates/config",
+    "crates/download",
+    "crates/rss",
+    "crates/polling",
+    "crates/art",
+    "crates/opml",
+    "crates/utils",
+    "crates/e2e",
+    "crates/integ",
+    "crates/tool-lighthouse",
+    "crates/tool-screenshot",
+    "crates/mobile-ffi",
+]
+default-members = [
+    "crates/sync-import",
+    "crates/format",
+    "crates/queries",
+    "crates/sync-journal",
+    "crates/sync",
+    "crates/sync-enrich",
+    "crates/sync-store",
+    "crates/sync-policy",
+    "crates/auth",
+    "crates/extractors",
+    "crates/guards",
+    "webui/*",
+    "crates/local-runtime",
+    "crates/handlers",
+    "crates/routes",
+    "crates/router",
+    "crates/logging",
+    "crates/logging-client",
+    "crates/runtime-control",
+    "crates/apiclient",
+    "crates/server",
+    "crates/wire",
+    "crates/wire-meta",
+    "crates/orm",
+    "crates/migrations",
+    "crates/fixture",
+    "crates/net",
+    "crates/discover",
+    "crates/config",
+    "crates/download",
+    "crates/rss",
+    "crates/polling",
+    "crates/art",
+    "crates/opml",
+    "crates/utils",
+    "crates/mobile-ffi",
+]
 
 [workspace.package]
-version = "0.1.43"
+version = "0.2.1"
 edition = "2024"
 license = "MIT"
 
@@ -110,8 +189,8 @@ inherits = "dev"
 
 # Web release wasm — size-tuned so the browser compiles/instantiates it faster
 # (main-thread wasm compile dominates TBT). Isolated from the server profile:
-# panic="abort" is wasm-safe but must NOT reach the Axum server. dx selects it
-# via `--profile wasm-release`; drop lto to "thin" if CI link times hurt.
+# panic="abort" is wasm-safe but must not reach the Axum server.
+# `just ui-build` selects this profile directly through Cargo.
 [profile.wasm-release]
 inherits = "release"
 opt-level = "s"

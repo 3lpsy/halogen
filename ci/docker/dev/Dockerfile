@@ -6,7 +6,8 @@
 # Runtime glibc must match the toolchain's — that now builds on ci-podman-dx
 # (Fedora 44), so an older-glibc base → "GLIBC_2.xx not found". Keep in step
 # with the ci-podman-base Fedora version.
-FROM docker.io/library/fedora:44
+ARG BASE_IMAGE=docker.io/library/fedora:44
+FROM ${BASE_IMAGE}
 
 # ca-certificates ships in the base; reqwest (rustls) uses the system roots.
 RUN useradd --system --create-home --uid 10001 halogen
@@ -22,8 +23,7 @@ RUN mkdir -p /data/media && chown -R halogen:halogen /data
 USER halogen
 VOLUME ["/data"]
 
-# Defaults to debug logging; set a stable HALOGEN_AUTH_TOKEN_SECRET in deploys
-# (the default is randomized per boot → invalidates JWTs on restart).
+# Defaults to debug logging; startup requires HALOGEN_AUTH_TOKEN_SECRET.
 ENV HALOGEN_LISTEN_ADDRESS=0.0.0.0 \
     HALOGEN_LISTEN_PORT=8080 \
     HALOGEN_DB_PATH=/data/halogen.db \

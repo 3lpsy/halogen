@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.queue
 
+import org.fgsec.halogen.core.enqueueMutation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -22,6 +23,8 @@ import org.fgsec.halogen.wire.PlaylistData
 /// a separate concept. Local-first: cached rows render before the network answers,
 /// and membership mutations apply optimistically then sync via the Outbox.
 class QueueModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
 
     var queue: PlaylistData? by mutableStateOf(null)
         private set
@@ -41,7 +44,7 @@ class QueueModel(private val core: HalogenCore) {
         set(value) {
             if (value == queryState.value) return
             queryState.value = value
-            val store = core.store
+            val store = accountStore
             core.scope.launch { store?.save(value, QUERY_KEY) }
         }
 
@@ -56,9 +59,9 @@ class QueueModel(private val core: HalogenCore) {
         error = null
         if (!loadedQuery) {
             loadedQuery = true
-            core.store?.load<ListQuery>(QUERY_KEY)?.let { queryState.value = it }
+            accountStore?.load<ListQuery>(QUERY_KEY)?.let { queryState.value = it }
         }
-        val store = core.store
+        val store = accountStore
         if (store != null) {
             if (queue == null) {
                 store.load<PlaylistData>(CacheKey.queueMeta)?.let { queue = it }
@@ -83,7 +86,7 @@ class QueueModel(private val core: HalogenCore) {
             val fresh = core.defaultPlaylist()
             queue = fresh
             if (fresh != null) {
-                core.store?.save(fresh, CacheKey.queueMeta)
+                accountStore?.save(fresh, CacheKey.queueMeta)
                 // Membership ops still queued for this playlist (the drain
                 // couldn't ship them): the local list is AHEAD of the server —
                 // keep it, don't overwrite screen/cache with stale membership
@@ -106,10 +109,10 @@ class QueueModel(private val core: HalogenCore) {
                     return
                 }
                 episodes = served
-                core.store?.save(served, CacheKey.playlistEpisodes(fresh.id))
+                accountStore?.save(served, CacheKey.playlistEpisodes(fresh.id))
             } else {
                 episodes = emptyList()
-                core.store?.remove(CacheKey.queueMeta)
+                accountStore?.remove(CacheKey.queueMeta)
             }
             error = null
         } catch (e: CancellationException) {
@@ -140,12 +143,10 @@ class QueueModel(private val core: HalogenCore) {
 
     fun remove(episode: EpisodeData) {
         val queue = queue ?: return
-        mutationEpoch += 1
-        episodes = episodes.filterNot { it.id == episode.id }
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.RemoveFromPlaylist(playlistId = queue.id, episodeId = episode.id))
+        core.enqueueMutation(OutboxOp.Kind.RemoveFromPlaylist(playlistId = queue.id, episodeId = episode.id)) {
+            mutationEpoch += 1
+            episodes = episodes.filterNot { it.id == episode.id }
+            syncMembership()
         }
     }
 
@@ -153,19 +154,14 @@ class QueueModel(private val core: HalogenCore) {
     /// commit semantics — not SwiftUI's insertion offset).
     fun move(fromIndex: Int, toIndex: Int) {
         val queue = queue ?: return
-        if (fromIndex !in episodes.indices) return
-        mutationEpoch += 1
-        val list = episodes.toMutableList()
-        val moved = list.removeAt(fromIndex)
-        list.add(toIndex.coerceIn(0, list.size), moved)
-        episodes = list
-        val finalIndex = episodes.indexOfFirst { it.id == moved.id }
-        if (finalIndex < 0) return
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.MoveInPlaylist(
-                    playlistId = queue.id, episodeId = moved.id, to = finalIndex))
+        val moved = episodes.getOrNull(fromIndex) ?: return
+        val finalIndex = toIndex.coerceIn(0, (episodes.size - 1).coerceAtLeast(0))
+        core.enqueueMutation(OutboxOp.Kind.MoveInPlaylist(playlistId = queue.id, episodeId = moved.id, to = finalIndex)) {
+            mutationEpoch += 1
+            val list = episodes.filterNot { it.id == moved.id }.toMutableList()
+            list.add(finalIndex.coerceIn(0, list.size), moved)
+            episodes = list
+            syncMembership()
         }
     }
 
@@ -180,21 +176,15 @@ class QueueModel(private val core: HalogenCore) {
     /// add_to_queue_front pref, applied optimistically and in the drained op.
     fun add(episode: EpisodeData) {
         val queue = queue ?: run {
-            // Cold start before the default playlist ever resolved: the tap
-            // must not vanish silently (the button renders regardless).
-            ToastCenter.error("Queue isn't loaded yet — reconnect once, then retry.")
+            ToastCenter.error("Queue isn't loaded yet. Reconnect once, then retry.")
             return
         }
         if (episodes.any { it.id == episode.id }) return
-        mutationEpoch += 1
         val front = core.models?.prefs?.prefs?.addToQueueFront ?: true
-        episodes = if (front) listOf(episode) + episodes else episodes + episode
-        persistSnapshot()
-        core.scope.launch {
-            core.outbox?.enqueue(
-                OutboxOp.Kind.AddToPlaylist(
-                    playlistId = queue.id, episodeId = episode.id,
-                    position = if (front) 0 else null))
+        core.enqueueMutation(OutboxOp.Kind.AddToPlaylist(playlistId = queue.id, episodeId = episode.id, position = if (front) 0 else null), episode = episode) {
+            mutationEpoch += 1
+            if (episodes.none { it.id == episode.id }) episodes = if (front) listOf(episode) + episodes else episodes + episode
+            syncMembership()
         }
     }
 
@@ -214,15 +204,13 @@ class QueueModel(private val core: HalogenCore) {
 
     fun contains(episode: EpisodeData): Boolean = episodes.any { it.id == episode.id }
 
-    private fun persistSnapshot() {
+    private fun syncMembership() {
         val queue = queue ?: return
         // Keep the playlists pool's episode_ids for the queue row in step
         // (menus and counts read it — see PlaylistsModel.setMembership).
         core.models?.playlists?.setMembership(
             playlistId = queue.id, episodeIds = episodes.map { it.id })
-        val snapshot = episodes
-        val store = core.store
-        core.scope.launch { store?.save(snapshot, CacheKey.playlistEpisodes(queue.id)) }
+
     }
 
     private companion object {

@@ -55,7 +55,8 @@ struct EpisodeMenu: View {
     /// episode_menu.rs gates; embedded Play already IS local streaming).
     @ViewBuilder
     private var streamAction: some View {
-        let onServer = core.models?.serverDownloads.isDownloaded(episode)
+        let onServer =
+            core.models?.serverDownloads.isDownloaded(episode)
             ?? (episode.download_status == .downloaded)
         let onDevice = core.models?.device.state(of: episode.id) == .downloaded
         let strategy = core.models?.prefs.prefs.playbackStrategy ?? .downloadOnly
@@ -132,7 +133,8 @@ struct EpisodeMenu: View {
     private var playedToggle: some View {
         // Overlay-wins: an offline toggle must flip this menu immediately,
         // not keep offering the same action off a stale row snapshot.
-        let status = core.models?.playbacks.status(for: episode)
+        let status =
+            core.models?.playbacks.status(for: episode)
             ?? episode.playback_status ?? .unplayed
         if status == .finished {
             Button {
@@ -153,15 +155,21 @@ struct EpisodeMenu: View {
     private var downloadSection: some View {
         deviceSection
         let embedded = core.isEmbeddedAccount
-        let onServer = core.models?.serverDownloads.isDownloaded(episode)
+        let onServer =
+            core.models?.serverDownloads.isDownloaded(episode)
             ?? (episode.download_status == .downloaded)
         if onServer {
             Button {
                 // Force fresh: remove drains first, then the trigger
                 // re-fetches (web: RedownloadOnServer's op order).
                 Task {
-                    await core.outbox?.enqueue(.removeServerDownload(episodeId: episode.id))
-                    core.models?.serverDownloads.download(episode)
+                    guard
+                        await core.ensureQueuedBatch([
+                            .removeServerDownload(episodeId: episode.id),
+                            .triggerDownload(episodeId: episode.id),
+                        ])
+                    else { return }
+                    core.models?.serverDownloads.watch(episode.id)
                 }
             } label: {
                 Label(
@@ -171,9 +179,8 @@ struct EpisodeMenu: View {
             Button(role: .destructive) {
                 // Optimistic overlay first (rows/menus flip immediately), then
                 // the durable op (queues offline instead of silently dropping).
-                core.models?.serverDownloads.markRemovedLocally(episode.id)
-                Task {
-                    await core.outbox?.enqueue(.removeServerDownload(episodeId: episode.id))
+                core.enqueueMutation(.removeServerDownload(episodeId: episode.id)) {
+                    core.models?.serverDownloads.markRemovedLocally(episode.id)
                 }
             } label: {
                 Label(
@@ -279,7 +286,7 @@ struct EpisodeMenu: View {
 struct EpisodeRowLink: View {
     let episode: EpisodeData
     let artURL: URL?
-    var subtitle: String? = nil
+    var subtitle: String?
     let context: EpisodeMenuContext
     let core: HalogenCore
 
@@ -357,6 +364,8 @@ struct EpisodeRowLink: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
+                .accessibilityLabel("More")
+                .accessibilityIdentifier("row-menu")
             }
             // Row 4 (optional): live progress — the NOW PLAYING episode only.
             if let progress {
@@ -424,7 +433,8 @@ struct EpisodeRowLink: View {
     /// (web item.rs: the PlaybackMarker priority).
     private var marker: EpisodeRowStyle.PlaybackMarker {
         if isNextUp { return .nextUp }
-        let status = core.models?.playbacks.status(for: episode)
+        let status =
+            core.models?.playbacks.status(for: episode)
             ?? episode.playback_status ?? .unplayed
         switch status {
         case .finished: return .finished
@@ -493,10 +503,12 @@ struct DownloadButton: View {
     var body: some View {
         // Embedded accounts never device-download (the media already lives in
         // the on-device server) — the button manages the SERVER copy there.
-        let device = core.isEmbeddedAccount
+        let device =
+            core.isEmbeddedAccount
             ? .none : (core.models?.device.state(of: episode.id) ?? .none)
         let serverProgress = core.models?.serverDownloads.progress(of: episode.id)
-        let onServer = core.models?.serverDownloads.isDownloaded(episode)
+        let onServer =
+            core.models?.serverDownloads.isDownloaded(episode)
             ?? (episode.download_status == .downloaded)
         let serverRunning =
             serverProgress != nil || episode.download_status == .downloading
@@ -517,10 +529,8 @@ struct DownloadButton: View {
                     if core.isEmbeddedAccount {
                         // Optimistic overlay first — the trash flips back to
                         // a download glyph immediately.
-                        core.models?.serverDownloads.markRemovedLocally(episode.id)
-                        Task {
-                            await core.outbox?.enqueue(
-                                .removeServerDownload(episodeId: episode.id))
+                        core.enqueueMutation(.removeServerDownload(episodeId: episode.id)) {
+                            core.models?.serverDownloads.markRemovedLocally(episode.id)
                         }
                     } else {
                         core.models?.device.download(episode)

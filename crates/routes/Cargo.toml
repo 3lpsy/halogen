@@ -1,0 +1,45 @@
+[package]
+name     = "halogen-routes"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-queries = { path = "../queries" }
+halogen-auth = { path = "../auth" }
+halogen-extractors = { path = "../extractors" }
+halogen-guards = { path = "../guards" }
+halogen-wire-meta = { path = "../wire-meta", features = ["http"] }
+halogen-handlers = { path = "../handlers" }
+halogen-logging = { path = "../logging" }
+halogen-runtime-control = { path = "../runtime-control" }
+axum               = { workspace = true, features = ["ws"] }
+sea-orm            = { workspace = true }
+tokio              = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+chrono             = { workspace = true }
+halogen-wire       = { path = "../wire", features = ["db"] }
+halogen-orm        = { path = "../orm" }
+halogen-utils      = { path = "../utils" }
+halogen-discover   = { path = "../discover" }
+halogen-config     = { path = "../config" }
+halogen-download   = { path = "../download" }
+halogen-rss        = { path = "../rss" }
+halogen-polling    = { path = "../polling" }
+halogen-art        = { path = "../art" }
+halogen-opml       = { path = "../opml" }
+validator          = { workspace = true }
+tracing            = { workspace = true }
+bcrypt               = { workspace = true }
+jsonwebtoken = { workspace = true }
+time = "0.3.47"
+tower = "0.5.3"
+tower-http = { version = "0.6", features = ["fs", "cors", "set-header", "compression-gzip"] }
+reqwest      = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+serde_qs = { workspace = true, features = ["axum"] }
+
+[dev-dependencies]
+halogen-fixture = { path = "../fixture", features = ["test-support"] }
+halogen-router = { path = "../router" }
+halogen-migrations = { path = "../migrations" }
+wiremock = { workspace = true }

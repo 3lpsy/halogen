@@ -41,7 +41,7 @@ struct SettingsView: View {
                         LabeledContent("User", value: core.account?.username ?? "—")
                     }
                 }
-                LabeledContent("Server") {
+                LabeledContent(core.isEmbeddedAccount ? "Library" : "Server") {
                     Text(serverLabel).lineLimit(1).truncationMode(.middle)
                 }
                 LabeledContent("Status") {
@@ -83,7 +83,7 @@ struct SettingsView: View {
 
                 Section {
                     if core.isEmbeddedAccount {
-                        LabeledContent("Playback source", value: "Stream only")
+                        LabeledContent("Playback source", value: "On-device library")
                     } else {
                         Picker(
                             "Playback source",
@@ -169,7 +169,7 @@ struct SettingsView: View {
                     Text("Playback")
                 } footer: {
                     if core.isEmbeddedAccount {
-                        Text("The embedded server always streams — its media already lives on this device.")
+                        Text("Local Only plays from the on-device library. Downloaded audio stays on this device.")
                     }
                 }
 
@@ -208,7 +208,8 @@ struct SettingsView: View {
                         Text("Downloads")
                     } footer: {
                         Text(
-                            "Device downloads fetch in chunks — each finished chunk is saved progress, so slow or flaky connections resume instead of restarting. Parallel chunks fetch concurrently within one download."
+                            "Device downloads fetch in chunks — each finished chunk is saved progress, so slow or flaky "
+                                + "connections resume instead of restarting. Parallel chunks fetch concurrently within one download."
                         )
                     }
                 }
@@ -286,7 +287,7 @@ struct SettingsView: View {
 
     private var serverLabel: String {
         switch core.account?.kind {
-        case .embedded: return "This device (embedded)"
+        case .embedded: return "Local Only"
         case .remote(let url): return url
         case nil: return "—"
         }

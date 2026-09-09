@@ -1,15 +1,13 @@
-//! Podcast auto-playlist journey — the set-replace lifecycle of a podcast's
-//! auto-add playlists, plus the behavior that motivates the feature: newly
-//! polled episodes land in every configured playlist. Driven through the real
-//! `ApiClient`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(podcast_auto_playlist_flow)'`
+//! Podcast auto-playlist journey — the set-replace lifecycle of a podcast's auto-add playlists, plus the
+//! behavior that motivates the feature: newly polled episodes land in every configured playlist. Driven through
+//! the real `ApiClient`. Run with: `cargo nextest run -p halogen-integ -E
+//! 'binary(podcast_auto_playlist_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{OrderDirection, PodcastStoreData};
 
 /// Create a podcast and return its id (no config, no episodes).
-async fn make_podcast(client: &halogen_api::ApiClient, feed_url: &str) -> i32 {
+async fn make_podcast(client: &halogen_apiclient::ApiClient, feed_url: &str) -> i32 {
     client
         .create_podcast(PodcastStoreData {
             title: "Auto".into(),
@@ -32,7 +30,7 @@ async fn make_playlist(app: &TestApp, name: &str) -> i32 {
 }
 
 /// The configured playlist ids for a podcast, sorted for stable assertions.
-async fn auto_ids(client: &halogen_api::ApiClient, podcast_id: i32) -> Vec<i32> {
+async fn auto_ids(client: &halogen_apiclient::ApiClient, podcast_id: i32) -> Vec<i32> {
     let mut ids: Vec<i32> = client
         .get_podcast_auto_playlists(podcast_id)
         .await

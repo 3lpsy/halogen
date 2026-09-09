@@ -1,13 +1,5 @@
-//! State-sync journey — an optimistic queue mutation made from the episode
-//! kebab menu shows up on the Queue immediately *and* survives a reload.
-//!
-//! Exercises the command → worker → local-state → persistence loop:
-//!   kebab "Add to queue" → `AddToPlaylist` command → optimistic
-//!   `episodes_by_playlist[QUEUE]` update + outbox enqueue + playlist persisted
-//!   to the local store → Queue list resolves it → a reload re-hydrates it from
-//!   the store (not the server).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Add to Queue through the kebab menu; verify the optimistic worker update appears immediately and rehydrates from
+//! local storage after reload. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click_button_text, login_via_ui, patch_active_config, require_dist,
@@ -83,11 +75,10 @@ async fn add_to_queue_via_menu_syncs_and_persists() {
             body_text(&driver).await
         );
 
-        // Sever the API before reloading so the re-hydration can ONLY come from
-        // the local store — otherwise the worker's pull re-fetches the queue
-        // from the server and the assertion passes via that echo even if local
-        // persistence is broken (the bug this test claims to cover). Same
-        // dead-port repoint the offline journey uses; token + setup stay.
+        // Sever the API before reloading so the re-hydration can ONLY come from the local store — otherwise the
+        // worker's pull re-fetches the queue from the server and the assertion passes via that echo even if
+        // local persistence is broken (the bug this test claims to cover). Same dead-port repoint the offline
+        // journey uses; token + setup stay.
         patch_active_config(&driver, "c.server_url = 'http://127.0.0.1:1';", Vec::new()).await?;
 
         // Reload from scratch: the Queue must re-hydrate the membership from the

@@ -4,6 +4,13 @@ import SwiftUI
 /// menu carries podcast management (edit / download config / auto-playlists /
 /// metadata / delete); Edit mode enables multi-select with bulk actions.
 struct EpisodesView: View {
+    private let accountStore: LocalStore?
+    init(core: HalogenCore, podcast: PodcastData) {
+        self.core = core
+        self.accountStore = core.store
+        self.podcast = podcast
+    }
+
     let core: HalogenCore
     let podcast: PodcastData
 
@@ -25,20 +32,36 @@ struct EpisodesView: View {
     @Environment(\.editMode) private var editMode
 
     private var isEditing: Bool { editMode?.wrappedValue.isEditing == true }
+    private struct LoadKey: Equatable {
+        let query: ListQuery
+        let revision: Int
+    }
     @State private var confirmDelete = false
     @State private var manage: PodcastManageRoute?
     @State private var query = ListQuery()
     @State private var loadedQuery = false
 
     var body: some View {
-        Group {
+        List(selection: $selection) {
+            HStack(alignment: .top, spacing: 14) {
+                Artwork(url: core.podcastArtURL(podcast, small: false), size: 88)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(podcast.title).font(.headline)
+                    if let author = podcast.author, !author.isEmpty {
+                        Text(author).font(.subheadline).foregroundStyle(.secondary)
+                    }
+                    ExpandablePodcastDescription(description: podcast.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .listRowSeparator(.hidden)
+            .selectionDisabled()
             if let error {
                 LoadErrorView(title: "Couldn't load episodes", message: error) {
                     await load()
                 }
             } else if loaded && episodes.isEmpty {
-                // "No episodes yet" over an active search/filter implied an
-                // unpolled feed — distinguish no-match from truly empty.
                 if !query.search.isEmpty || !query.filters.isEmpty {
                     ContentUnavailableView(
                         "No matches",
@@ -53,45 +76,23 @@ struct EpisodesView: View {
                     )
                 }
             } else {
-                List(selection: $selection) {
-                    // The podcast's header block (art, author, description) —
-                    // the web detail's identity strip; from the already-loaded
-                    // row, no extra fetch.
-                    HStack(alignment: .top, spacing: 14) {
-                        Artwork(url: core.podcastArtURL(podcast, small: false), size: 88)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(podcast.title).font(.headline)
-                            if let author = podcast.author, !author.isEmpty {
-                                Text(author).font(.subheadline).foregroundStyle(.secondary)
-                            }
-                            if !podcast.description.isEmpty {
-                                Text(HTMLText.preview(podcast.description))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(3)
-                            }
-                        }
-                    }
-                    .listRowSeparator(.hidden)
-                    .selectionDisabled()
-                    ForEach(displayedEpisodes, id: \.id) { episode in
-                        EpisodeRowLink(
-                            episode: episode,
-                            artURL: core.episodeArtURL(episode),
-                            context: .browse,
-                            core: core
-                        )
-                        .tag(episode.id)
-                        .selectionDisabled(!isEditing)
-                        .configuredSwipes(.podcastEpisodes, episode: episode, core: core)
-                    }
-                    if hasMore && !episodes.isEmpty && !selectedOnly {
-                        LoadMoreRow(failed: loadMoreFailed) { await loadMore() }
-                    }
+                ForEach(displayedEpisodes, id: \.id) { episode in
+                    EpisodeRowLink(
+                        episode: episode,
+                        artURL: core.episodeArtURL(episode),
+                        context: .browse,
+                        core: core
+                    )
+                    .tag(episode.id)
+                    .selectionDisabled(!isEditing)
+                    .configuredSwipes(.podcastEpisodes, episode: episode, core: core)
                 }
-                .listStyle(.plain)
+                if hasMore && !episodes.isEmpty && !selectedOnly {
+                    LoadMoreRow(failed: loadMoreFailed) { await loadMore() }
+                }
             }
         }
+        .listStyle(.plain)
         .safeAreaInset(edge: .top, spacing: 0) {
             ListControlsBar(query: $query, allowsOnDevice: !core.isEmbeddedAccount)
         }
@@ -126,7 +127,7 @@ struct EpisodesView: View {
         } message: {
             Text("Removes the podcast, its episodes, and their server files.")
         }
-        .task(id: query) { await load() }
+        .task(id: LoadKey(query: query, revision: core.libraryChanges.revision)) { await load() }
         .refreshable { await load() }
         // Screen-local state: not covered by resyncAfterReconnect — heal a
         // stuck error state when the network returns.
@@ -181,7 +182,7 @@ struct EpisodesView: View {
         // use_list_view_state("podcast") — one key across all podcasts).
         if !loadedQuery {
             loadedQuery = true
-            if let store = core.store,
+            if let store = accountStore,
                 let saved = await store.load(ListQuery.self, key: "listquery-podcast-episodes"),
                 saved != query
             {
@@ -191,7 +192,7 @@ struct EpisodesView: View {
             }
         }
         let snapshot = query
-        Task { [store = core.store] in
+        Task { [store = accountStore] in
             await store?.save(snapshot, key: "listquery-podcast-episodes")
         }
         if !query.search.isEmpty {
@@ -210,7 +211,7 @@ struct EpisodesView: View {
             loaded = true
             return
         }
-        if episodes.isEmpty, isDefaultQuery, let store = core.store,
+        if episodes.isEmpty, isDefaultQuery, let store = accountStore,
             let cached = await store.load([EpisodeData].self, key: cacheKey)
         {
             episodes = cached
@@ -219,9 +220,9 @@ struct EpisodesView: View {
         generation += 1
         let mine = generation
         do {
-            let first = try await core.episodes(
+            let first = try await core.forAccount(accountStore).episodes(
                 podcastId: podcast.id, extra: query.queryItems, page: 0)
-            guard mine == generation else { return }
+            guard !Task.isCancelled, mine == generation else { return }
             episodes = filteredForChips(first.items)
             hasMore = first.hasMore
             page = 0
@@ -233,17 +234,17 @@ struct EpisodesView: View {
                 // fetched page is upserted into the store pool).
                 let ids = Set(first.items.map(\.id))
                 var snapshot = first.items
-                if let prior = await core.store?.load([EpisodeData].self, key: cacheKey) {
+                if let prior = await accountStore?.load([EpisodeData].self, key: cacheKey) {
                     snapshot += prior.filter { !ids.contains($0.id) }
                 }
-                await core.store?.save(snapshot, key: cacheKey)
+                await accountStore?.save(snapshot, key: cacheKey)
             }
         } catch is CancellationError {
             return
         } catch let error as URLError where error.code == .cancelled {
             return
         } catch {
-            guard mine == generation else { return }
+            guard !Task.isCancelled, mine == generation else { return }
             if episodes.isEmpty { self.error = FriendlyError.message(error) }
         }
         loaded = true
@@ -265,9 +266,9 @@ struct EpisodesView: View {
         // this page, not append the old query's rows (and persist them).
         let mine = generation
         do {
-            let next = try await core.episodes(
+            let next = try await core.forAccount(accountStore).episodes(
                 podcastId: podcast.id, extra: query.queryItems, page: page + 1)
-            guard mine == generation else { return }
+            guard !Task.isCancelled, mine == generation else { return }
             page += 1
             let known = Set(episodes.map(\.id))
             episodes.append(
@@ -275,7 +276,7 @@ struct EpisodesView: View {
             hasMore = next.hasMore
             if isDefaultQuery {
                 // Extend the offline snapshot with the appended page.
-                await core.store?.save(episodes, key: cacheKey)
+                await accountStore?.save(episodes, key: cacheKey)
             }
         } catch {
             loadMoreFailed = true
@@ -287,6 +288,15 @@ struct EpisodesView: View {
 /// section set (bulk_menu.rs) plus the "Selected" review chip and "Select
 /// all". Everything durable is offline-capable per id via the outbox.
 struct BulkActionBar: View {
+    private let accountStore: LocalStore?
+    init(
+        selection: Binding<Set<Int32>>, selectedOnly: Binding<Bool>, episodes: [EpisodeData],
+        core: HalogenCore, context: EpisodeMenuContext = .browse
+    ) {
+        _selection = selection; _selectedOnly = selectedOnly
+        self.episodes = episodes; self.core = core; self.context = context
+        self.accountStore = core.store
+    }
     @Binding var selection: Set<Int32>
     /// The "Selected" review chip: the host restricts its rows to the
     /// selection while this is on (web: MultiSelectState.selected_only).
@@ -381,9 +391,15 @@ struct BulkActionBar: View {
                 // Remove-then-trigger in outbox order (web RedownloadOnServer).
                 forEachSelected { episode in
                     Task {
-                        await core.outbox?.enqueue(
-                            .removeServerDownload(episodeId: episode.id))
-                        core.models?.serverDownloads.download(episode)
+                        guard
+                            await core.ensureQueuedBatch(
+                                originStore: accountStore,
+                                [
+                                    .removeServerDownload(episodeId: episode.id),
+                                    .triggerDownload(episodeId: episode.id),
+                                ])
+                        else { return }
+                        core.models?.serverDownloads.watch(episode.id)
                     }
                 }
             } label: {
@@ -403,10 +419,8 @@ struct BulkActionBar: View {
             Button(role: .destructive) {
                 forEachSelected { episode in
                     // Optimistic overlay first — rows flip immediately.
-                    core.models?.serverDownloads.markRemovedLocally(episode.id)
-                    Task {
-                        await core.outbox?.enqueue(
-                            .removeServerDownload(episodeId: episode.id))
+                    core.enqueueMutation(.removeServerDownload(episodeId: episode.id)) {
+                        core.models?.serverDownloads.markRemovedLocally(episode.id)
                     }
                 }
             } label: {

@@ -57,7 +57,8 @@ struct PodcastConfigFormView: View {
                 Toggle("Auto-download new episodes", isOn: $autoDownload)
             } footer: {
                 Text(
-                    "Override how often this podcast is polled and how its episodes download. Leave the defaults to match the server; Remove reverts to the server-wide defaults."
+                    "Override how often this podcast is polled and how its episodes download. Leave the defaults to "
+                        + "match the server; Remove reverts to the server-wide defaults."
                 )
             }
 
@@ -176,8 +177,10 @@ struct PodcastConfigFormView: View {
                 // errors) and queue as a durable UpdatePodcastConfig offline
                 // (an existing id is safe to drain later).
                 if core.isOffline {
-                    await core.outbox?.enqueue(
-                        .updatePodcastConfig(configId: config.id, data: data))
+                    guard
+                        await core.ensureQueued(
+                            .updatePodcastConfig(configId: config.id, data: data))
+                    else { return }
                     dismiss()
                     return
                 }
@@ -211,7 +214,7 @@ struct PodcastConfigFormView: View {
         // Remove behaves like edit (an existing id): direct online, durable
         // RemovePodcastConfig op offline (web rule).
         if core.isOffline {
-            await core.outbox?.enqueue(.removePodcastConfig(podcastId: podcast.id))
+            guard await core.ensureQueued(.removePodcastConfig(podcastId: podcast.id)) else { return }
             dismiss()
             return
         }

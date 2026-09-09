@@ -1,0 +1,30 @@
+[package]
+name = "halogen-webui-hook-form"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-component-forms = { path = "../component-forms" }
+halogen-webui-config = { path = "../config" }
+halogen-apiclient = { path = "../../crates/apiclient" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-component-forms/web", "halogen-webui-config/web"]
+desktop = ["dioxus/desktop", "halogen-webui-component-forms/desktop", "halogen-webui-config/desktop"]

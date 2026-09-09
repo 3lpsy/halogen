@@ -1,13 +1,5 @@
-//! Media-serving journey — the server is the single source of episode audio.
-//!
-//! Setup runs through the `ApiClient` (ingest + mark-downloaded), but the audio
-//! endpoint itself is loaded by a browser `<audio>` element, not a typed JSON
-//! call: it streams bytes with HTTP range support and authenticates via the
-//! `auth_media` cookie. So those requests use raw `reqwest` and assert the exact
-//! bytes / 206 / 401 / 404 — not an `ApiClient` method. A second test covers
-//! episode artwork (`GET /episodes/{id}/art`) over the same media-auth path.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(media_flow)'`
+//! Use raw reqwest to verify exact audio bytes, Range/206 behavior, cookie auth, and 401/404 outcomes after ApiClient
+//! setup. Also cover artwork through the same media-auth path. Run the halogen-integ media_flow binary.
 
 use halogen_integ::*;
 use sea_orm::{ActiveModelTrait, ActiveValue};
@@ -44,9 +36,9 @@ async fn media_streaming_journey() {
     );
 
     // 2) Stage the episode's audio *inside* media_root and mark it downloaded.
-    //    The write API no longer accepts a client-supplied `content_file_path`
-    //    (that was an arbitrary-file-read vector), so this seeds the
-    //    server-managed download state directly, as a real download would.
+    //  The write API no longer accepts a client-supplied `content_file_path`
+    //  (that was an arbitrary-file-read vector), so this seeds the
+    //  server-managed download state directly, as a real download would.
     let payload: &[u8] = b"HALOGEN-TEST-AUDIO-0123456789";
     app.stage_downloaded_audio(episode_id, payload).await;
 
@@ -138,7 +130,7 @@ async fn episode_art_serving() {
     assert_eq!(resp.status().as_u16(), 401, "no credential → 401");
 
     // 2) Authed, but the episode has no art_file_path → 204 (not 404, so the
-    //    benign empty-art case stays out of the browser console).
+    //  benign empty-art case stays out of the browser console).
     let resp = http
         .get(&art_url)
         .bearer_auth(&admin.token)
@@ -148,7 +140,7 @@ async fn episode_art_serving() {
     assert_eq!(resp.status().as_u16(), 204, "no artwork → 204");
 
     // 3) Stage an art file on disk + set art_file_path so the cache
-    //    short-circuits; the bytes serve with the day-long Cache-Control.
+    //  short-circuits; the bytes serve with the day-long Cache-Control.
     // Art must live inside media_root — the art endpoint confines served paths.
     let art_dir = app.media_root().join("art");
     std::fs::create_dir_all(&art_dir).expect("create art dir");

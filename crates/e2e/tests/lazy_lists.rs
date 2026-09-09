@@ -1,13 +1,5 @@
-//! Lazy-load migration guard — the views that moved off the old "pull everything
-//! into memory" model now render via the offline-first/paged path:
-//!   - **Podcasts** list (paged SWR from the store + server pages) shows the card
-//!     and its server-computed `episode_count`.
-//!   - **Podcast detail** (paged, `filter[podcast_id]`) shows the podcast's episodes.
-//!   - **History** (id-list over the user's playbacks) resolves episode bodies by id.
-//!   - A **deep-linked** episode that was never browsed loads via the on-miss
-//!     `get_episode` fetch (no full hydrate any more).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Verify lazy podcast cards and counts, paged podcast episodes, history ID resolution, and uncached episode deep
+//! links. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, require_dist, run_session, wait_for_css,

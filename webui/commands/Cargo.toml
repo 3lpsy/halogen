@@ -1,0 +1,13 @@
+[package]
+name = "halogen-webui-commands"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-wire = { path = "../../crates/wire" }
+serde = { workspace = true }
+dioxus = { workspace = true }
+
+[features]
+desktop = ["dioxus/desktop"]
+web = ["dioxus/web"]

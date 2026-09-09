@@ -1,16 +1,6 @@
-//! Podcast artwork serving — `GET /podcasts/{id}/art`. Mirrors the media/audio
-//! auth model: the credential travels in the `auth_media` cookie (or a normal
-//! bearer for programmatic fetches), and only server-held files are served. The
-//! integ tier had zero art coverage; these pin the three contract cases:
-//!   - no credential                  → 401
-//!   - authed but no `art_file_path`  → 204 (UI shows its placeholder)
-//!   - authed + art staged on disk    → 200 + `Cache-Control: private, max-age=86400`
-//!
-//! The art file is staged on disk and `art_file_path` set directly (so
-//! `ensure_podcast_art` short-circuits — no network egress), mirroring the
-//! episodes art unit test in `routers/episodes/art.rs`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(podcast_art_flow)'`
+//! Stage podcast art locally and verify media-cookie/bearer serving: unauthenticated 401, absent art 204, and stored
+//! art 200 with private max-age=86400 caching. No origin fetch is needed. Run the halogen-integ podcast_art_flow
+//! binary.
 
 use halogen_integ::*;
 use sea_orm::{ActiveModelTrait, ActiveValue};

@@ -175,7 +175,8 @@ final class DeviceLog {
     /// Plain-text export, oldest first (web: logging::export_text).
     func exportText() -> String {
         let formatter = ISO8601DateFormatter()
-        return entries
+        return
+            entries
             .map {
                 let source = $0.source.map { "\($0): " } ?? ""
                 return

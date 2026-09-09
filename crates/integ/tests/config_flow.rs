@@ -1,8 +1,6 @@
-//! Config journey — `GET /config` returns the reconciled runtime config to an
-//! admin, with secrets structurally absent, and is forbidden to non-admins.
-//! Driven through `ApiClient::get_config`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(config_flow)'`
+//! Config journey — `GET /config` returns the reconciled runtime config to an admin, with secrets structurally
+//! absent, and is forbidden to non-admins. Driven through `ApiClient::get_config`. Run with: `cargo nextest
+//! run -p halogen-integ -E 'binary(config_flow)'`
 
 use halogen_integ::*;
 

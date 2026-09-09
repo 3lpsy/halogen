@@ -62,10 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.withContext
 import org.fgsec.halogen.components.HalogenNavbar
 import org.fgsec.halogen.components.JsonKeyValueView
 import org.fgsec.halogen.components.OnlineDot
@@ -78,8 +74,6 @@ import org.fgsec.halogen.core.NavModel
 import org.fgsec.halogen.features.admin.ConfigOverridesView
 import org.fgsec.halogen.features.admin.ServerErrorsView
 import org.fgsec.halogen.storage.AccountContext
-import uniffi.halogen_mobile.ServerStatus
-import uniffi.halogen_mobile.serverStatus
 
 /// The Settings tab's in-module destinations (iOS NavigationLink pushes).
 private enum class SettingsRoute {
@@ -126,30 +120,12 @@ fun SettingsView(core: HalogenCore, nav: NavModel) {
 @Composable
 private fun SettingsRoot(core: HalogenCore, nav: NavModel, push: (SettingsRoute) -> Unit) {
     var confirmSignOut by remember { mutableStateOf(false) }
-    // Embedded status: the FFI lifecycle snapshot is the authority for the
-    // in-process server (the reachability probe only covers loopback HTTP).
-    var embeddedStatus by remember { mutableStateOf<ServerStatus?>(null) }
-    LaunchedEffect(core.isEmbeddedAccount) {
-        while (isActive && core.isEmbeddedAccount) {
-            embeddedStatus = withContext(Dispatchers.IO) {
-                runCatching { serverStatus() }.getOrNull()
-            }
-            delay(5_000)
-        }
-    }
-
     val serverLabel = when (val kind = core.account?.kind) {
         is AccountContext.Kind.Embedded -> "This device (embedded)"
         is AccountContext.Kind.Remote -> kind.serverUrl
         null -> "—"
     }
-    val statusLabel = if (core.isEmbeddedAccount && embeddedStatus != null) {
-        when (embeddedStatus?.state) {
-            "running" -> "Online"
-            "starting" -> "Checking…"
-            else -> "Offline"
-        }
-    } else when (core.connection.status) {
+    val statusLabel = when (core.connection.status) {
         ConnectionMonitor.Status.Online -> "Online"
         ConnectionMonitor.Status.Offline -> "Offline"
         ConnectionMonitor.Status.Unknown -> "Checking…"

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <!-- Keep browser pinch zoom available for accessibility; Safari ignores viewport zoom restrictions anyway.
+             Standalone PWA gestures are handled below. viewport-fit=cover preserves safe-area insets. -->
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <!-- Apply the localStorage font-size mirror before paint to avoid a full-page shift during async config load.
+             Default 125% matches FontSize::Medium. AppLayout updates the mirror; CSP permits this inline script. -->
+        <script>
+          (function () {
+            try {
+              document.documentElement.style.fontSize =
+                localStorage.getItem("halogen.fontsize") || "125%";
+            } catch (e) {}
+          })();
+        </script>
+        <title>'s text (rather than replacing it), so that key is emptied there to
+             avoid "HalogenHalogen". The web title is owned here. -->
+        <title>Halogen</title>
+        <!-- Build staging copies the shell and icons into dist/. -->
+        <link rel="stylesheet" href="/tailwind.css" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <!-- SVG favicon first (crisp at any size); .ico is the legacy fallback. -->
+        <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <!-- Matches the brand icon's dark field (data/assets/icons/icon.svg) and the
+             manifest's background_color/theme_color. -->
+        <meta name="theme-color" content="#0B0E14" />
+        <meta name="color-scheme" content="dark" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Halogen" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <!-- Suppress pinch/double-tap zoom only in the installed PWA; browser tabs retain accessible zoom.
+             CSP permits this inline script. -->
+        <script>
+          (function () {
+            var standalone =
+              window.navigator.standalone === true ||
+              (window.matchMedia &&
+                window.matchMedia("(display-mode: standalone)").matches);
+            if (!standalone) return;
+            // Double-tap-zoom: iOS honors `touch-action` for it. `pan-x pan-y` on the
+            // root disables double-tap while allowing scrolling; descendants stay free
+            // to be MORE restrictive (e.g. the swipe rows' `touch-action: none`).
+            document.documentElement.style.touchAction = "pan-x pan-y";
+            // Pinch-zoom: iOS ignores `touch-action` for the pinch gesture, so block its
+            // non-standard `gesture*` events directly. `passive: false` so
+            // preventDefault() actually takes effect.
+            ["gesturestart", "gesturechange", "gestureend"].forEach(function (evt) {
+              document.addEventListener(
+                evt,
+                function (e) {
+                  e.preventDefault();
+                },
+                { passive: false },
+              );
+            });
+          })();
+        </script>
+    </head>
+    <body>
+        <div id="main"></div>
+        <script type="module">
+          import("/webui.js")
+            .then((wasm) => wasm.default())
+            .catch((error) => console.error("Halogen could not start", error));
+        </script>
+    </body>
+</html>

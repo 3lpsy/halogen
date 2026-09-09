@@ -1,14 +1,9 @@
-//! Shared helpers for browser end-to-end tests.
-//!
-//! The test pattern: build the wasm frontend (`just ui-build` → `dist/`), spawn
-//! the **real** axum server serving that `dist/` as its `/` fallback (via
-//! `halogen_integ::support`), then drive a headless browser at the
-//! server's address with [`thirtyfour`]. As everywhere else, the only faked
-//! dependency is upstream RSS (a `wiremock` server pointed to by `feed_url`).
-//!
-//! The tier is self-contained: [`ChromeDriver::start`] launches a `chromedriver`
-//! child process on an ephemeral port and kills it on drop, so tests don't need
-//! a pre-running driver. (Set `WEBDRIVER_URL` to reuse an external one instead.)
+//! Browser tests build the WASM frontend, serve it through the real Axum app, and drive it with thirtyfour; only
+//! upstream RSS is mocked. ChromeDriver owns an ephemeral driver process and kills it on drop, or WEBDRIVER_URL selects
+//! an existing driver.
+
+mod screenshot;
+pub use screenshot::{SCREENSHOT_DIR_ENV, shot};
 
 use std::io;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream};
@@ -43,6 +38,10 @@ pub fn require_dist() -> bool {
     if dist_dir().is_some() {
         return true;
     }
+    assert!(
+        !is_e2e_required(),
+        "browser gate requires built dist/: run just ui-build"
+    );
     eprintln!("skipping: no built dist/ — run `just ui-build` first");
     false
 }
@@ -144,11 +143,9 @@ fn chrome_binary() -> Option<String> {
     None
 }
 
-/// Connect a headless-Chrome session to a WebDriver `endpoint`.
-///
-/// Sets the browser binary explicitly (chromedriver otherwise looks only for
-/// `google-chrome` and hangs on distros that ship `chromium-browser`), plus a
-/// unique throwaway profile and the usual containerized-Chrome hardening flags.
+/// Connect a headless-Chrome session to a WebDriver `endpoint`. Sets the browser binary explicitly
+/// (chromedriver otherwise looks only for `google-chrome` and hangs on distros that ship `chromium-browser`),
+/// plus a unique throwaway profile and the usual containerized-Chrome hardening flags.
 pub async fn connect(endpoint: &str) -> WebDriverResult<WebDriver> {
     let mut caps = DesiredCapabilities::chrome();
     if let Some(bin) = chrome_binary() {
@@ -191,12 +188,10 @@ pub async fn headless_chrome() -> WebDriverResult<WebDriver> {
     connect(&url).await
 }
 
-/// Open a browser session, owning the chromedriver lifecycle.
-///
-/// Returns `None` (with a printed reason) only when the toolchain is genuinely
-/// absent — `WEBDRIVER_URL` unset *and* no `chromedriver` binary — so tests can
-/// skip on a bare machine. If chromedriver is present but the browser fails to
-/// launch, that's a real error and panics.
+/// Open a browser session, owning the chromedriver lifecycle. Returns `None` (with a printed reason) only when
+/// the toolchain is genuinely absent — `WEBDRIVER_URL` unset *and* no `chromedriver` binary — so tests can skip
+/// on a bare machine. If chromedriver is present but the browser fails to launch, that's a real error and
+/// panics.
 pub async fn browser_session() -> Option<(Option<ChromeDriver>, WebDriver)> {
     if std::env::var("WEBDRIVER_URL").is_ok() {
         return Some((
@@ -212,6 +207,10 @@ pub async fn browser_session() -> Option<(Option<ChromeDriver>, WebDriver)> {
             Some((Some(driver), session))
         }
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
+            assert!(
+                !is_e2e_required(),
+                "browser gate requires chromedriver: {e}"
+            );
             eprintln!("skipping: no chromedriver on PATH (set CHROMEDRIVER/WEBDRIVER_URL) — {e}");
             None
         }
@@ -300,24 +299,8 @@ pub async fn fill(driver: &WebDriver, css: &str, text: &str) -> WebDriverResult<
     Ok(())
 }
 
-/// Click `el`, scrolling it into view first and falling back to a synthetic
-/// (JS) click when a native click can't land geometrically.
-///
-/// Two cases need the fallback:
-/// - `ElementClickIntercepted`: daisyUI dropdowns stay open while focus is inside
-///   them (Selenium clicks keep focus), so an open dropdown's expanded container
-///   can sit over an adjacent control — a native click then lands on the overlay
-///   rather than the intended button.
-/// - `ElementNotInteractable`: the shared quick-context-menu panel is always
-///   mounted and slides in via a 200ms `translate-x` transition. Its buttons
-///   enter the DOM at transition *start*, while the panel is still translated off
-///   the right edge — their in-view center point is outside the viewport, so a
-///   native click is rejected as not-interactable until the slide settles.
-///
-/// A JS `.click()` dispatches straight to the element, bypassing the geometric
-/// hit-test, which is what we want for these known-correct targets. (It still
-/// won't fire on a `disabled` button, so genuinely-disabled controls aren't
-/// silently actioned.)
+/// Scroll and click, falling back to JS for intercepted or not-interactable targets. Open dropdowns and transitioning
+/// context menus can obstruct native hit testing. Disabled controls still reject clicks.
 pub async fn click_el(driver: &WebDriver, el: &WebElement) -> WebDriverResult<()> {
     el.scroll_into_view().await.ok();
     // `WebDriverError` is a newtype over `WebDriverErrorInner`; the variant lives
@@ -340,11 +323,9 @@ pub async fn click_el(driver: &WebDriver, el: &WebElement) -> WebDriverResult<()
     }
 }
 
-/// Click the first element matching `css` (overlay-tolerant — see [`click_el`]).
-///
-/// Re-finds on staleness: a list/detail re-render between the find and the click
-/// (e.g. a device-download progress tick replacing the Play button) can invalidate
-/// the element handle (`StaleElementReference`). Re-query + retry a few times so a
+/// Click the first element matching `css` (overlay-tolerant — see [`click_el`]). Re-finds on staleness: a
+/// list/detail re-render between the find and the click (e.g. a device-download progress tick replacing the
+/// Play button) can invalidate the element handle (`StaleElementReference`). Re-query + retry a few times so a
 /// mid-render click doesn't spuriously fail the journey.
 pub async fn click(driver: &WebDriver, css: &str) -> WebDriverResult<()> {
     let mut last_err = None;
@@ -399,11 +380,10 @@ pub async fn wait_for_count(driver: &WebDriver, css: &str, min: usize, timeout: 
     }
 }
 
-/// Wait until exactly `target` elements match `css` and the count holds steady
-/// for one extra poll (so a list mid-transition isn't sampled early). Returns the
-/// last observed count — equal to `target` on success, otherwise whatever it was
-/// when the timeout hit. Use for filter/search assertions where the set both
-/// grows and shrinks.
+/// Wait until exactly `target` elements match `css` and the count holds steady for one extra poll (so a list
+/// mid-transition isn't sampled early). Returns the last observed count — equal to `target` on success,
+/// otherwise whatever it was when the timeout hit. Use for filter/search assertions where the set both grows
+/// and shrinks.
 pub async fn wait_for_count_eq(
     driver: &WebDriver,
     css: &str,
@@ -425,14 +405,9 @@ pub async fn wait_for_count_eq(
     }
 }
 
-/// Drain the browser console log (Chrome's `browser` buffer) and format it one
-/// entry per line. This is where the wasm app's own `tracing` output lands (the
-/// `WASMLayer` writes events to `console.*`), so it's the UI-side counterpart to
-/// the server's stderr tracing — the two together explain most failures.
-///
-/// Console verbosity is the app's `CONSOLE_FILTER_DEFAULT` (INFO+); run with
-/// `RUST_LOG=halogen_ui=debug` (rebuild `dist/`) for more. Returns an empty
-/// string when the buffer is empty or the driver lacks the logging capability.
+/// Drain Chrome browser logs, including WASM tracing, one entry per line. Default verbosity is INFO; rebuild the
+/// frontend with RUST_LOG=halogen_webui=debug for more. Empty buffers or unsupported driver logging return an empty
+/// string.
 pub async fn browser_logs(driver: &WebDriver) -> String {
     match driver.get_log("browser").await {
         Ok(entries) => entries
@@ -444,12 +419,8 @@ pub async fn browser_logs(driver: &WebDriver) -> String {
     }
 }
 
-/// Keep only the signal from a raw browser-log entry: our wasm `tracing` (which
-/// `WASMLayer` writes to `console.*` with `%c` colour formatting) and genuine
-/// `SEVERE` errors. Everything else chromedriver surfaces — preload/credentials-
-/// mode warnings, `<meta>` deprecation notices, autofocus chatter — is framework
-/// noise and dropped. Tracing lines are unwrapped from their `%c…"color:…"`
-/// wrapper into a plain `LEVEL target message`.
+/// Keep WASM tracing and SEVERE browser errors, dropping framework warnings. Unwrap WASMLayer color formatting into
+/// plain LEVEL, target, and message text.
 fn clean_browser_log(e: &BrowserLogEntry) -> Option<String> {
     // WASMLayer format: `<url> <line:col> "%cLEVEL%c <target>%c <msg>" "color:…" …`
     if let Some(open) = e.message.find("\"%c") {
@@ -464,43 +435,33 @@ fn clean_browser_log(e: &BrowserLogEntry) -> Option<String> {
     (e.level == "SEVERE").then(|| format!("SEVERE {}", e.message))
 }
 
-/// Run a browser test `body` to completion with uniform teardown: drive the body
-/// with the session's `driver`, catch a panicking `assert!` (the common failure),
-/// then [`finish_journey`] — dump the wasm console log, quit the driver, and
-/// re-surface the outcome. This is the single closing every browser test uses, so
-/// each one gets the on-failure log dump (not just the named journeys).
-///
-/// ```ignore
-/// let Some((_guard, driver)) = browser_session().await else { return; };
-/// run_session(driver, "onboarding journey", async |driver| {
-///     login_via_ui(driver, &app.base_url, &admin.username, &admin.password).await;
-///     /* assertions … */
-///     Ok(())
-/// })
-/// .await;
-/// ```
+/// Run a browser body, catch assertion panics, then finish_journey to dump console logs, quit the driver, and propagate
+/// the result. Every browser test uses this teardown, including failures.
 pub async fn run_session<F>(driver: WebDriver, what: &str, body: F)
 where
     F: AsyncFnOnce(&WebDriver) -> WebDriverResult<()>,
 {
+    screenshot::set_journey(what);
     let outcome = std::panic::AssertUnwindSafe(body(&driver))
         .catch_unwind()
         .await;
     finish_journey(driver, outcome, what).await;
 }
 
-/// Close out a journey: dump the browser console log (the wasm app's tracing) to
-/// stderr — which nextest shows on failure — then quit the driver and surface the
-/// outcome. `outcome` is what [`FutureExt::catch_unwind`] yields around the test
-/// body, so this runs whether the body returned `Ok`, returned a `WebDriverError`,
-/// or panicked on an `assert!` (the common case) — none of which a plain post-body
-/// statement would survive. Most tests reach this via [`run_session`]; call it
-/// directly only when you need to interleave extra steps around teardown.
+/// Dump WASM console logs to stderr, quit the driver, and propagate the catch_unwind outcome, including WebDriver
+/// errors and assertion panics. Prefer run_session unless teardown needs extra steps.
 pub async fn finish_journey(
     driver: WebDriver,
     outcome: std::thread::Result<WebDriverResult<()>>,
     what: &str,
 ) {
+    let closing = if matches!(outcome, Ok(Ok(()))) {
+        "99-final"
+    } else {
+        "99-failure"
+    };
+    screenshot::set_journey(what);
+    screenshot::shot(&driver, closing).await;
     let logs = browser_logs(&driver).await;
     if !logs.is_empty() {
         eprintln!(
@@ -523,30 +484,12 @@ pub async fn body_text(driver: &WebDriver) -> String {
     }
 }
 
-// ── Per-user storage helpers ─────────────────────────────────────────────────
-//
-// Client config lives in IndexedDB (the localStorage backend was retired): the
-// device-global account registry is `halogen.accounts` → store `registry` →
-// record `accounts`, and each account's config is `halogen.config.{segment}` →
-// store `kv` → record `client_config`. Each record is a JSON *string*, matching
-// `halogen-ui-idb`'s JSON-string value encoding. These async helpers resolve the
-// active account from the registry, so tests poke "the signed-in user's config"
-// without hardcoding the namespace.
+// IndexedDB stores JSON strings: registry accounts in halogen.accounts/registry/accounts and per-account config in
+// halogen.config.{segment}/kv/client_config. Resolve the active account rather than hardcoding its namespace.
 
-/// JS that resolves the active account's storage segment into `seg`, MIRRORING
-/// `halogen_ui_platform::namespace::segment_for` — keep the two in step:
-///
-/// ```ignore
-/// Some(id) if embedded => format!("e{id}"),
-/// Some(id)             => format!("u{id}-{server:016x}"),
-/// None                 => "anon",
-/// ```
-///
-/// Expects the raw registry JSON in `rawAccounts` and its parsed form in `a`.
-///
-/// `active_server` is a **u64** and routinely exceeds `Number.MAX_SAFE_INTEGER`,
-/// so `JSON.parse` silently rounds it and the hex comes out wrong — the digits are
-/// re-read from the raw JSON text and widened with `BigInt` instead.
+/// Resolve `seg` from rawAccounts and parsed registry `a`, matching platform::namespace::segment_for: e{id} locally,
+/// u{id}-{server:016x} remotely, anon otherwise. Read the u64 active_server digits from raw JSON into BigInt because
+/// JSON.parse can round values above Number.MAX_SAFE_INTEGER.
 const RESOLVE_SEGMENT_JS: &str = r#"
     const _m = /"active_server"\s*:\s*(\d+)/.exec(rawAccounts);
     const _srv = (_m ? BigInt(_m[1]) : 0n).toString(16).padStart(16, '0');
@@ -557,15 +500,9 @@ const RESOLVE_SEGMENT_JS: &str = r#"
             : 'u' + a.active_user_id + '-' + _srv);
 "#;
 
-/// JS prefix: open the registry, resolve the active account's config DB, open a
-/// readwrite `kv` transaction, and parse the `client_config` record into `c`. Ends
-/// right before the caller's mutate. (`cb`/`tx`/`store`/`cdb` are in scope after.)
-///
-/// Reports `false` rather than throwing; [`patch_active_config`] turns that into a
-/// panic. A silent no-op here is worse than useless: `indexedDB.open` CREATES a
-/// missing database, so a stale segment yields a fresh empty DB with no `kv`
-/// store, the patch lands in a phantom the app never reads, and the test sails on
-/// asserting against a still-online app.
+/// Open the active account's config DB and readwrite kv transaction, parsing client_config into c for the caller;
+/// cb/tx/store/cdb remain in scope. Report false on failure so patch_active_config panics instead of silently patching
+/// a newly created, wrong-namespace DB.
 const PATCH_CONFIG_PREFIX: &str = r#"
     const cb = arguments[arguments.length - 1];
     const ar0 = indexedDB.open('halogen.accounts');
@@ -605,16 +542,9 @@ const PATCH_CONFIG_SUFFIX: &str = r#"
     };
 "#;
 
-/// Patch the active user's persisted client config: parse it as `c`, run `mutate`
-/// (a JS statement with `c` in scope; it may reference `arguments[…]` from `args`),
-/// then write it back to IndexedDB.
-///
-/// **Panics if the write didn't land.** Tests use this to establish a
-/// precondition (e.g. "the server is now unreachable"); a patch that quietly does
-/// nothing doesn't fail the test, it makes it VACUOUS — the app stays online and
-/// every subsequent offline assertion is tested against an online app. That is
-/// exactly what happened when the storage namespace gained a per-server suffix
-/// and this helper kept opening the old path.
+/// Run JS `mutate` against active-account client config `c`, with optional arguments from args, then persist to
+/// IndexedDB. Panic if the write fails: otherwise offline preconditions can silently leave the app online and make
+/// assertions invalid.
 pub async fn patch_active_config(
     driver: &WebDriver,
     mutate: &str,
@@ -633,7 +563,7 @@ pub async fn patch_active_config(
         "patch_active_config did not write: no active account, or the config DB \
          for the resolved segment has no `kv` store. If the storage namespace \
          changed, RESOLVE_SEGMENT_JS must be re-synced with \
-         `halogen_ui_platform::namespace::segment_for`."
+         `halogen_webui_platform::namespace::segment_for`."
     );
     Ok(())
 }
@@ -676,12 +606,10 @@ pub async fn active_config_json(driver: &WebDriver) -> String {
         .unwrap_or_default()
 }
 
-/// Drive the onboarding UI to an authenticated session: load the app (which
-/// redirects to the login page), then connect to `base_url` with the given
-/// credentials — server URL + username + password on ONE form (native-app
-/// parity). Leaves the browser on the authenticated Home route. Exercises the
-/// full stack: wasm UI → API client → server (health, login, get_user).
-/// Panics with the page body on any step that doesn't appear.
+/// Drive the onboarding UI to an authenticated session: load the app (which redirects to the login page), then
+/// connect to `base_url` with the given credentials — server URL + username + password on ONE form (native-app
+/// parity). Leaves the browser on the authenticated Home route. Exercises the full stack: wasm UI → API client
+/// → server (health, login, get_user). Panics with the page body on any step that doesn't appear.
 pub async fn login_via_ui(driver: &WebDriver, base_url: &str, username: &str, password: &str) {
     driver.goto(base_url).await.expect("goto app");
 
@@ -713,6 +641,7 @@ pub async fn login_via_ui(driver: &WebDriver, base_url: &str, username: &str, pa
         "did not reach an authenticated view after login; body:\n{}",
         body_text(driver).await
     );
+    screenshot::shot(driver, "01-authenticated").await;
 }
 
 // ── Upstream-feed fixtures (the only faked dependency) ───────────────────────
@@ -724,13 +653,8 @@ pub fn load_feed(name: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("feed fixture not found: {path}"))
 }
 
-/// Mount a `wiremock` RSS feed serving `feed_file`, subscribe the server to it,
-/// and run one server-side `/api/v1/poll` so the feed is ingested deterministically
-/// (the same proven path the journeys use — the UI subscribe form is an async
-/// round-trip that doesn't reliably land in the test window).
-///
-/// Returns the live [`MockServer`]; bind it (`let _feed = …`) so upstream stays up
-/// for the rest of the session. `token` is the seeded admin's bearer token.
+/// Mount a mock RSS feed, subscribe with the seeded admin token, and poll once for deterministic ingestion. Keep the
+/// returned MockServer bound for the session so the upstream remains available.
 pub async fn ingest_feed(
     app: &support::TestApp,
     token: &str,
@@ -794,22 +718,9 @@ pub async fn scroll_to_count(
     count(driver, css).await
 }
 
-/// Rows in the `halogen.media` IndexedDB `audio` store (the device byte store) —
-/// the ground truth for "is this episode really downloaded to the device?".
-/// Negative values encode failures so assertion messages stay useful:
-/// `0` no store yet, `-1` count error, `-2` JS threw, `-3` open error, `-4` no/bad
-/// return.
-/// Which same-origin paths the service worker has actually stored, out of
-/// `paths`. Returns the cached subset (order not guaranteed).
-///
-/// Reads the Cache API directly rather than inferring from rendered `<img>`s: an
-/// `<img>` proves the *network* served it, which is exactly the thing that is
-/// true right up until you go offline. Only the cache contents answer "will this
-/// survive losing the server".
-///
-/// Searches every cache the origin owns (the SW pins its cache name to the build's
-/// wasm fingerprint — see `_sync-dist` — so the name is not knowable from a test).
-/// `[]` when the Cache API is unavailable or nothing matched.
+/// Return the cached subset of same-origin paths across all Cache API stores, or [] when unavailable. Inspect stored
+/// responses directly: rendered images prove network availability, not offline survival. Cache names depend on the
+/// frontend build fingerprint.
 pub async fn sw_cached_paths(driver: &WebDriver, paths: &[&str]) -> Vec<String> {
     let cached = sw_cached_pathnames(driver).await;
     paths
@@ -819,17 +730,9 @@ pub async fn sw_cached_paths(driver: &WebDriver, paths: &[&str]) -> Vec<String> 
         .collect()
 }
 
-/// Every same-origin pathname the service worker currently has stored, across all
-/// caches this origin owns.
-///
-/// Enumerates `cache.keys()` rather than calling `cache.match(url)`: `match`
-/// synthesizes a fresh `Request` whose `Accept`/`Accept-Encoding` won't match the
-/// original (an `<img>` sends its own), so any `Vary` on the cached response makes
-/// a genuinely-cached entry look absent. Comparing stored keys sidesteps content
-/// negotiation entirely, which is what "is this path cached" actually means.
-///
-/// The SW pins its cache name to the build's wasm fingerprint (see `_sync-dist`),
-/// so the name isn't knowable from a test — hence sweeping every cache.
+/// Enumerate stored request pathnames across all origin caches. cache.match creates different Accept headers and can
+/// miss existing entries with Vary; stored keys avoid that mismatch. Sweep all caches because names include the
+/// frontend build fingerprint.
 pub async fn sw_cached_pathnames(driver: &WebDriver) -> Vec<String> {
     let script = r#"
         const cb = arguments[arguments.length - 1];
@@ -909,14 +812,8 @@ pub async fn wait_for_sw_control(driver: &WebDriver, timeout: Duration) -> bool 
     false
 }
 
-/// Seed a tiny audio blob for each of `episode_ids` into the ACTIVE account's
-/// device byte store, as a real device download would leave behind. Callers
-/// usually `driver.refresh()` afterwards so the worker re-hydrates from them.
-///
-/// Namespaced via [`RESOLVE_SEGMENT_JS`] — see [`idb_audio_count`] for why a bare
-/// `halogen.media` is the wrong database. Panics if the write didn't land: seeding
-/// is a precondition, and silently seeding nothing turns the assertions that
-/// follow into a test of the empty case.
+/// Seed tiny audio blobs into the active account's byte store via RESOLVE_SEGMENT_JS; refresh afterward to rehydrate
+/// the worker. Panic on failed writes so subsequent assertions cannot silently test empty storage.
 pub async fn idb_seed_audio(driver: &WebDriver, episode_ids: &[i32]) -> WebDriverResult<()> {
     let ids_json = serde_json::to_string(episode_ids).expect("serialize ids");
     let script = format!(
@@ -964,20 +861,14 @@ pub async fn idb_seed_audio(driver: &WebDriver, episode_ids: &[i32]) -> WebDrive
         got, "ok",
         "idb_seed_audio failed to seed the device byte store. If the storage \
          namespace changed, RESOLVE_SEGMENT_JS must be re-synced with \
-         `halogen_ui_platform::namespace::segment_for`."
+         `halogen_webui_platform::namespace::segment_for`."
     );
     Ok(())
 }
 
-/// How many audio blobs the ACTIVE account has stored on device.
-///
-/// Namespaced like the config DB (`halogen.media.{segment}`) — a bare
-/// `halogen.media` doesn't exist, and `indexedDB.open` would just conjure an empty
-/// one, report 0 blobs forever, and make every "downloaded to device" assertion
-/// pass or fail for the wrong reason. See [`RESOLVE_SEGMENT_JS`].
-///
-/// Negative returns are diagnostics, never counts: `-1` count error, `-2` threw,
-/// `-3` media DB wouldn't open, `-4` the script itself failed, `-5` no registry.
+/// Count blobs in halogen.media.{segment}, resolved via RESOLVE_SEGMENT_JS; opening bare halogen.media would create an
+/// unrelated empty DB. Negative diagnostics: -1 count error, -2 JS threw, -3 DB open error, -4 script failure, -5
+/// missing registry.
 pub async fn idb_audio_count(driver: &WebDriver) -> i64 {
     let script = r#"
         const cb = arguments[arguments.length - 1];
@@ -1014,4 +905,9 @@ pub async fn idb_audio_count(driver: &WebDriver) -> i64 {
         .ok()
         .and_then(|ret| ret.json().as_i64())
         .unwrap_or(-4)
+}
+
+/// Required CI gates fail when browser prerequisites are missing.
+fn is_e2e_required() -> bool {
+    std::env::var("HALOGEN_E2E_REQUIRED").is_ok_and(|value| matches!(value.as_str(), "1" | "true"))
 }

@@ -1,0 +1,35 @@
+[package]
+name = "halogen-webui"
+version.workspace = true
+authors = ["opencode <opencode@local>"]
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-routes = { path = "../routes" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Navigator", "ServiceWorkerContainer", "ServiceWorker", "ServiceWorkerRegistration"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+halogen-webui-platform = { path = "../platform" }
+
+[dev-dependencies]
+dioxus = { workspace = true, features = ["router", "web"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[features]
+default = ["web"]
+web = ["dioxus/web", "halogen-webui-app-state/web", "halogen-webui-hooks/web", "halogen-webui-logging/web", "halogen-webui-routes/web"]
+desktop = ["dioxus/desktop", "halogen-webui-app-state/desktop", "halogen-webui-hooks/desktop", "halogen-webui-logging/desktop", "halogen-webui-routes/desktop"]
+
+[[bin]]
+name = "halogen-ui"
+path = "src/main.rs"

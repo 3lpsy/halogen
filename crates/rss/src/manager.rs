@@ -1,9 +1,6 @@
-//! The RSS sync orchestrator.
-//!
-//! [`RssManager`] owns the per-run dependencies (DB handle, HTTP client, resolved
-//! [`SyncContext`]) so the orchestration methods don't thread them around. The
-//! free functions at the bottom are thin entry points that build a manager and run
-//! it — the poller and tests call those.
+//! The RSS sync orchestrator. [`RssManager`] owns the per-run dependencies (DB handle, HTTP client, resolved
+//! [`SyncContext`]) so the orchestration methods don't thread them around. The free functions at the bottom are
+//! thin entry points that build a manager and run it — the poller and tests call those.
 
 use std::collections::{HashMap, HashSet};
 use std::panic::AssertUnwindSafe;
@@ -103,11 +100,10 @@ impl RssManager {
         let mut total_new = 0usize;
         let mut total_updated = 0usize;
         let mut total_errors = 0usize;
-        // Each task carries its own (id, title) so results can be reported in
-        // COMPLETION order via `JoinSet` — a slow feed no longer blocks reporting
-        // of faster ones behind it. `sync_one` is wrapped in `catch_unwind` so a
-        // panic (or a hard `Err`) becomes that podcast's error outcome instead of
-        // aborting the whole run and dropping every other podcast's result.
+        // Each task carries its own (id, title) so results can be reported in COMPLETION order via `JoinSet` —
+        // a slow feed no longer blocks reporting of faster ones behind it. `sync_one` is wrapped in
+        // `catch_unwind` so a panic (or a hard `Err`) becomes that podcast's error outcome instead of aborting
+        // the whole run and dropping every other podcast's result.
         let mut set: JoinSet<(i32, String, Result<PodcastSyncOutcome, String>)> = JoinSet::new();
 
         for podcast in podcasts {
@@ -281,17 +277,9 @@ impl RssManager {
         download::download_many(&self.dbc, ids, &self.ctx.download_options(), max_concurrent).await;
     }
 
-    /// GET `feed_url`, following redirects by hand (the feed client has auto-follow
-    /// disabled) so the full hop chain can be recorded. Returns the final non-3xx
-    /// response together with the chain `[feed_url, hop1, .., final]`; a direct feed
-    /// yields just `[feed_url]`.
-    ///
-    /// Conditional headers are re-sent on each hop. gzip is handled transparently by
-    /// reqwest's `gzip` feature, so we never set `Accept-Encoding` by hand (that
-    /// leaves the body compressed). An empty etag / last-modified is skipped — an
-    /// empty `If-Modified-Since` is an invalid HTTP-date some origins reject. Note a
-    /// `304 Not Modified` carries no `Location`, so it falls through and is returned
-    /// as the final response even though it sits in the 3xx range.
+    /// Fetch and record every redirect hop manually, forwarding nonempty conditional headers. Return the final response
+    /// plus chain; 304 without Location is final. Let reqwest negotiate/decode gzip rather than setting Accept-Encoding
+    /// manually.
     async fn fetch_feed_following_redirects(
         &self,
         feed_url: &str,
@@ -615,11 +603,10 @@ impl RssManager {
                             out.new += 1;
                             out.new_ids.push(episode_id);
                             info!("Added new episode: {}", title);
-                            // Best-effort: chapters are optional and must never fail
-                            // or stall the sync. The external `podcast:chapters`
-                            // fetch is suppressed under `use_mock_download` (tests /
-                            // offline) so a fixture sync never hits the network;
-                            // inline `psc` chapters still persist.
+                            // Best-effort: chapters are optional and must never fail or stall the sync. The
+                            // external `podcast:chapters` fetch is suppressed under `use_mock_download` (tests
+                            // / offline) so a fixture sync never hits the network; inline `psc` chapters still
+                            // persist.
                             persist_chapters(
                                 dbc,
                                 episode_id,
@@ -739,11 +726,10 @@ fn new_episode(podcast_id: i32, remote: RemoteEpisodeData) -> EpisodeActiveModel
     }
 }
 
-/// Persist a freshly-inserted episode's chapters, best-effort. Inline `psc`
-/// chapters are stored directly; otherwise a `podcast:chapters` URL is fetched and
-/// parsed. ANY failure (network, oversized/garbage JSON, DB error) is logged and
-/// swallowed — chapters are optional and must never fail or slow a feed sync.
-/// No-op when the episode carries neither inline chapters nor a URL.
+/// Persist a freshly-inserted episode's chapters, best-effort. Inline `psc` chapters are stored directly;
+/// otherwise a `podcast:chapters` URL is fetched and parsed. ANY failure (network, oversized/garbage JSON, DB
+/// error) is logged and swallowed — chapters are optional and must never fail or slow a feed sync. No-op when
+/// the episode carries neither inline chapters nor a URL.
 async fn persist_chapters(
     dbc: &DatabaseConnection,
     episode_id: i32,
@@ -784,12 +770,8 @@ async fn persist_chapters(
     }
 }
 
-/// Read a feed response body, capped at [`MAX_FEED_BODY_BYTES`]. The body comes
-/// from a (user-supplied) feed URL and is buffered whole for parsing, so an
-/// unbounded read is a memory-exhaustion vector — reject an oversized response
-/// (advertised or streamed) rather than buffering it. Decoded lossily as UTF-8,
-/// which the parser (`Channel::from_str`) requires; non-UTF-8 feeds are rare and
-/// were already forced through a `String` by the previous `resp.text()`.
+/// Buffer feed bodies only up to MAX_FEED_BODY_BYTES, checking advertised and streamed size to prevent memory
+/// exhaustion. Decode UTF-8 lossily for Channel parsing.
 async fn read_feed_body(resp: &mut reqwest::Response) -> anyhow::Result<String> {
     // Reject early when the server advertises an oversized body.
     if let Some(len) = resp.content_length()
@@ -814,10 +796,9 @@ async fn read_feed_body(resp: &mut reqwest::Response) -> anyhow::Result<String> 
 /// KB; the cap stops a hostile/misconfigured host from ballooning memory.
 const MAX_CHAPTERS_BYTES: usize = 2 * 1024 * 1024;
 
-/// Fetch + parse a Podcasting 2.0 `podcast:chapters` JSON document into markers.
-/// Reads the top-level `{ "chapters": [ { "startTime": <secs>, "title": <str> } ] }`,
-/// truncating `startTime` to whole seconds and skipping entries missing either
-/// field. The body is streamed and capped at [`MAX_CHAPTERS_BYTES`] so an
+/// Fetch + parse a Podcasting 2.0 `podcast:chapters` JSON document into markers. Reads the top-level `{
+/// "chapters": [ { "startTime": <secs>, "title": <str> } ] }`, truncating `startTime` to whole seconds and
+/// skipping entries missing either field. The body is streamed and capped at [`MAX_CHAPTERS_BYTES`] so an
 /// oversized response is rejected mid-read rather than fully buffered first.
 async fn fetch_remote_chapters(url: &str) -> anyhow::Result<Vec<RemoteChapter>> {
     let mut resp = download::chapters_client()
@@ -878,14 +859,9 @@ struct ChapterEntry {
     title: Option<String>,
 }
 
-/// Add `new_episode_ids` (in feed order) to every playlist this podcast is
-/// configured to auto-add to (`podcast_auto_playlist`). Where they land is per
-/// link: `add_to_start` (falling back to the global `default_add_to_start`)
-/// picks the start of the playlist (positions descending below the current min,
-/// preserving feed order) or the end (continuing from the current max).
-/// Newly-ingested episodes can't already be members, so plain inserts are
-/// expected; a stray insert error is logged and skipped rather than aborting
-/// the rest. Returns the number of (episode, playlist) links created.
+/// Auto-add new episode IDs in feed order to each configured playlist. Per-link add_to_start overrides the global
+/// default; allocate positions below the min or above the max. Log/skip individual insert errors and return the number
+/// of links created.
 async fn auto_add_to_playlists(
     dbc: &DatabaseConnection,
     podcast_id: i32,
@@ -927,12 +903,10 @@ async fn auto_add_to_playlists(
             }
         };
 
-        // One aggregate read (rather than loading every membership row): the end
-        // path continues from the current max (mirrors the episode-playlist store
-        // handler's `max + 1`); the start path places the batch wholly below the
-        // current min (`min - n ..`), ascending so feed order is preserved —
-        // positions may go negative, which sorts fine and is renumbered to 0..n
-        // by the next reorder.
+        // One aggregate read (rather than loading every membership row): the end path continues from the
+        // current max (mirrors the episode-playlist store handler's `max + 1`); the start path places the batch
+        // wholly below the current min (`min - n ..`), ascending so feed order is preserved — positions may go
+        // negative, which sorts fine and is renumbered to 0..n by the next reorder.
         let bound = if add_to_start {
             EpPlCol::Position.min()
         } else {
@@ -1028,11 +1002,9 @@ pub async fn sync_with_context(dbc: &DatabaseConnection, ctx: &SyncContext) -> R
         .await
 }
 
-/// Reports each podcast's outcome to `on_result` as its task finishes, optionally
-/// restricted to `podcast_ids` (`None` = all feeds). Used by the on-demand
-/// poll-job path so the
-/// `halogen_polling::jobs::JobTracker` can stream per-feed
-/// progress.
+/// Reports each podcast's outcome to `on_result` as its task finishes, optionally restricted to `podcast_ids`
+/// (`None` = all feeds). Used by the on-demand poll-job path so the `halogen_polling::jobs::JobTracker` can
+/// stream per-feed progress.
 pub async fn sync_reported_with_context<F>(
     dbc: &DatabaseConnection,
     ctx: &SyncContext,

@@ -1,9 +1,7 @@
 import Foundation
 
-/// Minimal typed API client over the generated wire types (WireTypes.swift —
-/// `just ios-wire-types`). URLSession transport; every API lives under
-/// `/api/v1`; auth is `Authorization: Bearer <jwt>` from `/auth/login`.
-/// Mirrors the shape of the Rust `halogen-api` client, deliberately thin.
+/// Typed API requests over the shared wire contract, dispatched through HTTP or local FFI.
+@MainActor
 struct HalogenClient {
     enum ClientError: Error, CustomStringConvertible {
         case http(Int)
@@ -40,11 +38,10 @@ struct HalogenClient {
     final class TokenBox {
         var token: String?
         var onRefresh: ((String) -> Void)?
-        /// Fired when a 401 survives the silent refresh — auth is dead (the
-        /// web's `ToastDecision::SignOut` / worker `auth_expired` signal).
-        /// The core reacts (embedded re-login / back to the connect page);
-        /// the request still throws its 401 to the caller.
+        /// Fired only when the server explicitly rejects the session credentials.
         var onAuthExpired: (() -> Void)?
+        var refreshTask: Task<Void, Error>?
+        var nextRefreshAttempt = Date.distantPast
 
         init(token: String?) {
             self.token = token
@@ -53,24 +50,32 @@ struct HalogenClient {
 
     let base: URL
     let tokenBox: TokenBox
+    let transport: (URLRequest) async throws -> (Data, URLResponse)
+    let now: () -> Date
 
     var token: String? { tokenBox.token }
 
-    /// `token` restores a previous session's JWT; expiry self-heals via the
-    /// 401→refresh→retry path in `send`.
-    init(baseUrl: String, token: String? = nil) {
+    /// Restore saved credentials; requests renew them before the server expiry window closes.
+    init(
+        baseUrl: String, token: String? = nil,
+        now: @escaping () -> Date = Date.init,
+        transport: @escaping (URLRequest) async throws -> (Data, URLResponse) = LocalTransport.data
+    ) {
         self.base = URL(string: baseUrl)!.appendingPathComponent("api/v1")
         self.tokenBox = TokenBox(token: token)
+        self.transport = transport
+        self.now = now
     }
 
     /// Unauthenticated liveness probe — `/healthz` lives at the app root,
-    /// outside `/api/v1` (same as `halogen-api`'s health()).
+    /// outside `/api/v1` (same as `halogen-apiclient`'s health()).
     func health() async throws {
         let root = base.deletingLastPathComponent().deletingLastPathComponent()
         var request = URLRequest(url: root.appendingPathComponent("healthz"))
         request.timeoutInterval = 8
-        let (_, response) = try await URLSession.shared.data(for: request)
-        let status = (response as! HTTPURLResponse).statusCode
+        let (_, response) = try await transport(request)
+        guard let response = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        let status = response.statusCode
         guard (200..<300).contains(status) else { throw ClientError.http(status) }
     }
 
@@ -204,7 +209,7 @@ struct HalogenClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Every mutating endpoint takes the RequestData envelope (body under
-        // `data`, query-ish params under `params`) — same as `halogen-api`.
+        // `data`, query-ish params under `params`) — same as `halogen-apiclient`.
         request.httpBody = try WireJSON.encoder.encode(
             RequestData<In, DefaultDataType>(data: body, params: nil)
         )
@@ -231,111 +236,8 @@ struct HalogenClient {
     }
 
     func send<Out: Codable>(_ request: URLRequest) async throws -> ResponseData<Out> {
-        try await send(request, retryOnAuth: true)
+        await renewBeforeExpiry(for: request)
+        return try await send(request, retryOnAuth: true)
     }
 
-    private func send<Out: Codable>(
-        _ request: URLRequest, retryOnAuth: Bool
-    ) async throws -> ResponseData<Out> {
-        var request = request
-        if let token {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        // Every request failure lands in the device log (method + path only,
-        // never bodies/tokens) — the app's screens each surface errors their
-        // own way, so this is the one place a bug report can see them all.
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch {
-            DeviceLog.warn(
-                "net: \(request.httpMethod ?? "GET") \(request.url?.path ?? "?") — \(error.localizedDescription)"
-            )
-            throw error
-        }
-        let status = (response as! HTTPURLResponse).statusCode
-        if !(200..<300).contains(status), status != 401 || !retryOnAuth {
-            DeviceLog.warn(
-                "net: \(request.httpMethod ?? "GET") \(request.url?.path ?? "?") — HTTP \(status)"
-            )
-        }
-
-        // Expired/stale token: refresh once and retry (live remote servers —
-        // the embedded server's tokens rarely age out within a session).
-        if status == 401, retryOnAuth, token != nil,
-            request.url?.path.hasSuffix("/auth/refresh") != true,
-            request.url?.path.hasSuffix("/auth/login") != true
-        {
-            if await refreshToken() {
-                return try await send(request, retryOnAuth: false)
-            }
-            // Refresh couldn't heal it: the session is genuinely expired or
-            // revoked. Tell the core before the 401 propagates.
-            tokenBox.onAuthExpired?()
-        }
-
-        let envelope: ResponseData<Out>
-        do {
-            envelope = try WireJSON.decoder.decode(ResponseData<Out>.self, from: data)
-        } catch {
-            // Non-envelope body (proxy error page, empty 500): the status is
-            // the more useful signal than the decode failure.
-            guard (200..<300).contains(status) else { throw ClientError.http(status) }
-            DeviceLog.warn(
-                "net: decode failed for \(request.url?.path ?? "?") — \(error)")
-            throw error
-        }
-        if !(200..<300).contains(status) {
-            // The STATUS drives the retry taxonomy: the server envelopes every
-            // error, so an errors body must not shadow a status that means
-            // retry — classifying an enveloped 401/500 as permanent `.api`
-            // dead-letters queued offline mutations (web classify.rs).
-            if let errors = envelope.errors, status < 500,
-                ![401, 408, 429].contains(status)
-            {
-                throw ClientError.api(errors)
-            }
-            throw ClientError.http(status)
-        }
-        if let errors = envelope.errors { throw ClientError.api(errors) }
-        return envelope
-    }
-
-    /// POST /auth/refresh with the current token; true on success (box +
-    /// listeners updated).
-    private func refreshToken() async -> Bool {
-        guard let current = token else { return false }
-        var request = URLRequest(url: base.appendingPathComponent("auth/refresh"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        guard
-            let body = try? WireJSON.encoder.encode(
-                RequestData<TokenData, DefaultDataType>(
-                    data: TokenData(token: current), params: nil))
-        else { return false }
-        request.httpBody = body
-        // The failure MODE matters downstream: a rejected refresh means the
-        // session is dead; a transport failure means it might not be — log
-        // which one preceded a forced sign-out.
-        guard let (data, response) = try? await URLSession.shared.data(for: request) else {
-            DeviceLog.warn("auth: token refresh unreachable (transport)")
-            return false
-        }
-        guard
-            (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) == true,
-            let envelope = try? WireJSON.decoder.decode(
-                ResponseData<TokenData>.self, from: data),
-            let fresh = envelope.data
-        else {
-            DeviceLog.warn(
-                "auth: token refresh rejected (status \((response as? HTTPURLResponse)?.statusCode ?? -1))"
-            )
-            return false
-        }
-        tokenBox.token = fresh.token
-        tokenBox.onRefresh?(fresh.token)
-        DeviceLog.info("auth: token refreshed")
-        return true
-    }
 }

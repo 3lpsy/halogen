@@ -1,0 +1,23 @@
+[package]
+name     = "halogen-handlers"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-queries = { path = "../queries" }
+flate2 = "1"
+sea-orm            = { workspace = true }
+tokio              = { workspace = true }
+anyhow             = { workspace = true }
+chrono             = { workspace = true }
+halogen-wire       = { path = "../wire", features = ["db"] }
+halogen-orm        = { path = "../orm" }
+halogen-migrations    = { path = "../migrations" }
+halogen-utils      = { path = "../utils" }
+halogen-download   = { path = "../download" }
+validator          = { workspace = true }
+tracing            = { workspace = true }
+bcrypt               = { workspace = true }
+
+[dev-dependencies]
+halogen-fixture = { path = "../fixture", features = ["test-support"] }

@@ -192,7 +192,8 @@ struct EpisodeDetailView: View {
             core.isEmbeddedAccount
             ? DeviceDownloads.State.none
             : (core.models?.device.state(of: episode.id) ?? .none)
-        let onServer = core.models?.serverDownloads.isDownloaded(episode)
+        let onServer =
+            core.models?.serverDownloads.isDownloaded(episode)
             ?? (episode.download_status == .downloaded)
         let serverProgress = core.models?.serverDownloads.progress(of: episode.id)
         let serverRunning =
@@ -298,4 +299,3 @@ struct EpisodeDetailView: View {
             : String(format: "%d:%02d", s / 60, s % 60)
     }
 }
-

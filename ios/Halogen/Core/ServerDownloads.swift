@@ -50,11 +50,10 @@ final class ServerDownloads {
     func download(_ episode: EpisodeData) {
         let id = episode.id
         guard tasks[id] == nil else { return }
-        progress[id] = 0
-        failed.remove(id)
-        removed.remove(id)
+        let origin = core.outbox
         tasks[id] = Task { [weak self] in
-            await self?.track(id)
+            guard let self, let origin, core.outbox === origin else { return }
+            await track(id)
         }
     }
 
@@ -72,7 +71,13 @@ final class ServerDownloads {
         // periods and restarts). While the op is still queued the poll below
         // simply finds no progress; the drain ships it when the server is
         // reachable and a later watch/refresh picks the run back up.
-        await core.outbox?.enqueue(.triggerDownload(episodeId: id))
+        guard await core.ensureQueued(.triggerDownload(episodeId: id)) else {
+            failed.insert(id); progress[id] = nil; tasks[id] = nil
+            return
+        }
+        progress[id] = 0
+        failed.remove(id)
+        removed.remove(id)
         await poll(id)
     }
 

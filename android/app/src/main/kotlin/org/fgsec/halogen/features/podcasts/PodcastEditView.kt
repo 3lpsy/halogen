@@ -54,7 +54,7 @@ fun PodcastEditView(core: HalogenCore, podcast: PodcastData, onBack: (() -> Unit
             core.updatePodcast(
                 id = podcast.id,
                 title = title,
-                description = description.ifEmpty { null },
+                description = description,
                 feedUrl = feedUrl,
             )
             core.models?.podcasts?.refresh()

@@ -83,11 +83,10 @@ pub struct PodcastConfigUpdateData {
 }
 
 impl PodcastConfigUpdateData {
-    /// Merge this update onto an existing config: a `Some` field is applied, a `None`
-    /// field leaves the target unchanged. The single source of truth for the update's
-    /// field semantics — the client's optimistic updater
-    /// (`SyncService::update_podcast_config_locally`) applies it so an offline edit
-    /// mirrors exactly what the server will persist.
+    /// Merge this update onto an existing config: a `Some` field is applied, a `None` field leaves the target
+    /// unchanged. The single source of truth for the update's field semantics — the client's optimistic updater
+    /// (`SyncService::update_podcast_config_locally`) applies it so an offline edit mirrors exactly what the
+    /// server will persist.
     pub fn apply_to(&self, cfg: &mut PodcastConfigData) {
         if self.poll_interval_seconds.is_some() {
             cfg.poll_interval_seconds = self.poll_interval_seconds;

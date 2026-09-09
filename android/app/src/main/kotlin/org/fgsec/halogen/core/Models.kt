@@ -14,6 +14,8 @@ import org.fgsec.halogen.features.queue.QueueModel
 /// and so tab switches return to live state. An account switch rebuilds the
 /// whole registry over the new namespace.
 class Models(core: HalogenCore) {
+    private val accountStore = core.store
+
     val latest = LatestModel(core)
     val podcasts = PodcastsModel(core)
     val queue = QueueModel(core)
@@ -22,9 +24,9 @@ class Models(core: HalogenCore) {
     val history = HistoryModel(core)
     val discover = DiscoverModel(core)
     val player = PlayerModel(core)
-    val nav = NavModel(core.store)
-    val swipes = SwipePrefsModel(core.store)
-    val prefs = ClientPrefsModel(core.store)
+    val nav = NavModel(accountStore)
+    val swipes = SwipePrefsModel(accountStore)
+    val prefs = ClientPrefsModel(accountStore)
     val device = DeviceDownloads(core, core.appContext, core.account?.namespace ?: "anon", core.scope)
     val serverDownloads = ServerDownloads(core, core.scope)
     /// The optimistic playbacks overlay (cursor/played) every screen merges

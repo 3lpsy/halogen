@@ -1,12 +1,12 @@
 # Keep the Docker build context small + reproducible. The images regenerate all
-# build artifacts themselves (cargo build, npm ci, dx bundle, tailwind).
+# build artifacts themselves (cargo build, npm ci, wasm-bindgen, tailwind).
 .git/
 target/
 **/target/
 node_modules/
 **/node_modules/
 
-# Generated frontend bundle — rebuilt by `just ui-bundle` inside the image.
+# Generated frontend bundle, rebuilt by `just ui-build` inside the image.
 # The .gitkeep keeper must stay in the context: without it dist/ is empty and
 # COPY . . drops the dir entirely, breaking the rust_embed compile.
 dist/*
@@ -18,9 +18,10 @@ dist/*
 # this the rss/polling/download tests panic "test fixture not found".
 data/*
 !data/tests
+!data/assets
 **/*.log
 
-# Secrets: the repo-root .env (TART_FORGEJO_TOKEN, signing config) and Apple signing
+# Secrets: the repo-root .env (tokens and signing config) and Apple signing
 # material must NEVER be baked into an image by COPY . . .
 .env
 .env.local
@@ -33,18 +34,23 @@ data/*
 artifacts/
 .sccache/
 
-# The images build the server + web frontend only — CI definitions, docs, and
-# the mobile app source trees (plus their build state: Gradle caches, staged
-# .so/APKs, generated bindings, Xcode output) never belong in the context.
-# The ONE in-context file the toolchain image copies is re-included.
-ci/
-!ci/docker/toolchain/
-.forgejo/
+# Keep CI helpers, workflow inventories and native sources for check-all.
+# Exclude generated mobile state and signing outputs instead of entire trees.
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/app/src/main/jniLibs/
+android/generated/
+ios/build/
+ios/.build/
+ios/.cache/
+ios/.swiftpm/
+ios/UITestsPkg/.build/
+ios/UITestsPkg/.swiftpm/
+ios/xtool/
+ios/Generated/
 docs/
-android/
-ios/
-README.md
-AGENTS.md
 
 # Editor / agent / OS cruft.
 .idea/
@@ -54,3 +60,7 @@ AGENTS.md
 .opencode/
 CLAUDE.md
 .DS_Store
+
+.agents/
+
+**/*.p8

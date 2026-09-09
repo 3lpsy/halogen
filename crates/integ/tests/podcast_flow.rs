@@ -1,12 +1,7 @@
-//! Podcast journeys. `podcast_journey` walks the full CRUD lifecycle (create →
-//! list → get → update → list episodes → delete → confirm gone);
-//! `delete_podcast_cascades` proves a delete also removes the podcast's episodes
-//! and their playlist memberships + playback history. All via the real
-//! `ApiClient`, asserting the resulting data — not just status codes.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(podcast_flow)'`
+//! Exercise podcast CRUD through ApiClient and verify deletion cascades to episodes, memberships, and playback history.
+//! Run the halogen-integ podcast_flow binary.
 
-use halogen_api::ApiClient;
+use halogen_apiclient::ApiClient;
 use halogen_integ::*;
 use halogen_wire::{
     DefaultListParams, EpisodeInclude, FilterParams, PlaybackStoreData, PlaylistInclude,

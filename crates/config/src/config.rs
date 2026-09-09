@@ -1,15 +1,6 @@
-//! Config resolution: [`Cli`] (clap) + [`ConfigFile`] (TOML) → resolved
-//! [`Config`].
-//!
-//! Five layers, highest priority last: defaults < TOML < env (`HALOGEN_*`) < CLI
-//! < the runtime overrides file. The overrides file is the only writable-at-
-//! runtime layer; it honours an allowlist (`apply_overrides`) and never touches
-//! secrets, binding/identity fields, or its own `config_overrides_*` knobs. The
-//! `read_overrides` / `write_overrides` helpers back the `/config-overrides`
-//! endpoints (which replace the override set wholesale). Logging isn't up during
-//! `resolve`, so
-//! anything noteworthy (what the overrides file changed, rejected keys, load
-//! errors) is stashed on `Config` and logged from `main`.
+//! Resolve defaults < TOML < HALOGEN_* env < CLI < runtime overrides. Only allowlisted overrides are writable at
+//! runtime; secrets, binding/identity, and override-file settings stay protected. Config endpoints replace the override
+//! set. Save load/rejection diagnostics on Config for logging after startup.
 
 use std::env;
 use std::fmt;
@@ -172,6 +163,11 @@ pub struct Cli {
     /// Off by default (SSRF guard); enable for dev or a feed host on your LAN.
     #[arg(long)]
     pub allow_private_network: bool,
+    /// Override directory endpoints, including local fixture servers for tests.
+    #[arg(long)]
+    pub discover_itunes_base_url: Option<String>,
+    #[arg(long)]
+    pub discover_gpodder_base_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone, Default)]
@@ -359,11 +355,10 @@ pub struct Config {
     pub log_file_name: bool,
     pub log_line_number: bool,
     pub db_no_migrate: bool,
-    /// Disable WAL journaling for the SQLite DB (the server then pins the
-    /// rollback journal, converting an existing WAL file back). Escape hatch
-    /// for network-filesystem storage where WAL's shared-memory file is
-    /// unsafe; WAL is the default — readers don't block the poll tick's
-    /// writes. Boot-only (not runtime-overridable).
+    /// Disable WAL journaling for the SQLite DB (the server then pins the rollback journal, converting an
+    /// existing WAL file back). Escape hatch for network-filesystem storage where WAL's shared-memory file is
+    /// unsafe; WAL is the default — readers don't block the poll tick's writes. Boot-only (not
+    /// runtime-overridable).
     pub db_no_wal: bool,
     /// Skip creating the default "Queue" playlist on startup.
     pub db_skip_default_playlist: bool,
@@ -469,13 +464,10 @@ pub(crate) fn get_xdg_config_path() -> Option<PathBuf> {
 }
 
 impl Config {
-    /// Layer the config sources (defaults < TOML < env < CLI < overrides file)
-    /// into a final [`Config`].
-    ///
-    /// Returns `Err` if a referenced config file is missing/invalid, or if
-    /// `auth_token_secret` is empty after layering — it has no default and is
-    /// required, since it signs JWTs and must stay stable across restarts to
-    /// keep sessions valid.
+    /// Layer the config sources (defaults < TOML < env < CLI < overrides file) into a final [`Config`].
+    /// Returns `Err` if a referenced config file is missing/invalid, or if `auth_token_secret` is empty after
+    /// layering — it has no default and is required, since it signs JWTs and must stay stable across restarts
+    /// to keep sessions valid.
     pub fn resolve(cli: &Cli) -> Result<Self, String> {
         let mut cfg = Self::default();
 
@@ -496,11 +488,10 @@ impl Config {
         cfg.apply_env();
         cfg.apply_cli(cli);
 
-        // Config overrides are layered LAST — on top of CLI — so a runtime
-        // override file wins over boot config. The `config_overrides_*` knobs
-        // are resolved through the normal chain above (they are not themselves
-        // overridable), so they're known by now. Logging isn't initialized yet,
-        // so anything noteworthy is recorded on `cfg` and logged from `main`.
+        // Config overrides are layered LAST — on top of CLI — so a runtime override file wins over boot config.
+        // The `config_overrides_*` knobs are resolved through the normal chain above (they are not themselves
+        // overridable), so they're known by now. Logging isn't initialized yet, so anything noteworthy is
+        // recorded on `cfg` and logged from `main`.
         let configured = cfg.config_overrides_path.take();
         cfg.config_overrides_path = resolve_overrides_path(cli, configured.as_deref());
         if !cfg.config_overrides_disable
@@ -522,11 +513,10 @@ impl Config {
                 .to_string());
         }
 
-        // Clamp the token expiry to a sane range regardless of source (TOML / env /
-        // CLI / overrides file — the runtime `POST /config-overrides` path is
-        // validated by the DTO). `0` mints already-expired tokens (total lockout),
-        // and a value near `u64::MAX` overflows `minutes * 60` / wraps the `i64`
-        // `exp` at mint time. Floor 1 minute, ceiling ~100 years.
+        // Clamp the token expiry to a sane range regardless of source (TOML / env / CLI / overrides file — the
+        // runtime `POST /config-overrides` path is validated by the DTO). `0` mints already-expired tokens
+        // (total lockout), and a value near `u64::MAX` overflows `minutes * 60` / wraps the `i64` `exp` at mint
+        // time. Floor 1 minute, ceiling ~100 years.
         const MAX_TOKEN_EXPIRY_MINUTES: u64 = 52_560_000; // ~100 years
         let clamped = cfg
             .auth_token_expiry_minutes
@@ -637,11 +627,10 @@ impl Config {
     }
 
     fn apply_env(&mut self) {
-        // Each `HALOGEN_*` var maps to one field by shape. The macros collapse the
-        // four mechanical patterns (set string / set Some-string / set PathBuf /
-        // `parse()`); the two genuinely special cases (CORS list-split, the
-        // `no_sync_before` custom parser) stay inline below. Adding a field is one
-        // line, not a six-line `if let` block.
+        // Each `HALOGEN_*` var maps to one field by shape. The macros collapse the four mechanical patterns
+        // (set string / set Some-string / set PathBuf / `parse()`); the two genuinely special cases (CORS
+        // list-split, the `no_sync_before` custom parser) stay inline below. Adding a field is one line, not a
+        // six-line `if let` block.
         macro_rules! env_str {
             ($var:literal, $field:ident) => {
                 if let Some(v) = config_env_var($var)
@@ -790,6 +779,11 @@ impl Config {
         env_parse!("HALOGEN_DEV_USE_MOCK_DOWNLOAD", dev_use_mock_download);
         env_parse!("HALOGEN_DEV_SEED_DATA", dev_seed_data);
         env_parse!("HALOGEN_ALLOW_PRIVATE_NETWORK", allow_private_network);
+        env_str!("HALOGEN_DISCOVER_ITUNES_BASE_URL", discover_itunes_base_url);
+        env_str!(
+            "HALOGEN_DISCOVER_GPODDER_BASE_URL",
+            discover_gpodder_base_url
+        );
     }
 
     fn apply_cli(&mut self, cli: &Cli) {
@@ -879,6 +873,8 @@ impl Config {
         flag!(cli.dev_use_mock_download => dev_use_mock_download);
         flag!(cli.dev_seed_data => dev_seed_data);
         flag!(cli.allow_private_network => allow_private_network);
+        clone!(cli.discover_itunes_base_url => discover_itunes_base_url);
+        clone!(cli.discover_gpodder_base_url => discover_gpodder_base_url);
     }
 }
 

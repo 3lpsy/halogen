@@ -1,0 +1,34 @@
+[package]
+name = "halogen-webui-hook-context"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-app-state = { path = "../app-state" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-store = { path = "../store" }
+halogen-webui-player = { path = "../player" }
+halogen-webui-accounts = { path = "../accounts" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-accounts/web", "halogen-webui-app-state/web", "halogen-webui-commands/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-player/web"]
+desktop = ["dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-app-state/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-player/desktop"]

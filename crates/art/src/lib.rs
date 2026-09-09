@@ -1,28 +1,6 @@
-//! On-demand artwork cache.
-//!
-//! The client NEVER fetches resources from origins outside this server (a hard
-//! product rule — see the CSP the frontend ships with). Feed artwork therefore
-//! flows through here: the first `GET /{episodes,podcasts}/{id}/art` request
-//! fetches the origin `art_url` server-side into `<media_root>/art/`, persists
-//! the path on the row (`art_file_path`), and every later request serves the
-//! cached file.
-//!
-//! When a row has no usable art (no `art_url`, or the origin isn't an image),
-//! each `ensure_*` method can fall back **one hop** to the other: an episode
-//! borrows its podcast's art, a podcast borrows its latest episode's art. The
-//! routers enable the hop (`fallback_* = true`); the cross-calls disable it
-//! (`false`) so the two can never loop.
-//!
-//! Failure handling (the UI requests art for every rendered row, so a doomed
-//! URL must not be re-crawled per render):
-//! - **Negative cache**: a failed fetch marks the entity for [`NEGATIVE_TTL`];
-//!   until it expires the resolver skips straight to the fallback/404 instead
-//!   of re-walking origin redirect chains. In-memory only — a restart retries.
-//! - **Singleflight**: concurrent resolutions of the same entity serialize on
-//!   a per-key lock; the loser re-checks the DB row and finds the winner's
-//!   cached file (or its fresh failure mark). The lock guards only the leaf
-//!   fetch, never the fallback hop, so episode↔podcast cross-calls can't
-//!   deadlock on each other's keys.
+//! On-demand server-side artwork cache; clients never fetch origin art directly. Persist successful paths and
+//! negative-cache failures for NEGATIVE_TTL. Episode/podcast fallback permits one hop only. Per-key locks cover leaf
+//! fetches, with DB rechecks, but never cross-entity fallback, avoiding deadlocks.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -48,12 +26,10 @@ const NEGATIVE_TTL: Duration = Duration::from_secs(15 * 60);
 /// the next render, so it's parked for a week instead of re-crawled every 15 min.
 const PERMANENT_NEGATIVE_TTL: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 
-/// Longest edge (px) of the small art variant. List/mini-player thumbnails render
-/// at ~70 CSS px. 160 covers up to ~2.3x DPR crisply (and 3x acceptably for a
-/// thumbnail this small) while roughly halving the on-the-wire bytes vs. the old
-/// 256 — which Lighthouse flagged as ~2x oversized for the displayed size. Bump
-/// back toward 192/256 if hi-DPI sharpness ever regresses; drop to 128 to trade
-/// more sharpness for fewer bytes.
+/// Longest edge (px) of the small art variant. List/mini-player thumbnails render at ~70 CSS px. 160 covers up
+/// to ~2.3x DPR crisply (and 3x acceptably for a thumbnail this small) while roughly halving the on-the-wire
+/// bytes vs. the old 256 — which Lighthouse flagged as ~2x oversized for the displayed size. Bump back toward
+/// 192/256 if hi-DPI sharpness ever regresses; drop to 128 to trade more sharpness for fewer bytes.
 const SMALL_MAX_DIM: u32 = 160;
 
 /// Entities whose last fetch failed, with the failure instant + the TTL that
@@ -68,16 +44,8 @@ static FAILED: LazyLock<Mutex<HashMap<String, (Instant, Duration)>>> =
 static FETCH_LOCKS: LazyLock<Mutex<HashMap<String, Arc<AsyncMutex<()>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Caps concurrent thumbnail generation. `generate_small` decodes a full image
-/// and re-encodes it (lossless WebP for PNG) on a blocking thread — CPU- and
-/// memory-heavy. The UI requests `/art/small` for every rendered row, so a fast
-/// scroll of a long list fires hundreds at once; uncapped, each spawns a
-/// blocking encode, saturating every core and the tokio blocking pool and
-/// ballooning memory with concurrent full-image decodes until the async runtime
-/// starves and the reverse proxy 502s the backed-up upstream. Bounding to the
-/// core count makes a burst queue instead of melting the server (each holds the
-/// permit only across its own decode/encode). Pruning isn't needed — it's a
-/// fixed-size counter, not a per-entity map.
+/// Limit concurrent thumbnail decode/encode work to the core count. Each blocking image conversion holds one permit,
+/// bounding memory and blocking-pool pressure during list scrolls.
 static SMALL_GEN_LIMIT: LazyLock<Semaphore> = LazyLock::new(|| {
     // Conservative cap (≤4): bounds worst-case decode memory to
     // permits × SMALL_DECODE_MAX_ALLOC regardless of core count, since OOM is
@@ -89,19 +57,16 @@ static SMALL_GEN_LIMIT: LazyLock<Semaphore> = LazyLock::new(|| {
     Semaphore::new(permits)
 });
 
-/// Per-image decode memory ceiling. `image` decodes the whole source into RAM
-/// before downscaling, so a feed-controlled origin (up to `MAX_ART_BYTES`
-/// compressed) can balloon to hundreds of MB of raster. Cap the decoder's
-/// allocation so a bomb fails the decode (→ we fall back to serving the
-/// original, no thumbnail) instead of OOM-ing the pod. With [`SMALL_GEN_LIMIT`]
-/// this bounds peak generation memory to permits × this.
+/// Per-image decode memory ceiling. `image` decodes the whole source into RAM before downscaling, so a
+/// feed-controlled origin (up to `MAX_ART_BYTES` compressed) can balloon to hundreds of MB of raster. Cap the
+/// decoder's allocation so a bomb fails the decode (→ we fall back to serving the original, no thumbnail)
+/// instead of OOM-ing the pod. With [`SMALL_GEN_LIMIT`] this bounds peak generation memory to permits × this.
 const SMALL_DECODE_MAX_ALLOC: u64 = 128 * 1024 * 1024;
 
-/// Shared, SSRF-guarded HTTP client for art fetches, memoized so the connection
-/// pool is reused across requests (the UI requests art for every rendered row).
-/// SHORT total timeout — not `halogen_download`'s hour-scale download client:
-/// art resolves synchronously inside a browser `<img>` request, so
-/// a dead CDN must fail in seconds, not pin handlers for an hour.
+/// Shared, SSRF-guarded HTTP client for art fetches, memoized so the connection pool is reused across requests
+/// (the UI requests art for every rendered row). SHORT total timeout — not `halogen_download`'s hour-scale
+/// download client: art resolves synchronously inside a browser `<img>` request, so a dead CDN must fail in
+/// seconds, not pin handlers for an hour.
 static ART_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 fn art_client() -> reqwest::Client {
@@ -282,11 +247,10 @@ pub async fn ensure_podcast_art(
     Ok(None)
 }
 
-/// Resolve a small (thumbnail) variant of an episode's artwork, generating it on
-/// first request. Resolves the full-resolution original exactly like
-/// [`ensure_episode_art`] (same fetch/cache/fallback path), then lazily derives a
-/// downscaled `<stem>.small.<ext>` sibling next to it. `Ok(None)` mirrors the
-/// original: no artwork available.
+/// Resolve a small (thumbnail) variant of an episode's artwork, generating it on first request. Resolves the
+/// full-resolution original exactly like [`ensure_episode_art`] (same fetch/cache/fallback path), then lazily
+/// derives a downscaled `<stem>.small.<ext>` sibling next to it. `Ok(None)` mirrors the original: no artwork
+/// available.
 pub async fn ensure_episode_art_small(
     dbc: &DatabaseConnection,
     episode_id: i32,
@@ -322,12 +286,8 @@ pub async fn ensure_podcast_art_small(
 fn small_variant_path(original: &Path) -> Option<PathBuf> {
     let ext = original.extension()?.to_str()?;
     let stem = original.file_stem()?.to_str()?;
-    // PNG originals are lossless and often the largest thumbnails on the wire;
-    // re-encoding them as lossless WebP shrinks the bytes with no quality loss and
-    // alpha preserved. JPEG/GIF/WebP keep their own format — pure-Rust WebP
-    // encoding is lossless-only, so converting a photographic JPEG would *grow*
-    // it. The output extension drives both the encode format in `generate_small`
-    // (`ImageFormat::from_path`) and the served Content-Type (`ServeFile` mime).
+    // Convert PNG to lossless WebP to shrink thumbnails while preserving alpha. Keep other formats: lossless WebP can
+    // enlarge JPEGs. The extension selects both encoder and served Content-Type.
     let out_ext = if ext.eq_ignore_ascii_case("png") {
         "webp"
     } else {
@@ -452,15 +412,9 @@ fn is_permanent_status(status: StatusCode) -> bool {
         && status != StatusCode::TOO_MANY_REQUESTS
 }
 
-/// Fetch `url` into `<media_root>/art/<stem>.<ext>` (ext from the response
-/// Content-Type). Refuses non-image responses — the art column historically
-/// carried audio-enclosure URLs (see `rss::feed`), and proxying those would
-/// re-create the very origin-download bug this cache exists to prevent.
-///
-/// Uses the short-timeout, memoized [`art_client`] (not `download_client()`,
-/// whose hour-scale timeouts are sized for episode audio): art resolves
-/// synchronously inside a browser `<img>` request, so a dead CDN must fail in
-/// seconds, not pin handlers for an hour.
+/// Fetch artwork into `<media_root>/art/<stem>.<ext>` using response Content-Type; reject non-images, including
+/// historical audio URLs. Use the memoized, short-timeout art client so dead CDNs cannot pin browser image handlers for
+/// audio-sized timeouts.
 async fn fetch_art(url: &str, media_root: &Path, stem: &str) -> Result<PathBuf, ArtFetchError> {
     debug!(url, stem, "fetching art_url");
     let mut response = art_client().get(url).send().await?;

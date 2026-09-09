@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Halogen · Listen · Latest, queue and playlists</title>
+<link rel="stylesheet" href="../../system/halogen.css">
+</head>
+<body>
+<nav class="sheet-nav">
+<a href="../../master.html">All screens</a> · <a href="00-lists.png">PNG</a>
+</nav>
+<h1 class="sheet-title">Listen · Latest, queue and playlists</h1>
+<p class="sheet-sub">Current implementation, reconstructed as editable HTML. iOS 26 device chrome; default dock order. The first four destinations are configurable. More is always present.</p>
+<div class="row">
+<figure id="C1" class="">
+<span class="fid">C1 · iOS · Latest</span>
+<div class="phone ">
+<div data-status>
+</div>
+<header class="appbar">
+<span class="leading">Edit</span>
+<h2>Halogen</h2>
+<span class="trailing">
+<span class="dot">
+</span>
+<span class="blue" data-icon="account">
+</span>
+</span>
+</header>
+<div class="searchrow">
+<div class="search">
+<span class="blue" data-icon="search">
+</span>Search</div>
+<span class="blue" data-icon="filter">
+</span>
+<span class="blue" data-icon="sort">
+</span>
+</div>
+<main class="content">
+<div class="episode">
+<div class="episode-head">
+<div class="art " data-icon="wave">
+</div>
+<div class="grow">
+<span class="title">FreeBSD with John Baldwin</span>
+<span class=meta>Software Engineering Daily</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">FreeBSD is one of the longest-running operating systems.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>63 min · last month</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+<div class="episode">
+<div class="episode-head">
+<img class="art " src="../../system/assets/ferrari.jpg" alt="Ferrari artwork">
+<div class="grow">
+<span class="title">Ferrari</span>
+<span class=meta>Acquired</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">Ferrari is the pinnacle of luxury scarcity.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>3 hr 59 min · 5 months ago</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+<div class="episode">
+<div class="episode-head">
+<img class="art " src="../../system/assets/formula-1.jpg" alt="Formula 1 artwork">
+<div class="grow">
+<span class="title">Formula 1</span>
+<span class=meta>Acquired</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">Ferrari is the pinnacle of luxury scarcity.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>3 hr 59 min · 5 months ago</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+</main>
+<div data-tabs="Latest">
+</div>
+</div>
+<figcaption>Latest uses the shared episode row, including description preview, play and download controls.</figcaption>
+</figure>
+<figure id="C2" class="">
+<span class="fid">C2 · iOS · Queue</span>
+<div class="phone ">
+<div data-status>
+</div>
+<header class="appbar">
+<span class="leading">Edit</span>
+<h2>Halogen</h2>
+<span class="trailing">
+<span class="dot">
+</span>
+<span class="blue" data-icon="account">
+</span>
+</span>
+</header>
+<div class="searchrow">
+<div class="search">
+<span class="blue" data-icon="search">
+</span>Search</div>
+<span class="blue" data-icon="filter">
+</span>
+<span class="blue" data-icon="sort">
+</span>
+</div>
+<main class="content">
+<div class="episode">
+<div class="episode-head">
+<img class="art " src="../../system/assets/ferrari.jpg" alt="Ferrari artwork">
+<div class="grow">
+<span class="title">Ferrari</span>
+<span class=meta>Acquired</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">Ferrari is the pinnacle of luxury scarcity.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>3 hr 59 min · 5 months ago</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+<div class="episode">
+<div class="episode-head">
+<img class="art " src="../../system/assets/formula-1.jpg" alt="Formula 1 artwork">
+<div class="grow">
+<span class="title">Formula 1</span>
+<span class=meta>Acquired</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">Ferrari is the pinnacle of luxury scarcity.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>3 hr 59 min · 5 months ago</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+<div class="episode">
+<div class="episode-head">
+<img class="art " src="../../system/assets/the-nfl.jpg" alt="The NFL artwork">
+<div class="grow">
+<span class="title">The NFL</span>
+<span class=meta>Acquired</span>
+</div>
+<span class="chevron">›</span>
+</div>
+<div class="desc">Ferrari is the pinnacle of luxury scarcity.</div>
+<div class="episode-actions">
+<span class="blue" data-icon="play">
+</span>
+<span class="blue" data-icon="download">
+</span>
+<span>3 hr 59 min · 5 months ago</span>
+<span class="dots">
+<span class="blue" data-icon="dots">
+</span>
+</span>
+</div>
+</div>
+</main>
+<div data-mini>
+</div>
+<div data-tabs="Queue">
+</div>
+</div>
+<figcaption>Queue list with an active mini player. Edit enters native selection and reordering; those modes are not shown here.</figcaption>
+</figure>
+<figure id="C3" class="">
+<span class="fid">C3 · iOS · Playlists</span>
+<div class="phone ">
+<div data-status>
+</div>
+<header class="appbar">
+<span class="leading">
+</span>
+<h2>Halogen</h2>
+<span class="trailing">
+<span class="blue" data-icon="plus">
+</span>
+<span class="dot">
+</span>
+<span class="blue" data-icon="account">
+</span>
+</span>
+</header>
+<main class="content">
+<div class="setting">
+<span class="grow">
+<span class="blue" data-icon="queue">
+</span> <span class=title>Queue<span class=meta>3 episodes</span>
+</span>
+</span>
+<span class="value">
+</span>
+<span class=chevron>›</span>
+</div>
+<div class="setting">
+<span class="grow">
+<span class="blue" data-icon="playlist">
+</span> <span class=title>Evening listening<span class=meta>2 episodes</span>
+</span>
+</span>
+<span class="value">
+</span>
+<span class=chevron>›</span>
+</div>
+</main>
+<div data-tabs="Playlists">
+</div>
+</div>
+<figcaption>Playlist index, with the default queue and one user playlist. Sample playlist name.</figcaption>
+</figure>
+</div>
+<p class="source">Source: <a href="../../../ios/Halogen/Features/Latest/LatestView.swift">ios/Halogen/Features/Latest/LatestView.swift</a> · <a href="../../../ios/Halogen/Features/Queue/QueueView.swift">ios/Halogen/Features/Queue/QueueView.swift</a> · <a href="../../../ios/Halogen/Features/Playlists/PlaylistsView.swift">ios/Halogen/Features/Playlists/PlaylistsView.swift</a> · <a href="../../../ios/Halogen/Components/EpisodeRow.swift">ios/Halogen/Components/EpisodeRow.swift</a>
+</p>
+<script src="../../system/halogen.js">
+</script>
+</body>
+</html>

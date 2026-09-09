@@ -1,0 +1,28 @@
+[package]
+name = "halogen-webui-provider-local"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-accounts = { path = "../accounts" }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-wire = { path = "../../crates/wire" }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+rand = { workspace = true }
+# Local runtime is optional so renderless tests can use the stub facade.
+halogen-local-runtime = { path = "../../crates/local-runtime", optional = true }
+url = { workspace = true }
+
+[features]
+# In-process local API dispatch, excluded from the WASM graph.
+local-runtime = ["dep:halogen-local-runtime"]
+web = ["dioxus/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-accounts/web"]
+desktop = ["local-runtime", "dioxus/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-accounts/desktop"]

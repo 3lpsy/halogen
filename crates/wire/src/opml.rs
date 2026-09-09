@@ -1,9 +1,7 @@
-//! Shared request/response types for the admin OPML import/export endpoints
-//! (`POST /opml/import`, `GET /opml/export`).
-//!
-//! These live here (not in the server) so the API client and the server share a
-//! single definition. The OPML payload is the raw XML carried as a JSON string
-//! field; the actual parsing/serialization lives in `halogen_utils::opml`.
+//! Shared request/response types for the admin OPML import/export endpoints (`POST /opml/import`, `GET
+//! /opml/export`). These live here (not in the server) so the API client and the server share a single
+//! definition. The OPML payload is the raw XML carried as a JSON string field; the actual parsing/serialization
+//! lives in `halogen_utils::opml`.
 
 use serde::{Deserialize, Serialize};
 use validator::Validate;

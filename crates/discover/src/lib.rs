@@ -1,18 +1,12 @@
-//! Discover service — online-only podcast search across external directories.
-//!
-//! The UI never calls a provider directly (CSP: the client only talks to our
-//! origin). Instead it hits `/api/v1/discover/*`, and this service fans the
-//! query out to each provider, **proxying** every outbound request. Results are
-//! kept bare — title, feed URL, description, author, provider — and crucially we
-//! never fetch artwork (no image egress).
-//!
-//! Fault tolerance is the core property: providers run concurrently and a single
-//! provider failing becomes a [`DiscoverProviderError`] in the response, never a
-//! failed request. Adding a provider = one [`DiscoverProvider`] variant + one
-//! `match` arm in [`DiscoverService::run`] + one module here.
+//! Proxy online podcast-directory searches through `/api/v1/discover/*`; clients never contact providers or fetch their
+//! artwork. Providers run concurrently and failures become per-provider DiscoverProviderError entries. New providers
+//! need an enum variant, a run match arm, and a module.
 
+mod episodes;
 mod gpodder;
 mod itunes;
+mod pages;
+mod preview;
 
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
@@ -39,6 +33,8 @@ pub(crate) async fn fetch_json<T: serde::de::DeserializeOwned>(
     base: &str,
     params: &[(&str, &str)],
 ) -> Result<T, String> {
+    let url = reqwest::Url::parse(base).map_err(|e| e.to_string())?;
+    halogen_net::validate_url(&url)?;
     let response = client
         .get(base)
         .query(params)
@@ -48,14 +44,13 @@ pub(crate) async fn fetch_json<T: serde::de::DeserializeOwned>(
     if !response.status().is_success() {
         return Err(format!("{provider} returned {}", response.status()));
     }
-    response.json::<T>().await.map_err(|e| e.to_string())
+    let body = bounded_body(response, 2 * 1024 * 1024).await?;
+    serde_json::from_slice(&body).map_err(|e| e.to_string())
 }
 
-/// Compute the synthetic, stable id for a result: `provider-<hash(feed_url)>`.
-///
-/// Deterministic within a running server (fixed-seed `DefaultHasher`), which is
-/// all the detail page needs — results are ephemeral and the client only echoes
-/// this string back to look the row up in its in-memory store.
+/// Compute the synthetic, stable id for a result: `provider-<hash(feed_url)>`. Deterministic within a running
+/// server (fixed-seed `DefaultHasher`), which is all the detail page needs — results are ephemeral and the
+/// client only echoes this string back to look the row up in its in-memory store.
 fn make_id(provider: DiscoverProvider, feed_url: &str) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     provider.as_str().hash(&mut hasher);
@@ -79,6 +74,7 @@ fn clamp_description(s: String) -> String {
 #[derive(Clone)]
 pub struct DiscoverService {
     client: reqwest::Client,
+    pages: std::sync::Arc<std::sync::Mutex<pages::PageCache>>,
     /// Upstream iTunes search endpoint (real host in prod; a wiremock URL in tests).
     itunes_base: String,
     /// Upstream gpodder.net search endpoint (real host in prod; wiremock in tests).
@@ -92,6 +88,7 @@ impl DiscoverService {
     pub fn with_bases(itunes_base: String, gpodder_base: String) -> Self {
         let client = halogen_net::guarded_client_builder()
             // Bound a hung provider: connect fast, give the whole call ≤8s.
+            .redirect(halogen_net::guarded_redirect_policy())
             .timeout(Duration::from_secs(8))
             .connect_timeout(Duration::from_secs(5))
             .gzip(true)
@@ -102,6 +99,7 @@ impl DiscoverService {
             .expect("build discover http client");
         Self {
             client,
+            pages: Default::default(),
             itunes_base,
             gpodder_base,
         }
@@ -123,11 +121,9 @@ impl DiscoverService {
         }
     }
 
-    /// Run `q` against the selected providers concurrently and merge the results.
-    ///
-    /// `filter` of `None` or an empty slice means "all available providers". A
-    /// provider that errors contributes a [`DiscoverProviderError`]; the rest
-    /// still return — the search itself always succeeds.
+    /// Run `q` against the selected providers concurrently and merge the results. `filter` of `None` or an
+    /// empty slice means "all available providers". A provider that errors contributes a
+    /// [`DiscoverProviderError`]; the rest still return — the search itself always succeeds.
     pub async fn search(&self, q: &str, filter: Option<&[DiscoverProvider]>) -> DiscoverSearchData {
         let all = filter.is_none_or(|f| f.is_empty());
         let selected: Vec<DiscoverProvider> = PROVIDERS
@@ -182,3 +178,24 @@ impl DiscoverService {
 
 #[cfg(test)]
 mod tests;
+
+async fn bounded_body(mut response: reqwest::Response, limit: usize) -> Result<Vec<u8>, String> {
+    if response
+        .content_length()
+        .is_some_and(|size| size > limit as u64)
+    {
+        return Err("Remote response exceeds size limit".into());
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if chunk.len() > limit.saturating_sub(body.len()) {
+            return Err("Remote response exceeds size limit".into());
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
+fn bounded_text(value: &str, limit: usize) -> String {
+    value.chars().take(limit).collect()
+}

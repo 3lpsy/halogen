@@ -43,6 +43,7 @@ object Http {
     val cookieJar = MemoryCookieJar()
 
     val client: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(LocalTransport)
         .cookieJar(cookieJar)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)

@@ -47,6 +47,8 @@ import org.fgsec.halogen.wire.EpisodeData
 /// via the play-context playlist or the queue. Mirrors ios Features/Player/PlayerModel.swift.
 @OptIn(UnstableApi::class)
 class PlayerModel(private val core: HalogenCore) {
+    private val accountStore = core.store
+
     private val scope: CoroutineScope get() = core.scope
 
     var current: EpisodeData? by mutableStateOf(null)
@@ -501,7 +503,7 @@ class PlayerModel(private val core: HalogenCore) {
      *  Chapters) — the web's ensure_episode_chapters. */
     private fun loadChapters(episode: EpisodeData) {
         scope.launch {
-            var detail = core.store?.load<EpisodeData>(CacheKey.episode(episode.id))
+            var detail = accountStore?.load<EpisodeData>(CacheKey.episode(episode.id))
             if (detail?.chapters == null) {
                 detail = runCatching { core.episodeDetail(episode.id) }.getOrNull() ?: detail
             }
@@ -807,13 +809,8 @@ class PlayerModel(private val core: HalogenCore) {
 
     // ── continuation (play context → queue), web navigation.rs ───────────────
 
-    /** The list playback continues through: the play-context playlist when
-     *  one is set, else the queue (web next_up_in's playlist resolution).
-     *
-     *  Membership resolves LIVE from the playlists pool's `episode_ids`
-     *  (kept optimistically patched by every add/remove/reorder); the
-     *  play-time snapshot + queue serve as the object cache — an episode
-     *  added mid-session whose row object is unknown here is skipped. */
+    /** Continue through live play-context membership, or the queue when no context is set.
+     * Resolve episode objects from the play-time snapshot and queue; skip unknown additions. */
     private fun continuationList(): List<EpisodeData> {
         val ctxId = contextPlaylistId ?: return core.models?.queue?.episodes ?: emptyList()
         val ids = core.models?.playlists?.playlists

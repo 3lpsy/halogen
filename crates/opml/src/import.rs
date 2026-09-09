@@ -1,9 +1,7 @@
-//! Insert podcasts parsed from OPML. Only `type="rss"` outlines with a non-empty
-//! `xmlUrl` become rows; existing feeds (matched by `feed_url`) are skipped, not
-//! updated. The owner is subscribed to each imported feed (idempotently) so the
-//! library is actually visible — the episode/podcast list endpoints scope to
-//! `user_podcast` subscriptions, not ownership. Episodes are populated by a
-//! subsequent feed sync, not here.
+//! Insert podcasts parsed from OPML. Only `type="rss"` outlines with a non-empty `xmlUrl` become rows; existing
+//! feeds (matched by `feed_url`) are skipped, not updated. The owner is subscribed to each imported feed
+//! (idempotently) so the library is actually visible — the episode/podcast list endpoints scope to
+//! `user_podcast` subscriptions, not ownership. Episodes are populated by a subsequent feed sync, not here.
 
 use std::path::Path;
 

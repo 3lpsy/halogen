@@ -1,0 +1,28 @@
+[package]
+name = "halogen-webui-library-widgets"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hooks = { path = "../hooks" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-component-widgets = { path = "../component-widgets" }
+halogen-webui-component-icons = { path = "../component-icons" }
+halogen-wire = { path = "../../crates/wire" }
+url = { workspace = true }
+chrono = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { workspace = true, features = ["Window", "Document", "Location", "History"] }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+web = ["dioxus/web", "halogen-webui-commands/web", "halogen-webui-component-icons/web", "halogen-webui-component-widgets/web", "halogen-webui-config/web", "halogen-webui-hooks/web"]
+desktop = ["dioxus/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-component-widgets/desktop", "halogen-webui-config/desktop", "halogen-webui-hooks/desktop"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true }

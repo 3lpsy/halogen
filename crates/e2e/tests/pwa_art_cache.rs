@@ -1,23 +1,5 @@
-//! Service-worker artwork caching — the PWA must still have its list art after
-//! the server goes away.
-//!
-//! The app renders two artwork resolutions from different URLs (see
-//! `ui-appstate::media_url`): `/art` (full-size — player, episode detail) and
-//! `/art/small` (~256px thumbnail — the episode/podcast LISTS). `sw.js` routes
-//! artwork to a cache-first handler and BYPASSES the rest of `/api/` entirely, so
-//! whether a given art URL is recognised by `isArt` decides whether it survives
-//! offline at all.
-//!
-//! This asserts BOTH resolutions land in the cache. Only `/art` used to: the
-//! `isArt` regex was anchored (`/art$`), so every `/art/small` thumbnail fell into
-//! the `/api/` bypass and was never stored — which meant the pages built entirely
-//! out of thumbnails (queue, latest, podcasts) were exactly the ones that lost all
-//! their art offline, while the full-size player art stayed put.
-//!
-//! We assert the CACHE, not rendered `<img>`s: an `<img>` only proves the network
-//! served it, which stays true right up until the moment you lose the server.
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Verify both `/art` and `/art/small` reach the service-worker cache despite the general API bypass. Inspect cache
+//! entries directly; rendered images only prove network delivery. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, require_dist, run_session, sw_cached_body_len,
@@ -102,11 +84,10 @@ async fn service_worker_caches_both_art_resolutions() {
             "full-size art ({full}) must still be cached.\ncache holds: {all:#?}"
         );
 
-        // Presence isn't enough: an art-less row 204s and STILL caches (a 204 is
-        // `ok`), so key-presence alone passes with zero real artwork. Assert the
-        // cached bodies are actual image bytes — the podcast art was seeded, and
-        // episode art falls back to it, so both resolutions carry non-empty
-        // bodies. This is what "art survives offline" actually means.
+        // Presence isn't enough: an art-less row 204s and STILL caches (a 204 is `ok`), so key-presence alone
+        // passes with zero real artwork. Assert the cached bodies are actual image bytes — the podcast art was
+        // seeded, and episode art falls back to it, so both resolutions carry non-empty bodies. This is what
+        // "art survives offline" actually means.
         let full_len = sw_cached_body_len(&driver, &full).await;
         let small_len = sw_cached_body_len(&driver, &small).await;
         assert!(

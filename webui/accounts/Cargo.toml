@@ -1,0 +1,27 @@
+[package]
+name = "halogen-webui-accounts"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dioxus = { workspace = true, features = ["router"] }
+halogen-apiclient = { path = "../../crates/apiclient" }
+halogen-webui-config = { path = "../config" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store-idb = { path = "../store-idb" }
+halogen-webui-commands = { path = "../commands" }
+halogen-webui-component-toast = { path = "../component-toast" }
+halogen-webui-cache-purge = { path = "../cache-purge" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+base64 = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+idb = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+
+[features]
+web = ["dioxus/web", "halogen-webui-cache-purge/web", "halogen-webui-commands/web", "halogen-webui-component-toast/web", "halogen-webui-config/web", "halogen-webui-platform/web"]
+desktop = ["dioxus/desktop", "halogen-webui-cache-purge/desktop", "halogen-webui-commands/desktop", "halogen-webui-component-toast/desktop", "halogen-webui-config/desktop", "halogen-webui-platform/desktop"]

@@ -1,17 +1,5 @@
-//! Journey B — queue lifecycle via the kebab + swipe gestures.
-//!
-//! Add an episode to the queue from the /latest kebab menu, then on /queue use
-//! the swipe-RIGHT gesture, which is the Queue's default swipe-right action
-//! (`RemoveFromQueue`), to drop it. The removal then survives a reload (the
-//! membership persists to the local store, not just the in-memory list).
-//!
-//! (Swipe-left on the Queue downloads to device by default — not exercised here.)
-//!
-//! Swipe is synthesized by dispatching PointerEvents on the swipe card
-//! (`pointerdown` → a few `pointermove`s past the 80px threshold → `pointerup`),
-//! which is exactly what the item's drag handlers read (`client_coordinates`).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Add an episode through its kebab menu, synthesize a right swipe past 80px to remove it from Queue, and verify
+//! persistence after reload. Left swipe downloads instead. Ignored by default; run with `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, click_button_text, count, login_via_ui, require_dist, run_session,
@@ -156,11 +144,10 @@ async fn queue_lifecycle_journey() {
         // ── Removal survives a reload (persisted, not just in-memory) ───────
         driver.refresh().await?;
         driver.goto(format!("{}/queue", app.base_url)).await?;
-        // A single fixed-delay sample would pass even if the store re-hydration
-        // is slow (the row is briefly absent BEFORE hydration, so an early
-        // sample sees 0 whether or not removal persisted). Instead assert the
-        // row stays absent across the whole hydration window: if the removal did
-        // NOT persist, re-hydration re-adds it within this span and the poll trips.
+        // A single fixed-delay sample would pass even if the store re-hydration is slow (the row is briefly
+        // absent BEFORE hydration, so an early sample sees 0 whether or not removal persisted). Instead assert
+        // the row stays absent across the whole hydration window: if the removal did NOT persist, re-hydration
+        // re-adds it within this span and the poll trips.
         for _ in 0..15 {
             assert_eq!(
                 count(&driver, ROW).await,

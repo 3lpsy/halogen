@@ -1,8 +1,7 @@
-//! Podcast RSS sync-failure rows (`podcast_sync_error`): one row per failed
-//! fetch/read/parse with the failure reason. FK'd to the podcast (CASCADE), so
-//! errors die with their podcast. Shares its shape with
-//! [`episode_download_error`](crate::episode_download_error) — the two error
-//! histories differ only in what they FK to.
+//! Podcast RSS sync-failure rows (`podcast_sync_error`): one row per failed fetch/read/parse with the failure
+//! reason. FK'd to the podcast (CASCADE), so errors die with their podcast. Shares its shape with
+//! [`episode_download_error`](crate::episode_download_error) — the two error histories differ only in what they
+//! FK to.
 
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;

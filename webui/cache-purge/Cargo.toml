@@ -1,0 +1,30 @@
+[package]
+name = "halogen-webui-cache-purge"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-store-idb = { path = "../store-idb" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+idb = { workspace = true }
+serde_json = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Location", "Navigator",
+    "ServiceWorkerContainer", "ServiceWorker", "ServiceWorkerRegistration",
+    "CacheStorage"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+halogen-webui-store = { path = "../store" }
+
+[dev-dependencies]
+futures = { workspace = true }
+
+[features]
+desktop = ["halogen-webui-logging/desktop", "halogen-webui-platform/desktop"]
+web = ["halogen-webui-logging/web", "halogen-webui-platform/web"]

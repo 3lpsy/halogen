@@ -1,8 +1,7 @@
-//! iTunes Search API provider.
-//!
-//! `GET https://itunes.apple.com/search?media=podcast&entity=podcast&limit=25&term=<q>`
-//! — keyless, no auth. Returns `collectionName` / `artistName` / `feedUrl`. It
-//! does **not** return a usable description, so results from here have none.
+//! iTunes Search API provider. `GET
+//! https://itunes.apple.com/search?media=podcast&entity=podcast&limit=25&term=<q>` — keyless, no auth. Returns
+//! `collectionName` / `artistName` / `feedUrl`. It does **not** return a usable description, so results from
+//! here have none.
 
 use halogen_wire::{DiscoverProvider, DiscoverResultItem};
 use serde::Deserialize;
@@ -32,6 +31,16 @@ pub async fn search_at(
     base: &str,
     q: &str,
 ) -> Result<Vec<DiscoverResultItem>, String> {
+    search_limit(client, base, q, 25).await
+}
+
+pub async fn search_limit(
+    client: &reqwest::Client,
+    base: &str,
+    q: &str,
+    limit: usize,
+) -> Result<Vec<DiscoverResultItem>, String> {
+    let limit_string = limit.to_string();
     let body: ItunesResponse = fetch_json(
         client,
         "iTunes",
@@ -39,7 +48,7 @@ pub async fn search_at(
         &[
             ("media", "podcast"),
             ("entity", "podcast"),
-            ("limit", "25"),
+            ("limit", limit_string.as_str()),
             ("term", q),
         ],
     )
@@ -61,6 +70,7 @@ pub async fn search_at(
                 author: r.artist_name.filter(|a| !a.trim().is_empty()),
             })
         })
+        .take(limit)
         .collect();
 
     Ok(items)

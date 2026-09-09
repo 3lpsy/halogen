@@ -29,8 +29,11 @@ struct Artwork: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: size / 7))
         .task(id: url) {
+            image = nil
             guard let url else { return }
-            image = await ArtLoader.shared.image(for: url)
+            let loaded = await ArtLoader.shared.image(for: url)
+            guard !Task.isCancelled else { return }
+            image = loaded
         }
     }
 }

@@ -1,9 +1,7 @@
 import Foundation
 import Security
 
-/// One signed-in account — the iOS analog of a web accounts-registry entry.
-/// Embedded non-admin users carry an app-managed `password` for silent
-/// re-login (the add-embedded-user flow generates it, same as the web).
+/// A saved remote account or local profile; legacy credentials decode during migration.
 struct Session: Codable, Equatable, Identifiable {
     enum Kind: String, Codable {
         case embedded
@@ -12,15 +10,14 @@ struct Session: Codable, Equatable, Identifiable {
 
     var id: UUID
     let kind: Kind
-    /// Remote only — the server base URL. Embedded resolves its loopback URL
-    /// at boot (the port is not stable identity).
+    /// Remote only. Local profiles resolve through FFI at boot.
     let serverUrl: String?
     var username: String
-    /// The API JWT from the last login. Remote sessions resume with it and
-    /// fall back to the landing page on expiry; embedded sessions re-login.
+    /// The remote API JWT. Local profiles clear legacy tokens on first resume.
     var token: String
-    /// Embedded non-admin users: app-managed password for silent re-login.
+    /// Compatibility field for old sessions, cleared when a local profile resumes.
     var password: String?
+    var localUserId: Int32?
 
     init(
         kind: Kind, serverUrl: String?, username: String, token: String,
@@ -43,12 +40,13 @@ struct Session: Codable, Equatable, Identifiable {
         username = try c.decode(String.self, forKey: .username)
         token = try c.decode(String.self, forKey: .token)
         password = try c.decodeIfPresent(String.self, forKey: .password)
+        localUserId = try c.decodeIfPresent(Int32.self, forKey: .localUserId)
     }
 }
 
 /// The device-global accounts registry (all saved sessions + which is
-/// active), persisted as ONE Keychain item — tokens/passwords never live in
-/// UserDefaults.
+/// active), persisted as one Keychain item. Only unsigned simulators use
+/// a UserDefaults fallback; device credentials always stay in Keychain.
 struct StoredAccounts: Codable {
     var sessions: [Session]
     var activeId: UUID?
@@ -63,7 +61,14 @@ enum SessionStore {
     private static let account = "active"
 
     static func load() -> StoredAccounts {
-        guard let data = readItem() else {
+        do { return try loadDurably() } catch {
+            DeviceLog.warn("session storage read failed: \(error)")
+            return StoredAccounts(sessions: [], activeId: nil)
+        }
+    }
+
+    static func loadDurably() throws -> StoredAccounts {
+        guard let data = try readItem() else {
             return StoredAccounts(sessions: [], activeId: nil)
         }
         if let registry = try? JSONDecoder().decode(StoredAccounts.self, from: data) {
@@ -73,28 +78,33 @@ enum SessionStore {
         if let single = try? JSONDecoder().decode(Session.self, from: data) {
             return StoredAccounts(sessions: [single], activeId: single.id)
         }
-        return StoredAccounts(sessions: [], activeId: nil)
+        throw CocoaError(.coderReadCorrupt)
     }
 
     static func save(_ registry: StoredAccounts) {
-        guard let data = try? JSONEncoder().encode(registry) else { return }
-        writeItem(data)
+        do { try saveDurably(registry) } catch {
+            DeviceLog.warn("session storage write failed: \(error)")
+        }
+    }
+
+    static func saveDurably(_ registry: StoredAccounts) throws {
+        try writeItem(JSONEncoder().encode(registry))
     }
 
     /// Insert-or-replace (matching kind + server + username) and make active.
-    static func upsertActive(_ session: Session) {
-        var registry = load()
+    static func upsertActive(_ session: Session) throws {
+        var registry = try loadDurably()
         registry.sessions.removeAll {
             $0.kind == session.kind && $0.serverUrl == session.serverUrl
                 && $0.username == session.username
         }
         registry.sessions.append(session)
         registry.activeId = session.id
-        save(registry)
+        try saveDurably(registry)
     }
 
     static func switchTo(_ id: UUID) {
-        var registry = load()
+        guard var registry = try? loadDurably() else { return }
         guard registry.sessions.contains(where: { $0.id == id }) else { return }
         registry.activeId = id
         save(registry)
@@ -103,7 +113,7 @@ enum SessionStore {
     /// Remove a session; returns the next active session (if any).
     @discardableResult
     static func remove(_ id: UUID) -> Session? {
-        var registry = load()
+        guard var registry = try? loadDurably() else { return nil }
         registry.sessions.removeAll { $0.id == id }
         if registry.activeId == id {
             registry.activeId = registry.sessions.last?.id
@@ -113,7 +123,7 @@ enum SessionStore {
     }
 
     static func renameActive(to username: String) {
-        var registry = load()
+        guard var registry = try? loadDurably() else { return }
         guard let idx = registry.sessions.firstIndex(where: { $0.id == registry.activeId })
         else { return }
         registry.sessions[idx].username = username
@@ -122,28 +132,77 @@ enum SessionStore {
 
     static func clear() {
         SecItemDelete(baseQuery() as CFDictionary)
+        #if targetEnvironment(simulator)
+            UserDefaults.standard.removeObject(forKey: simulatorFallbackKey)
+        #endif
     }
 
-    // MARK: - keychain plumbing
+    static let accessibility = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    private static let simulatorFallbackKey = "halogen_simulator_accounts"
 
-    private static func readItem() -> Data? {
+    static func writeAttributes(_ data: Data) -> [String: Any] {
+        [kSecValueData as String: data, kSecAttrAccessible as String: accessibility]
+    }
+
+    static func readItem(
+        read: () -> (OSStatus, Data?) = readKeychain,
+        update: ([String: Any]) -> OSStatus = updateKeychain
+    ) throws -> Data? {
+        let (status, data) = read()
+        if status == errSecSuccess {
+            // Existing accounts migrate at first readable boot, without waiting for token renewal.
+            let migration = update([kSecAttrAccessible as String: accessibility])
+            if migration != errSecSuccess {
+                DeviceLog.warn("session protection update failed: keychain status \(migration)")
+            }
+            return data
+        }
+        #if targetEnvironment(simulator)
+            if let data = UserDefaults.standard.data(forKey: simulatorFallbackKey) { return data }
+            if status == errSecMissingEntitlement { return nil }
+        #endif
+        if status == errSecItemNotFound { return nil }
+        throw StorageError.keychain(status)
+    }
+
+    private static func readKeychain() -> (OSStatus, Data?) {
         var query = baseQuery()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else {
-            return nil
-        }
-        return item as? Data
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        return (status, item as? Data)
     }
 
-    private static func writeItem(_ data: Data) {
-        var query = baseQuery()
-        let update = [kSecValueData as String: data]
-        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+    private static func updateKeychain(_ attributes: [String: Any]) -> OSStatus {
+        SecItemUpdate(baseQuery() as CFDictionary, attributes as CFDictionary)
+    }
+
+    private static func writeItem(_ data: Data) throws {
+        let attributes = writeAttributes(data)
+        var status = SecItemUpdate(baseQuery() as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
-            query[kSecValueData as String] = data
-            SecItemAdd(query as CFDictionary, nil)
+            let query = baseQuery().merging(attributes) { _, new in new }
+            status = SecItemAdd(query as CFDictionary, nil)
+        }
+        #if targetEnvironment(simulator)
+            // Unsigned simulator builds cannot use Keychain; device credentials never use this fallback.
+            if status != errSecSuccess {
+                DeviceLog.info("simulator session storage fallback: keychain status \(status)")
+                UserDefaults.standard.set(data, forKey: simulatorFallbackKey)
+                return
+            }
+            UserDefaults.standard.removeObject(forKey: simulatorFallbackKey)
+        #endif
+        guard status == errSecSuccess else { throw StorageError.keychain(status) }
+    }
+
+    enum StorageError: LocalizedError {
+        case keychain(OSStatus)
+
+        var errorDescription: String? {
+            guard case .keychain(let status) = self else { return nil }
+            return "Saved accounts are unavailable (Keychain \(status)). Unlock the device and try again."
         }
     }
 

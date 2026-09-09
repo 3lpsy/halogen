@@ -9,58 +9,59 @@ struct LocalPlayback: Codable {
 }
 
 /// Locally-authoritative playback state keyed by episode id (the web's
-/// optimistic `playbacks` overlay): cursor saves / played toggles write here
-/// FIRST, then enqueue the durable outbox op. Readers merge overlay-wins-when-
-/// newer, so a stale server page can't regress an unshipped resume position.
+/// optimistic `playbacks` overlay). Mutations commit to the shared journal and
+/// cache before updating these entries.
 @MainActor
 @Observable
 final class PlaybackOverlayModel {
+    private let accountStore: LocalStore?
+
     private unowned let core: HalogenCore
 
     private(set) var entries: [Int32: LocalPlayback] = [:]
 
     init(core: HalogenCore) {
         self.core = core
+        self.accountStore = core.store
     }
 
     /// Hydrate from disk (boot / account switch) so offline listening
     /// progress survives relaunch (web: hydrate_from_store → playbacks).
     func load() async {
-        guard let store = core.store,
-            let saved = await store.load([Int32: LocalPlayback].self, key: CacheKey.playbacks)
-        else { return }
+        guard let store = accountStore else { return }
+        let saved = await store.loadPlaybacks() ?? [:]
         // Keep newer in-memory entries — a save can race the hydrate.
         entries.merge(saved) { mem, disk in mem.updatedAt >= disk.updatedAt ? mem : disk }
+
     }
 
     // MARK: - mutations (optimistic + outbox, the web's command pattern)
 
-    /// Cursor save: overlay + persist, then the durable (coalescing) op.
+    /// Cursor save: durable intent, followed by the visible playback overlay.
     /// History learns about the episode too — one you merely STARTED must
     /// appear there immediately, offline included (web: every
     /// set_playback_locally republishes and History recomputes from it).
     func setCursor(_ episode: EpisodeData, cursor: UInt64) {
-        var entry =
-            entries[episode.id] ?? LocalPlayback(cursor: 0, completed: false, updatedAt: .now)
-        entry.cursor = cursor
-        entry.updatedAt = .now
-        entries[episode.id] = entry
-        persist()
-        core.models?.history.noteLocalPlayback(episode)
-        Task { await core.outbox?.enqueue(.setCursor(episodeId: episode.id, cursor: cursor)) }
+        core.enqueueMutation(originStore: accountStore, .setCursor(episodeId: episode.id, cursor: cursor)) { [self] in
+            var entry = entries[episode.id] ?? LocalPlayback(cursor: 0, completed: false, updatedAt: .now)
+            entry.cursor = cursor
+            entry.updatedAt = .now
+            entries[episode.id] = entry
+            core.models?.history.noteLocalPlayback(episode)
+        }
     }
 
     /// Played toggle: the cursor resets to 0 in lock-step with the server op
     /// (web: `set_playback_locally` under MarkPlayed does the same), History
     /// gains the episode, and the queued op supersedes pending cursor saves.
     func markPlayed(_ episode: EpisodeData, played: Bool) {
-        entries[episode.id] = LocalPlayback(cursor: 0, completed: played, updatedAt: .now)
-        persist()
-        if played {
-            core.models?.history.noteLocalPlayback(episode)
+        core.enqueueMutation(originStore: accountStore, .setPlayed(episodeId: episode.id, played: played)) { [self] in
+            entries[episode.id] = LocalPlayback(cursor: 0, completed: played, updatedAt: .now)
+            if played { core.models?.history.noteLocalPlayback(episode) }
         }
-        Task { await core.outbox?.enqueue(.setPlayed(episodeId: episode.id, played: played)) }
     }
+
+    func removeProjected(episodeId: Int32) { entries.removeValue(forKey: episodeId) }
 
     /// Drop the local overlay entry for one episode — the per-episode
     /// "Remove local data" purge (web: confirm_purge wipes the local playback
@@ -100,9 +101,9 @@ final class PlaybackOverlayModel {
 
     private func persist() {
         let snapshot = entries
-        persistChain = Task { [store = core.store, previous = persistChain] in
+        persistChain = Task { [store = accountStore, previous = persistChain] in
             await previous?.value
-            await store?.save(snapshot, key: CacheKey.playbacks)
+            await store?.savePlaybacks(snapshot)
         }
     }
 }

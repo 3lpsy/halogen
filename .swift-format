@@ -1,0 +1,89 @@
+{
+  "_readme": [
+    "House style for ios/ (CI-010). swift-format is this project's formatter, not",
+    "its linter: just ios-lint gates on swiftlint (.swiftlint.yml), because this",
+    "pretty printer wants to unpack the SwiftUI closures the tree deliberately",
+    "nests. indentation 4 and lineLength 120 are what ios/ is written to;",
+    "AlwaysUseLowerCamelCase is off because wire DTOs mirror the Rust/JSON",
+    "snake_case field names, and DoNotUseSemicolons is off because the tree packs",
+    "related assignments onto one line. rules replaces the default set wholesale,",
+    "so every rule is listed even where it holds the default."
+  ],
+  "fileScopedDeclarationPrivacy": {
+    "accessLevel": "private"
+  },
+  "indentBlankLines": false,
+  "indentConditionalCompilationBlocks": true,
+  "indentSwitchCaseLabels": false,
+  "indentation": {
+    "spaces": 4
+  },
+  "lineBreakAroundMultilineExpressionChainComponents": false,
+  "lineBreakBeforeControlFlowKeywords": false,
+  "lineBreakBeforeEachArgument": false,
+  "lineBreakBeforeEachGenericRequirement": false,
+  "lineBreakBetweenDeclarationAttributes": false,
+  "lineLength": 120,
+  "maximumBlankLines": 1,
+  "multiElementCollectionTrailingCommas": true,
+  "noAssignmentInExpressions": {
+    "allowedFunctions": [
+      "XCTAssertNoThrow"
+    ]
+  },
+  "orderedImports": {
+    "includeConditionalImports": false
+  },
+  "prioritizeKeepingFunctionOutputTogether": false,
+  "reflowMultilineStringLiterals": "never",
+  "respectsExistingLineBreaks": true,
+  "rules": {
+    "AllPublicDeclarationsHaveDocumentation": false,
+    "AlwaysUseLiteralForEmptyCollectionInit": false,
+    "AlwaysUseLowerCamelCase": false,
+    "AmbiguousTrailingClosureOverload": true,
+    "AvoidRetroactiveConformances": true,
+    "BeginDocumentationCommentWithOneLineSummary": false,
+    "DoNotUseSemicolons": false,
+    "DontRepeatTypeInStaticProperties": true,
+    "FileScopedDeclarationPrivacy": true,
+    "FullyIndirectEnum": true,
+    "GroupNumericLiterals": true,
+    "IdentifiersMustBeASCII": true,
+    "NeverForceUnwrap": false,
+    "NeverUseForceTry": false,
+    "NeverUseImplicitlyUnwrappedOptionals": false,
+    "NoAccessLevelOnExtensionDeclaration": true,
+    "NoAssignmentInExpressions": true,
+    "NoBlockComments": true,
+    "NoCasesWithOnlyFallthrough": true,
+    "NoEmptyLinesOpeningClosingBraces": false,
+    "NoEmptyTrailingClosureParentheses": true,
+    "NoLabelsInCasePatterns": true,
+    "NoLeadingUnderscores": false,
+    "NoParensAroundConditions": true,
+    "NoPlaygroundLiterals": true,
+    "NoVoidReturnOnFunctionSignature": true,
+    "OmitExplicitReturns": false,
+    "OneCasePerLine": true,
+    "OneVariableDeclarationPerLine": true,
+    "OnlyOneTrailingClosureArgument": true,
+    "OrderedImports": true,
+    "ReplaceForEachWithForLoop": true,
+    "ReturnVoidInsteadOfEmptyTuple": true,
+    "TypeNamesShouldBeCapitalized": true,
+    "UseEarlyExits": false,
+    "UseExplicitNilCheckInConditions": true,
+    "UseLetInEveryBoundCaseVariable": true,
+    "UseShorthandTypeNames": true,
+    "UseSingleLinePropertyGetter": true,
+    "UseSynthesizedInitializer": true,
+    "UseTripleSlashForDocumentationComments": true,
+    "UseWhereClausesInForLoops": false,
+    "ValidateDocumentationComments": false
+  },
+  "spacesAroundRangeFormationOperators": false,
+  "spacesBeforeEndOfLineComments": 2,
+  "tabWidth": 8,
+  "version": 1
+}

@@ -1,0 +1,12 @@
+[package]
+name = "halogen-webui-component-navigation"
+version.workspace = true
+edition.workspace = true
+[dependencies]
+dioxus = { workspace = true }
+halogen-webui-config = { path = "../config" }
+halogen-webui-component-icons = { path = "../component-icons" }
+
+[features]
+desktop = ["dioxus/desktop", "halogen-webui-component-icons/desktop", "halogen-webui-config/desktop"]
+web = ["dioxus/web", "halogen-webui-component-icons/web", "halogen-webui-config/web"]

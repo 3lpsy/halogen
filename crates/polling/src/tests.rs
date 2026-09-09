@@ -1,7 +1,7 @@
 use super::*;
 use halogen_fixture::test_support::TestRoot;
 use halogen_fixture::test_support::load_fixture;
-use halogen_migrate::connect_and_migrate;
+use halogen_migrations::connect_and_migrate;
 use halogen_orm::episode::{ActiveModel as EpisodeActiveModel, Entity as EpisodeEntity};
 use halogen_orm::podcast::{ActiveModel as PodcastActiveModel, Entity as PodcastEntity};
 use halogen_orm::user::ActiveModel as UserActiveModel;
@@ -115,9 +115,7 @@ async fn test_handle_start_stop() {
     root.mark_success();
 }
 
-/// `shutdown` terminates the task (not just signals) and is idempotent — the
-/// teardown contract an in-process host (the embedded server's restart loop)
-/// relies on before dropping its DB pool.
+/// In-process hosts must await task termination before dropping their DB pool; shutdown is idempotent.
 #[tokio::test]
 async fn test_handle_shutdown_terminates_and_is_idempotent() {
     let mut root = TestRoot::new("polling_shutdown");
@@ -784,7 +782,7 @@ async fn test_poll_records_redirect_chain_on_not_modified() {
 mod jobs_tests {
     use crate::jobs::*;
     use halogen_fixture::test_support::TestRoot;
-    use halogen_migrate::connect_and_migrate;
+    use halogen_migrations::connect_and_migrate;
     use halogen_wire::{PodcastPollOutcome, PodcastPollResultData, PollJobStatus, PollJobTrigger};
 
     fn result(podcast_id: i32, new: usize) -> PodcastPollResultData {

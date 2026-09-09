@@ -1,0 +1,31 @@
+[package]
+name = "halogen-webui-provider-accounts"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-component-loading = { path = "../component-loading" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-logging = { path = "../logging" }
+halogen-webui-accounts = { path = "../accounts" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-accounts/web", "halogen-webui-component-loading/web", "halogen-webui-logging/web", "halogen-webui-platform/web"]
+desktop = ["dioxus/desktop", "halogen-webui-accounts/desktop", "halogen-webui-component-loading/desktop", "halogen-webui-logging/desktop", "halogen-webui-platform/desktop"]

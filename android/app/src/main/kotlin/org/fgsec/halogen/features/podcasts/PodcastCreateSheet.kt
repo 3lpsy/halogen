@@ -1,5 +1,6 @@
 package org.fgsec.halogen.features.podcasts
 
+import org.fgsec.halogen.core.ensureQueued
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,13 +61,13 @@ fun PodcastCreateSheet(
                 // library refreshes. An empty title rides as null; the drain
                 // falls back to the feed URL.
                 val trimmedTitle = title.trim()
-                core.outbox?.enqueue(
+                if (!core.ensureQueued(
                     OutboxOp.Kind.Subscribe(
                         feedUrl = feedUrl.trim(),
                         title = trimmedTitle.ifEmpty { null },
                         description = null,
                     )
-                )
+                )) return@launch
                 onCreated()
             } finally {
                 saving = false

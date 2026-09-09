@@ -166,8 +166,9 @@ extension HalogenClient {
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
-        let status = (response as! HTTPURLResponse).statusCode
+        let (data, response) = try await LocalTransport.data(for: request)
+        guard let response = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        let status = response.statusCode
         guard (200..<300).contains(status) else { throw ClientError.http(status) }
         guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
             let payload = obj["data"] as? [String: Any]
@@ -199,7 +200,7 @@ extension HalogenClient {
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await LocalTransport.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode)
         else { throw ClientError.http((response as? HTTPURLResponse)?.statusCode ?? 0) }
         let disposition = http.value(forHTTPHeaderField: "Content-Disposition") ?? ""
@@ -219,7 +220,7 @@ extension HalogenClient {
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await LocalTransport.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else { throw ClientError.http(status) }
         let envelope = try WireJSON.decoder.decode(

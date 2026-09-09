@@ -1,8 +1,6 @@
-//! Runtime config-overrides file: the one writable-at-runtime layer.
-//!
-//! [`Config::apply_overrides`] layers an allowlisted overrides file on top of
-//! the resolved config (rejecting secrets / identity / boot-only keys), and
-//! [`read_overrides`] / [`write_overrides`] back the `/config-overrides` endpoints.
+//! Runtime config-overrides file: the one writable-at-runtime layer. [`Config::apply_overrides`] layers an
+//! allowlisted overrides file on top of the resolved config (rejecting secrets / identity / boot-only keys),
+//! and [`read_overrides`] / [`write_overrides`] back the `/config-overrides` endpoints.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,11 +12,10 @@ use halogen_wire::ConfigOverridesData;
 use crate::config::{Cli, Config, ConfigFile, get_xdg_config_path, parse_no_sync_before};
 
 impl Config {
-    /// Apply ONLY the allowlisted keys from a parsed overrides file, on top of
-    /// the already-layered config (so overrides beat CLI). Records the names of
-    /// fields actually changed (`overridden_fields`) and any known-but-not-
-    /// overridable keys present in the file (`rejected_override_keys`) for a
-    /// post-init warning. Unknown/typo keys are silently dropped by serde.
+    /// Apply ONLY the allowlisted keys from a parsed overrides file, on top of the already-layered config (so
+    /// overrides beat CLI). Records the names of fields actually changed (`overridden_fields`) and any
+    /// known-but-not- overridable keys present in the file (`rejected_override_keys`) for a post-init warning.
+    /// Unknown/typo keys are silently dropped by serde.
     pub(crate) fn apply_overrides(&mut self, file: &ConfigFile) {
         // ONLY allowlisted keys may be overridden at runtime. `apply_*` sets the
         // field and records its name; `reject` flags a known-but-not-overridable key
@@ -131,15 +128,9 @@ impl Config {
         self.rejected_override_keys = rejected.into_iter().map(String::from).collect();
     }
 
-    /// Load + apply the allowlisted overrides file at `path` onto an
-    /// already-built config — the in-process (embedded server) equivalent of
-    /// the overrides step in [`Config::resolve`], which is unreachable there
-    /// because the embedded host builds its `Config` as a struct literal
-    /// rather than via CLI/env layering. Records the same outcome fields
-    /// (`overridden_fields` / `rejected_override_keys` /
-    /// `config_overrides_loaded_from` / `config_overrides_load_error`) and
-    /// pins `config_overrides_path` so the `/config-overrides` endpoints
-    /// read/write the same file. A missing file is fine (nothing to apply).
+    /// Apply allowlisted overrides to a Config built directly by an in-process host. Record the same load/rejection
+    /// diagnostics as Config::resolve and pin config_overrides_path for the API endpoints. A missing file leaves the
+    /// config unchanged.
     pub fn load_and_apply_overrides(&mut self, path: &Path) {
         self.config_overrides_path = Some(path.to_path_buf());
         if !path.exists() {

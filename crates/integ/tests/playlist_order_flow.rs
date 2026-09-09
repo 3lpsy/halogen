@@ -1,9 +1,7 @@
-//! End-to-end coverage for the playlist *ordering* / *membership* / *search* APIs
-//! added for lazy playlist loading: the manual `position` column + `POST
-//! /playlists/{id}/move`, `GET /episodes/{id}/playlists`, and the `filter[search]`
-//! name filter on the playlist list. Driven through the real server + `ApiClient`.
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(playlist_order_flow)'`
+//! End-to-end coverage for the playlist *ordering* / *membership* / *search* APIs added for lazy playlist
+//! loading: the manual `position` column + `POST /playlists/{id}/move`, `GET /episodes/{id}/playlists`, and the
+//! `filter[search]` name filter on the playlist list. Driven through the real server + `ApiClient`. Run with:
+//! `cargo nextest run -p halogen-integ -E 'binary(playlist_order_flow)'`
 
 use halogen_integ::*;
 use halogen_wire::{
@@ -23,7 +21,7 @@ fn by_position() -> DefaultListParams<PlaylistInclude> {
 }
 
 /// The user's playlist ids in manual (`position`) order.
-async fn ids_by_position(client: &halogen_api::ApiClient) -> Vec<i32> {
+async fn ids_by_position(client: &halogen_apiclient::ApiClient) -> Vec<i32> {
     client
         .list_playlists(by_position())
         .await
@@ -245,7 +243,7 @@ async fn position_paging_crosses_pages_by_position() {
         }),
         ..Default::default()
     };
-    let ids = |resp: halogen_api::Page<Vec<halogen_wire::EpisodeData>>| {
+    let ids = |resp: halogen_apiclient::Page<Vec<halogen_wire::EpisodeData>>| {
         resp.data.iter().map(|e| e.id).collect::<Vec<_>>()
     };
 

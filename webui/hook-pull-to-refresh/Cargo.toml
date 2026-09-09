@@ -1,0 +1,32 @@
+[package]
+name = "halogen-webui-hook-pull-to-refresh"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-webui-hook-is-admin = { path = "../hook-is-admin" }
+halogen-webui-hook-context = { path = "../hook-context" }
+halogen-webui-hook-dom-stream = { path = "../hook-dom-stream" }
+dioxus = { workspace = true, features = ["router"] }
+halogen-webui-platform = { path = "../platform" }
+halogen-webui-sync-engine = { path = "../sync-engine" }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+axum = { workspace = true }
+rand = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+    "Window", "Document", "Location", "History", "Storage",
+    "Element", "HtmlElement", "Event", "EventTarget"] }
+
+[features]
+web = ["dioxus/web", "halogen-webui-hook-context/web", "halogen-webui-hook-dom-stream/web", "halogen-webui-hook-is-admin/web", "halogen-webui-platform/web", "halogen-webui-sync-engine/web"]
+desktop = ["dioxus/desktop", "halogen-webui-hook-context/desktop", "halogen-webui-hook-dom-stream/desktop", "halogen-webui-hook-is-admin/desktop", "halogen-webui-platform/desktop", "halogen-webui-sync-engine/desktop"]

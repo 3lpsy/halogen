@@ -27,11 +27,10 @@ pub const DEFAULT_CONFIG_OVERRIDES_FILENAME: &str = "config.overrides.toml";
 pub const DEFAULT_POLL_WAKE_INTERVAL_SECONDS: u64 = 5 * 60;
 pub const DEFAULT_CHUNK_SIZE: u64 = 1 << 20;
 
-// ── Outbound-fetch resource caps (DoS guards) ────────────────────────────────
-// Hard ceilings on bytes we read from / write for untrusted remotes (feed hosts,
-// episode-media origins). All are deliberately generous — they exist to stop a
-// hostile or misconfigured host from exhausting memory/disk, not to constrain
-// legitimate content.
+// ── Outbound-fetch resource caps (DoS guards) ──────────────────────────────── Hard ceilings on bytes we read
+// from / write for untrusted remotes (feed hosts, episode-media origins). All are deliberately generous — they
+// exist to stop a hostile or misconfigured host from exhausting memory/disk, not to constrain legitimate
+// content.
 
 /// Largest RSS/Atom feed document we'll buffer in memory before parsing. The body
 /// comes from a (user-supplied) feed URL and is read whole, so an unbounded read
@@ -74,16 +73,8 @@ pub const DEFAULT_AUTO_DOWNLOAD_EPISODES_ENABLED: bool = false;
 /// (`podcast_auto_playlist.add_to_start`).
 pub const DEFAULT_AUTO_PLAYLIST_ADD_TO_START: bool = false;
 
-// ── Validation error envelope vocabulary ─────────────────────────────────────
-// Errors are `validator`'s shape: field -> [{ code, message }].
-//   field = WHERE the error is (the location). Specific when we can pinpoint it,
-//           generic fallbacks otherwise.
-//   code  = WHY it happened (the reason). Specific when we know it, generic
-//           otherwise; the HTTP status is DERIVED from `code` in
-//           `extract_status_code` — codes are never status names.
-// Do NOT add model/resource names (podcast/user/...) as fields, nor HTTP status
-// names (not_found/bad_request/...) as codes. That pollution is exactly what this
-// split exists to prevent — keep fields about *where* and codes about *why*.
+// Validation envelopes map field locations to code/message entries. Fields describe where, never model names; codes
+// describe why, never HTTP status names. extract_status_code derives status from the code.
 
 // fields (the WHERE) — most specific to most generic
 pub const VALIDATION_ID_FIELD: &str = "id";

@@ -1,15 +1,6 @@
-//! Reusable integration-test harness: a **real** axum server bound to an
-//! ephemeral TCP port, backed by a migrated temporary SQLite database, plus
-//! seed/JWT helpers.
-//!
-//! Lives in the `halogen-integ` crate (not the server) so the server ships no
-//! test internals. Both the HTTP integration journeys here and the browser
-//! `halogen-e2e` tier reuse it. The mock boundary is deliberately narrow:
-//! **only outbound upstreams are mocked** — RSS feeds and episode audio (point
-//! `feed_url` / `content_url` at a `wiremock` server) plus the Discover
-//! providers (iTunes / gpodder, via `SpawnOptions::discover_*_base_url`).
-//! Everything else — router, middleware, DB, JWT — is the production code path,
-//! reached through `halogen_server`'s public API.
+//! Real Axum server on an ephemeral port with migrated temporary SQLite and seed/JWT helpers, shared by HTTP and
+//! browser tests. Only outbound RSS/audio/discovery providers are mocked; routing, middleware, DB, and JWT use
+//! production code.
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -28,11 +19,10 @@ use crate::test_fixture::TestRoot;
 /// same value so requests pass the real `JwtAuthLayer`.
 const TEST_JWT_SECRET: &str = "test-secret-key-for-jwt-signing";
 
-/// A running test server. Holds the bound address, a DB handle for direct
-/// seeding, and the temp-dir guard (cleaned on drop).
-/// A minimal valid 2×2 RGBA PNG — real, decodable image bytes for
-/// [`TestApp::seed_podcast_art`] (the `/art/small` thumbnail generator must be
-/// able to downscale it, so a degenerate 0-byte or 1×1 file won't do).
+/// A running test server. Holds the bound address, a DB handle for direct seeding, and the temp-dir guard
+/// (cleaned on drop). A minimal valid 2×2 RGBA PNG — real, decodable image bytes for
+/// [`TestApp::seed_podcast_art`] (the `/art/small` thumbnail generator must be able to downscale it, so a
+/// degenerate 0-byte or 1×1 file won't do).
 const PNG_2X2: &[u8] = &[
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x08, 0x06, 0x00, 0x00, 0x00, 0x72, 0xb6, 0x0d,
@@ -87,11 +77,10 @@ pub async fn spawn() -> TestApp {
     spawn_with(SpawnOptions::default()).await
 }
 
-/// Install a stderr `tracing` subscriber once per test process so the
-/// in-process server's logs land in nextest's captured output (shown on
-/// failure). nextest runs each test in its own process, so a `OnceLock` guard
-/// is enough. Verbosity defaults to `info` for our crates + `warn` for noisy
-/// deps; override with `RUST_LOG` (e.g. `RUST_LOG=halogen_server=debug`).
+/// Install a stderr `tracing` subscriber once per test process so the in-process server's logs land in
+/// nextest's captured output (shown on failure). nextest runs each test in its own process, so a `OnceLock`
+/// guard is enough. Verbosity defaults to `info` for our crates + `warn` for noisy deps; override with
+/// `RUST_LOG` (e.g. `RUST_LOG=halogen_server=debug`).
 fn init_test_tracing() {
     use std::sync::OnceLock;
     static INIT: OnceLock<()> = OnceLock::new();
@@ -116,7 +105,7 @@ pub async fn spawn_with(opts: SpawnOptions) -> TestApp {
 
     // Prod parity: `main` opens WAL by default (no test sets `db_no_wal`),
     // so Tier-1 runs on the same journal profile as production.
-    let dbc = halogen_migrate::connect_and_migrate_wal(&db_path, true)
+    let dbc = halogen_migrations::connect_and_migrate_wal(&db_path, true)
         .await
         .expect("connect_and_migrate test db");
 
@@ -137,8 +126,9 @@ pub async fn spawn_with(opts: SpawnOptions) -> TestApp {
         dev_use_mock_download: opts.use_mock_download,
         ..Default::default()
     };
-    // Point the Discover providers at the test's wiremock upstreams when set;
-    // otherwise keep the real-host defaults from `Config::default()`.
+    // Missing provider mocks fail before opening a socket. Tests never use production directories.
+    cfg.discover_itunes_base_url = "disabled://discover/itunes".into();
+    cfg.discover_gpodder_base_url = "disabled://discover/gpodder".into();
     if let Some(url) = opts.discover_itunes_base_url {
         cfg.discover_itunes_base_url = url;
     }
@@ -266,11 +256,10 @@ impl TestApp {
         (model.id, token)
     }
 
-    /// Insert a SECOND loginable non-admin user with a real bcrypt password
-    /// hash, returning `(id, token)`. Unlike [`Self::seed_user`] (placeholder
-    /// hash, cannot authenticate), this account can sign in through the UI —
-    /// used by the multi-account e2e journey's add-account flow. Ids descend
-    /// from just below the admin's `i32::MAX`, distinct from `seed_user`'s.
+    /// Insert a SECOND loginable non-admin user with a real bcrypt password hash, returning `(id, token)`.
+    /// Unlike [`Self::seed_user`] (placeholder hash, cannot authenticate), this account can sign in through the
+    /// UI — used by the multi-account e2e journey's add-account flow. Ids descend from just below the admin's
+    /// `i32::MAX`, distinct from `seed_user`'s.
     pub async fn seed_login_user(&self, username: &str, password: &str) -> (i32, String) {
         use std::sync::atomic::{AtomicI32, Ordering};
 
@@ -326,12 +315,10 @@ impl TestApp {
         .id
     }
 
-    /// Seed a podcast whose `feed_url` points at a mock server. Returns the
-    /// podcast id. This is the *only* place upstream is faked — the server will
-    /// fetch the feed from `feed_url` during a poll.
-    ///
-    /// The podcast is owned by and subscribed to the admin/first user, so the
-    /// owner's subscription-scoped library lists it (call `seed_admin` first).
+    /// Seed a podcast whose `feed_url` points at a mock server. Returns the podcast id. This is the *only*
+    /// place upstream is faked — the server will fetch the feed from `feed_url` during a poll. The podcast is
+    /// owned by and subscribed to the admin/first user, so the owner's subscription-scoped library lists it
+    /// (call `seed_admin` first).
     pub async fn seed_podcast(&self, title: &str, feed_url: &str) -> i32 {
         use halogen_orm::podcast::ActiveModel as PodcastActiveModel;
         use halogen_orm::user_podcast::ActiveModel as UserPodcastActiveModel;
@@ -490,11 +477,10 @@ impl TestApp {
             .expect("insert podcast_auto_playlist");
     }
 
-    /// Set the per-user listen state for the given episodes (e.g. mark a subset
-    /// `Finished` so the Played/Unplayed filter chips have a deterministic
-    /// partition to test). State is per-user now — it's attributed to the
-    /// admin/first user (the account the flows act as) in `user_episode_status`,
-    /// which is what the server filters on (`filter[playback_status]`).
+    /// Set the per-user listen state for the given episodes (e.g. mark a subset `Finished` so the
+    /// Played/Unplayed filter chips have a deterministic partition to test). State is per-user now — it's
+    /// attributed to the admin/first user (the account the flows act as) in `user_episode_status`, which is
+    /// what the server filters on (`filter[playback_status]`).
     pub async fn set_playback_status(
         &self,
         episode_ids: &[i32],
@@ -539,15 +525,8 @@ impl TestApp {
         }
     }
 
-    /// Make the server ACTUALLY hold the audio for `episode_id`: with mock
-    /// download the service copies the `nasa-test-clip.mp3` fixture into
-    /// `media_root` and flips `download_status` to `Downloaded` (real bytes on
-    /// disk, not just a column poke like [`set_download_status`]).
-    ///
-    /// Playback journeys need this: the UI's local-first play gating keeps the
-    /// play badge DISABLED until the server holds the file, so a feed that was
-    /// only polled (metadata) isn't playable. Runs the download service inline
-    /// and awaits it — deterministic, unlike the fire-and-forget HTTP endpoint.
+    /// Download the fixture clip through the real service and await completion, creating actual playable bytes and
+    /// Downloaded state. Polling metadata alone does not enable play; the HTTP download endpoint is asynchronous.
     pub async fn download_on_server(&self, episode_id: i32) {
         use halogen_download as download;
         let opts = download::DownloadOptions {
@@ -568,11 +547,10 @@ impl TestApp {
         &self.media_root
     }
 
-    /// Stage `bytes` as episode `episode_id`'s downloaded audio *inside*
-    /// `media_root` and flip the row to `Downloaded`, seeding the DB directly.
-    /// This is the server-side equivalent of a real download (with caller-chosen
-    /// bytes, so a test can assert exact/range content) — the write API no longer
-    /// accepts `content_file_path`/`download_status`. Returns the staged path.
+    /// Stage `bytes` as episode `episode_id`'s downloaded audio *inside* `media_root` and flip the row to
+    /// `Downloaded`, seeding the DB directly. This is the server-side equivalent of a real download (with
+    /// caller-chosen bytes, so a test can assert exact/range content) — the write API no longer accepts
+    /// `content_file_path`/`download_status`. Returns the staged path.
     pub async fn stage_downloaded_audio(
         &self,
         episode_id: i32,
@@ -597,11 +575,10 @@ impl TestApp {
         path
     }
 
-    /// Stage a real (decodable) PNG as podcast `podcast_id`'s cached artwork by
-    /// writing it into `<media_root>/art/` and setting `art_file_path` — so
-    /// `GET /podcasts/{id}/art` serves 200 with real bytes (and `/art/small`
-    /// generates a thumbnail) instead of the 204 an art-less seed produces.
-    /// Lets an art test assert real cached content, not just a key's presence.
+    /// Stage a real (decodable) PNG as podcast `podcast_id`'s cached artwork by writing it into
+    /// `<media_root>/art/` and setting `art_file_path` — so `GET /podcasts/{id}/art` serves 200 with real bytes
+    /// (and `/art/small` generates a thumbnail) instead of the 204 an art-less seed produces. Lets an art test
+    /// assert real cached content, not just a key's presence.
     pub async fn seed_podcast_art(&self, podcast_id: i32) -> std::path::PathBuf {
         use halogen_orm::podcast::ActiveModel;
         use sea_orm::{ActiveModelTrait, ActiveValue};

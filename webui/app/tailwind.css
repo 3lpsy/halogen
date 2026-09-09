@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* daisyui supplies the component classes (navbar/btn/card/…) and theme colors
+   (base-100, primary, success, error, …). The app is dark, so make daisyui's
+   dark theme the default. */
+@plugin "daisyui" {
+  themes: dark --default;
+}
+
+/* Scan every crate with RSX or computed class strings, relative to this file, regardless of CLI working directory.
+   Missing a UI crate silently omits its utilities; data/service crates contain no class strings. */
+@source "./src";
+
+
+
+
+
+
+
+/* Define shell colors as daisyUI base-scale aliases so custom utilities exist and chrome follows the active theme.
+   Separate fixed colors would drift from cards, alerts, and page backgrounds. */
+@theme {
+  --color-background: var(--color-base-100); /* page background */
+  --color-foreground: var(--color-base-content);
+  --color-navbar: var(--color-base-200); /* raised chrome */
+  --color-sidebar: var(--color-base-200);
+  --color-sidebar-hover: var(--color-base-300);
+  --color-surface-1: var(--color-base-300); /* mini-player / raised surface */
+  --color-border: var(--color-base-300);
+
+  /* Use text-muted for secondary copy: about 5:1 contrast on dark base-100, unlike the old 2.2-3.4:1 opacity blends.
+     Recheck contrast if adding a light theme. */
+  --color-muted: #8e95a0;
+}
+
+/* UI font size (Settings → UI) is applied as an inline font-size percentage on
+   <html> from AppLayout (see app_layout.rs). All rem-based sizing — text,
+   buttons, inputs, spacing — scales from the root font-size, so no per-size
+   classes are needed here. */
+
+/* Hide native scrollbars app-wide — scrolling still works (wheel/touch/keys),
+   the bars just don't paint. Keeps the mobile-style chrome clean, especially on
+   desktop where the gutter would otherwise show. Covers Firefox
+   (`scrollbar-width`) and Chromium/WebKit (`::-webkit-scrollbar`). */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Installed iOS PWA safe-area strips expose the html/body canvas. Match navbar/dock base-200 to avoid flashes;
+   AppLayout and AuthCard keep their own base-100 backgrounds over it. */
+html,
+body {
+  background-color: var(--color-navbar);
+}
+
+/* Two identical marquee copies translate -50% for a seamless loop. Per-instance duration scales with text length;
+   animation-delay supplies the initial pause, and reduced-motion disables scrolling. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation-name: marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-delay: 2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
+
+@source "../**/src/**/*.rs";

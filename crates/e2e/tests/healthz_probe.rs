@@ -1,12 +1,5 @@
-//! Fast, browser-less probe of the **embedded-frontend** server (the exact serving
-//! path the browser E2E tests use: `support::spawn()` with no public dir → the
-//! rust-embed SPA fallback). Isolates "is root `/healthz` reachable on the embed
-//! server?" from "does the wasm client's health probe work?" — when the login
-//! page's connect step fails in a browser test, run this first.
-//!
-//! Not `#[ignore]`: needs no Chrome, just a TCP listener. It does require the
-//! crate to compile with `embed-frontend` (it does — see Cargo.toml), which bakes
-//! `dist/`; `just ui-build` must have produced it.
+//! Browser-free `/healthz` probe of the server's embedded-frontend fallback, isolating server reachability from WASM
+//! connection bugs. Runs without Chrome or ignore, but requires embed-frontend and dist/ produced by `just ui-build`.
 
 use halogen_integ::support;
 

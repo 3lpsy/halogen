@@ -97,7 +97,7 @@ enum SwipeAction: String, Codable, CaseIterable, Identifiable {
 }
 
 /// The pages whose swipes are configurable — all six of the web's
-/// (crates/ui-config swipe.rs `SwipePage::ALL`).
+/// (webui/config swipe.rs `SwipePage::ALL`).
 enum SwipePage: String, Codable, CaseIterable, Identifiable {
     case latest
     case queue
@@ -136,7 +136,7 @@ struct SwipePrefs: Codable, Equatable {
 
     var pages: [String: PagePrefs]
 
-    /// The web defaults (crates/ui-config swipe.rs): `leading` here is the
+    /// The web defaults (webui/config swipe.rs): `leading` here is the
     /// web's `left` (fires on a swipe-RIGHT gesture), `trailing` its `right`.
     static let `default` = SwipePrefs(
         pages: [
@@ -198,7 +198,8 @@ extension View {
         _ page: SwipePage, episode: EpisodeData, core: HalogenCore,
         context: EpisodeMenuContext = .browse
     ) -> some View {
-        let prefs = core.models?.swipes.prefs.page(page)
+        let prefs =
+            core.models?.swipes.prefs.page(page)
             ?? SwipePrefs.PagePrefs(leading: .none, trailing: .none)
         return
             self
@@ -231,7 +232,7 @@ private struct SwipeActionButton: View {
     }
 
     /// The action→primitive mapping — one place, mirroring the web's
-    /// `perform_episode_action` (crates/ui-episode-list action.rs), embedded
+    /// `perform_episode_action` (webui/episode-list action.rs), embedded
     /// device→server remaps included.
     private func perform() {
         guard let models = core.models else { return }
@@ -315,16 +316,21 @@ private struct SwipeActionButton: View {
     }
 
     private func removeServer() {
-        // Optimistic overlay first — the row flips without waiting for drain.
-        core.models?.serverDownloads.markRemovedLocally(episode.id)
-        Task { await core.outbox?.enqueue(.removeServerDownload(episodeId: episode.id)) }
+        core.enqueueMutation(.removeServerDownload(episodeId: episode.id)) {
+            core.models?.serverDownloads.markRemovedLocally(episode.id)
+        }
     }
 
     /// Remove-then-trigger, in outbox order (web: RedownloadOnServer).
     private func redownloadServer() {
         Task {
-            await core.outbox?.enqueue(.removeServerDownload(episodeId: episode.id))
-            core.models?.serverDownloads.download(episode)
+            guard
+                await core.ensureQueuedBatch([
+                    .removeServerDownload(episodeId: episode.id),
+                    .triggerDownload(episodeId: episode.id),
+                ])
+            else { return }
+            core.models?.serverDownloads.watch(episode.id)
         }
     }
 

@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS sync_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS podcast_auto_playlists (podcast_id INTEGER PRIMARY KEY, data TEXT NOT NULL);

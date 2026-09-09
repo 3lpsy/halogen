@@ -105,6 +105,7 @@ struct QueueView: View {
             .moveDisabled(!model.reorderable || selectedOnly)
         }
         .listStyle(.plain)
+        .accessibilityIdentifier("queue-episode-list")
     }
 
     /// Mirrors the web's "No queue yet" page: create the default playlist.

@@ -1,23 +1,7 @@
-//! Episode media download + server-side storage.
-//!
-//! [`download_episode`] streams an episode's enclosure (or copies a bundled
-//! fixture clip when `use_mock_download`) into `media_root` via a temp file +
-//! atomic rename, recording the path, size, and `Downloaded` status. **Transient**
-//! failures (network/timeout/5xx/429/408/400/truncation) retry in-call with
-//! exponential backoff ([`RetryPolicy`]); 403/404 are terminal
-//! (`DownloadUnauthorized` / `DownloadRemoteNotFound`) and any other 4xx fails as
-//! `DownloadError` (classified by `DownloadFailure` / `classify_status`). Live
-//! byte progress is published through the shared [`DownloadTracker`] (see
-//! [`tracker`]) while the stream runs.
-//!
-//! [`remove_server_download`] reverses a download, and [`enforce_retention`] caps
-//! how many downloads a podcast keeps (oldest by `downloaded_at` purged first).
-//! [`recover_downloads`] is the per-poll-tick watchdog: it resets rows stuck
-//! `Downloading` past the configured cutoff back to `DownloadError`, flips rows
-//! that exhausted the whole-call attempt budget (`download_attempts`) to terminal
-//! `DownloadBroken`, then re-attempts the rest. Shared by the poller's
-//! auto-download/recovery pass and the manual `POST /episodes/{id}/download` (and
-//! `/episodes/download/bulk`) endpoints.
+//! Stream episode media through a temporary file and atomic rename, recording durable status and live progress. Retry
+//! transient failures via RetryPolicy; classify terminal HTTP failures via DownloadFailure. Retention removes oldest
+//! downloads. recover_downloads resets stalled attempts, marks exhausted budgets DownloadBroken, and retries eligible
+//! rows.
 
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
@@ -67,12 +51,8 @@ const RECOVERY_BATCH_MAX: u64 = 100;
 
 static DOWNLOAD_CLIENT: OnceLock<Client> = OnceLock::new();
 
-/// Shared HTTP client for media downloads: hour-scale timeouts (episodes are
-/// large, origins slow) and **gzip disabled** so the body is byte-exact and
-/// `Content-Length` stays trustworthy for the integrity check (the `gzip` feature
-/// is on crate-wide for feeds, which DO want transparent decompression). Memoized
-/// in a `OnceLock` so the connection pool is reused across episodes instead of
-/// rebuilt per download. The art cache deliberately does NOT use it.
+/// Memoized media client with hour-scale timeouts for large downloads. Disable gzip so byte counts match Content-Length
+/// integrity checks; feed clients may decompress, and artwork uses separate short timeouts.
 pub fn download_client() -> Client {
     DOWNLOAD_CLIENT
         .get_or_init(|| {
@@ -194,11 +174,10 @@ fn classify_status(status: StatusCode) -> DownloadFailure {
 static FEED_CLIENT: OnceLock<Client> = OnceLock::new();
 static CHAPTERS_CLIENT: OnceLock<Client> = OnceLock::new();
 
-/// HTTP client for polling RSS feeds. Unlike [`download_client`], redirects are
-/// NOT auto-followed (`Policy::none`): the RSS manager follows them by hand so it
-/// can record the full hop chain into `podcast.feed_url_redirects`. Feeds are
-/// small, so a short-ish timeout is fine. Memoized (like [`download_client`]) so
-/// the connection pool is reused instead of rebuilt per feed.
+/// HTTP client for polling RSS feeds. Unlike [`download_client`], redirects are NOT auto-followed
+/// (`Policy::none`): the RSS manager follows them by hand so it can record the full hop chain into
+/// `podcast.feed_url_redirects`. Feeds are small, so a short-ish timeout is fine. Memoized (like
+/// [`download_client`]) so the connection pool is reused instead of rebuilt per feed.
 pub fn feed_client() -> Client {
     FEED_CLIENT
         .get_or_init(|| {
@@ -212,11 +191,10 @@ pub fn feed_client() -> Client {
         .clone()
 }
 
-/// HTTP client for the best-effort `podcast:chapters` JSON fetch during sync.
-/// SSRF-guarded like every outbound client; a tight timeout so a slow/hostile
-/// chapter host can never stall (or meaningfully slow) feed ingestion. Redirects
-/// follow normally — the chapters file commonly lives behind a CDN redirect.
-/// Memoized so the per-episode fetch during a sync reuses one connection pool.
+/// HTTP client for the best-effort `podcast:chapters` JSON fetch during sync. SSRF-guarded like every outbound
+/// client; a tight timeout so a slow/hostile chapter host can never stall (or meaningfully slow) feed
+/// ingestion. Redirects follow normally — the chapters file commonly lives behind a CDN redirect. Memoized so
+/// the per-episode fetch during a sync reuses one connection pool.
 pub fn chapters_client() -> Client {
     CHAPTERS_CLIENT
         .get_or_init(|| {
@@ -273,12 +251,8 @@ pub async fn download_episode(
     }
 
     let client = download_client();
-    // Catch a panic in the fetch so the in-flight bookkeeping is ALWAYS unwound: an
-    // uncaught panic would skip the `finish` + `set_failed` below, leaking the
-    // tracker entry (the progress API would then 200 forever and the client ring
-    // spin forever) and stranding the row in `Downloading` (blocking re-trigger
-    // until the multi-hour watchdog). A panic is treated as a transient failure, so
-    // the recovery loop retries it like any other `DownloadError`.
+    // Catch panics so finish/set_failed always clear tracker entries and Downloading state. Treat panics as transient
+    // errors for recovery instead of leaving progress stuck until the watchdog.
     let result = AssertUnwindSafe(fetch_episode(&client, &episode, opts))
         .catch_unwind()
         .await
@@ -346,14 +320,9 @@ pub async fn download_episode(
     Ok(())
 }
 
-/// Atomically claim a download attempt with a compare-and-swap on the status: one
-/// UPDATE setting `status=Downloading`, `download_started_at=now`,
-/// `download_attempts = attempts + 1`, gated `WHERE status NOT IN (Downloading,
-/// Downloaded)`. Returns `true` if this call won the claim, `false` if a concurrent
-/// trigger already holds it (or it completed) — so the caller bails instead of
-/// double-fetching. This atomic gate is the real guard; the plain status reads in
-/// `download_episode` are just a fast path. It is the ONE place `download_attempts`
-/// increments (per call, first try included); the in-call retry loop never does.
+/// Atomically claim rows outside Downloading/Downloaded, setting start time and incrementing attempts once per call.
+/// Return false if another trigger won or completed. This compare-and-swap, not the earlier status read, prevents
+/// duplicate fetches; in-call retries never increment attempts.
 async fn begin_attempt(dbc: &DatabaseConnection, episode: &EpisodeModel) -> anyhow::Result<bool> {
     let res = EpisodeEntity::update_many()
         .col_expr(
@@ -377,7 +346,7 @@ async fn begin_attempt(dbc: &DatabaseConnection, episode: &EpisodeModel) -> anyh
 }
 
 /// Fetch an episode's media to disk: the bundled mock clip when `use_mock`
-/// (falling back to a real fetch if the fixture is missing), else a direct remote
+/// (failing if the fixture is unavailable), else a direct remote
 /// download. The caller marks the row errored on `Err`.
 async fn fetch_episode(
     client: &Client,
@@ -385,13 +354,9 @@ async fn fetch_episode(
     opts: &DownloadOptions,
 ) -> Result<String, DownloadFailure> {
     if opts.use_mock_download {
-        match download_mock(episode, &opts.media_root).await {
-            Ok(path) => return Ok(path),
-            Err(e) => warn!(
-                "Mock download failed for episode '{}': {e}, falling back to remote",
-                episode.title
-            ),
-        }
+        return download_mock(episode, &opts.media_root)
+            .await
+            .map_err(DownloadFailure::Transient);
     }
     download_with_retry(client, episode, opts).await
 }
@@ -446,17 +411,20 @@ pub(crate) async fn download_mock(
     episode: &halogen_orm::episode::Model,
     media_root: &Path,
 ) -> anyhow::Result<String> {
-    let mock_audio_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/tests/nasa-test-clip.mp3");
-
-    if !mock_audio_path.exists() {
-        anyhow::bail!("Mock audio file not found at {}", mock_audio_path.display());
-    }
-
-    let file_name = format!("{}_mock.wav", episode.id);
-    let dest = media_root.join(&file_name);
+    let dest = media_root.join(format!("{}_mock.mp3", episode.id));
     tokio::fs::create_dir_all(media_root).await?;
-    tokio::fs::copy(&mock_audio_path, &dest).await?;
+    #[cfg(debug_assertions)]
+    tokio::fs::write(
+        &dest,
+        include_bytes!("../../../data/tests/nasa-test-clip.mp3"),
+    )
+    .await?;
+    #[cfg(not(debug_assertions))]
+    {
+        let fixture =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../data/tests/nasa-test-clip.mp3");
+        tokio::fs::copy(&fixture, &dest).await?;
+    }
     info!(
         "Copied mock audio for episode '{}': {}",
         episode.title,
@@ -623,13 +591,10 @@ pub async fn download_many(
     }
 }
 
-/// Reset orphaned `Downloading` rows back to `DownloadError` so they re-enter the
-/// recovery retry path.
-///
-/// `cutoff = None` resets EVERY in-flight row (boot reconcile: right after start
-/// nothing can legitimately be downloading). `Some(t)` resets only rows started
-/// before `t` or with a NULL start — the steady-state watchdog for same-process
-/// zombies and pre-migration rows. Returns the number of rows reset.
+/// Reset orphaned `Downloading` rows back to `DownloadError` so they re-enter the recovery retry path. `cutoff
+/// = None` resets EVERY in-flight row (boot reconcile: right after start nothing can legitimately be
+/// downloading). `Some(t)` resets only rows started before `t` or with a NULL start — the steady-state watchdog
+/// for same-process zombies and pre-migration rows. Returns the number of rows reset.
 pub async fn reset_stuck_downloads(
     dbc: &DatabaseConnection,
     cutoff: Option<DateTime<Utc>>,
@@ -712,10 +677,9 @@ pub async fn recover_downloads(
         warn!("download broken-cap failed: {e}");
     }
 
-    // Cap the per-tick recovery batch: without a limit, a large backlog of errored
-    // rows still under the attempt budget would be re-spawned in full every tick
-    // (and ticks could overlap if a sync runs long). Least-attempted rows go first
-    // so a persistent failure can't starve newer ones; the remainder is picked up
+    // Cap the per-tick recovery batch: without a limit, a large backlog of errored rows still under the attempt
+    // budget would be re-spawned in full every tick (and ticks could overlap if a sync runs long).
+    // Least-attempted rows go first so a persistent failure can't starve newer ones; the remainder is picked up
     // on subsequent ticks (and is capped to DownloadBroken once it exhausts attempts).
     let ids = match EpisodeEntity::find()
         .filter(EpisodeColumn::DownloadStatus.eq(DownloadStatus::DownloadError))
@@ -777,14 +741,8 @@ pub async fn remove_server_download(
     Ok(())
 }
 
-/// Enforce a podcast's server-download retention cap: keep the newest `keep`
-/// downloaded episodes and remove the rest (oldest by `downloaded_at` first).
-///
-/// Counts every server-side download (manual or auto). Called after a download
-/// completes — by the poller's auto-download path and the manual download
-/// endpoint — so a podcast never holds more than its resolved `max_episodes`.
-/// `keep == 0` is treated as "no cap" (purging everything would be surprising and
-/// is never what an operator means by leaving the field at its default).
+/// After manual or automatic downloads, keep the newest `keep` server copies by downloaded_at and purge older ones.
+/// Zero means no retention cap.
 pub async fn enforce_retention(
     dbc: &DatabaseConnection,
     podcast_id: i32,
@@ -903,11 +861,10 @@ async fn download_loop(
     Ok(written)
 }
 
-/// Whether the filesystem backing `path` is still under [`MAX_DISK_USAGE_PERCENT`]
-/// full (used ÷ total capacity). Fails OPEN (returns `true`) when the space
-/// query errors or reports a zero-size filesystem: the guard exists to catch a
-/// genuinely full volume, and a stat hiccup must not wedge all downloads.
-/// `path` must already exist (callers create the media root first).
+/// Whether the filesystem backing `path` is still under [`MAX_DISK_USAGE_PERCENT`] full (used ÷ total
+/// capacity). Fails OPEN (returns `true`) when the space query errors or reports a zero-size filesystem: the
+/// guard exists to catch a genuinely full volume, and a stat hiccup must not wedge all downloads. `path` must
+/// already exist (callers create the media root first).
 fn disk_has_headroom(path: &Path) -> bool {
     let (total, avail) = match fs_space(path) {
         Ok(pair) => pair,
@@ -923,7 +880,7 @@ fn disk_has_headroom(path: &Path) -> bool {
         return true;
     }
     let used = total.saturating_sub(avail);
-    // used/total*100 < limit  ⇔  used*100 < total*limit (no floats, no rounding).
+    // used/total*100 < limit ⇔ used*100 < total*limit (no floats, no rounding).
     used * 100 < total * MAX_DISK_USAGE_PERCENT as u128
 }
 

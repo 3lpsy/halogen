@@ -1,10 +1,6 @@
-//! Onboarding journey — the full first-run path, end to end through the real
-//! stack: wasm UI → API client → axum server.
-//!
-//!   load app → redirected to the login page → server URL + credentials on
-//!   one form (health check, then login) → land in the app (/ → /queue).
-//!
-//! `#[ignore]` by default; run via `just test-e2e`.
+//! Onboarding journey — the full first-run path, end to end through the real stack: wasm UI → API client → axum
+//! server. load app → redirected to the login page → server URL + credentials on one form (health check, then
+//! login) → land in the app (/ → /queue). `#[ignore]` by default; run via `just test-e2e`.
 
 use halogen_e2e::{
     body_text, browser_session, login_via_ui, require_dist, run_session, wait_for_css, wait_for_url,

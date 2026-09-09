@@ -1,0 +1,18 @@
+[package]
+name = "halogen-sync-journal"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+halogen-sync-import = { path = "../sync-import" }
+async-trait = { workspace = true }
+halogen-wire = { path = "../wire" }
+halogen-sync-store = { path = "../sync-store" }
+halogen-sync-enrich = { path = "../sync-enrich" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+futures = { workspace = true }
+rusqlite = { workspace = true }

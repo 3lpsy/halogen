@@ -1,8 +1,6 @@
-//! gpodder.net provider.
-//!
-//! `GET https://gpodder.net/search.json?q=<q>` — keyless, no auth. Returns a
-//! JSON array of podcasts with `url` (the feed), `title`, `description`,
-//! `author`. We deliberately ignore the logo fields (no artwork egress).
+//! gpodder.net provider. `GET https://gpodder.net/search.json?q=<q>` — keyless, no auth. Returns a JSON array
+//! of podcasts with `url` (the feed), `title`, `description`, `author`. We deliberately ignore the logo fields
+//! (no artwork egress).
 
 use halogen_wire::{DiscoverProvider, DiscoverResultItem};
 use serde::Deserialize;

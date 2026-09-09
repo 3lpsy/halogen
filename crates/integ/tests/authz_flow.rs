@@ -1,25 +1,6 @@
-//! Authorization contract — what's admin-gated, what's owner-gated, and what's
-//! open to any authed user. Pinned here so any future change is visible.
-//!
-//! - `JwtAuthLayer` gates every `/api/v1` resource route on *authentication*.
-//! - Control routes (`/admin/config`, `/admin/poll`, `/admin/start`, `/admin/stop`) are admin-only
-//!   (the `AdminUser` extractor).
-//! - Resource *writes* are owner-or-admin: PUT/DELETE podcast, PUT/DELETE
-//!   playlist + membership, POST/PUT/DELETE episode (by the parent podcast's
-//!   owner), and podcast-config writes — PUT /podcast-configs/{id} and the nested
-//!   POST/DELETE /podcasts/{id}/config. A non-owner non-admin gets 403.
-//! - GET /podcast-configs/{id} is owner-or-admin (an unowned config → 403 for a
-//!   non-owner), so a config read can't leak another owner's settings. There is
-//!   no standalone create/list/delete — configs live under their podcast.
-//! - Open to any authed user: the create endpoints (POST /podcasts, /playlists).
-//! - `/users`: admin-gated. List + read-other + delete are admin-only; a
-//!   non-admin may self-update plain fields but not flip its own admin bit.
-//!
-//! Driven over raw HTTP (not the typed `ApiClient`) so we can assert exact status
-//! codes on the wire for arbitrary methods/bodies, including routes the typed
-//! client doesn't expose (`POST /episodes`, `DELETE /episodes/{id}`).
-//!
-//! Run with: `cargo nextest run -p halogen-integ -E 'binary(authz_flow)'`
+//! Raw HTTP pins authentication, admin control/user management, and owner-or-admin resource/config writes and reads.
+//! Authenticated users may create podcasts/playlists and edit their own plain user fields, but cannot grant themselves
+//! admin. Run the halogen-integ authz_flow binary.
 
 use halogen_integ::*;
 use reqwest::StatusCode;
@@ -113,11 +94,10 @@ async fn admin_only_routes_gate_non_admin() {
     );
 }
 
-/// Resource WRITES require owner-or-admin. The seed helpers attribute ownership
-/// to the admin/first user, so a separate non-admin "plain" user is neither owner
-/// nor admin: it gets 403 mutating those resources (and 401 when anonymous). The
-/// open create endpoints stay 2xx; the /users routes are admin-gated (a non-admin
-/// may only self-update plain fields).
+/// Resource WRITES require owner-or-admin. The seed helpers attribute ownership to the admin/first user, so a
+/// separate non-admin "plain" user is neither owner nor admin: it gets 403 mutating those resources (and 401
+/// when anonymous). The open create endpoints stay 2xx; the /users routes are admin-gated (a non-admin may only
+/// self-update plain fields).
 #[tokio::test]
 async fn resource_writes_require_owner_or_admin() {
     let app = spawn().await;
@@ -144,8 +124,8 @@ async fn resource_writes_require_owner_or_admin() {
     let ok = |s: u16| (200..300).contains(&s);
 
     // ── users: admin-gated. A non-admin may self-update plain fields only; it
-    //    may not read/update another user, escalate its own admin bit, or delete
-    //    anyone. Listing + delete are admin-only. ──
+    //  may not read/update another user, escalate its own admin bit, or delete
+    //  anyone. Listing + delete are admin-only. ──
     assert_eq!(
         status(
             &http,

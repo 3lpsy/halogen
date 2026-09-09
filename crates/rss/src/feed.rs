@@ -90,12 +90,10 @@ fn to_remote_episode(item: &Item) -> RemoteEpisodeData {
     }
 }
 
-/// Parse inline `psc:chapters` (Podlove Simple Chapters) off a feed item.
-///
-/// `rss` exposes namespaced elements via `item.extensions()` keyed by prefix →
-/// local name. `<psc:chapters>` lands at `extensions()["psc"]["chapters"]`; each
-/// `<psc:chapter start=… title=…/>` is a child carrying those attrs. We iterate
-/// child values rather than assume the child key, then read `start`/`title`.
+/// Parse inline `psc:chapters` (Podlove Simple Chapters) off a feed item. `rss` exposes namespaced elements
+/// via `item.extensions()` keyed by prefix → local name. `<psc:chapters>` lands at
+/// `extensions()["psc"]["chapters"]`; each `<psc:chapter start=… title=…/>` is a child carrying those attrs. We
+/// iterate child values rather than assume the child key, then read `start`/`title`.
 fn parse_psc_chapters(item: &Item) -> Vec<RemoteChapter> {
     let Some(psc) = item.extensions().get("psc") else {
         return Vec::new();
@@ -123,11 +121,10 @@ fn psc_chapter(ext: &Extension) -> Option<RemoteChapter> {
     })
 }
 
-/// Extract a `podcast:chapters` external JSON URL (Podcasting 2.0) off a feed
-/// item: `<podcast:chapters url=… type="application/json+chapters"/>` →
-/// `extensions()["podcast"]["chapters"]`. Keyed on the `chapters` element so we
-/// never confuse it with other `podcast:` elements (transcript, person, …) that
-/// also carry a `url`. Accepts a missing `type`; otherwise requires it to name JSON.
+/// Extract a `podcast:chapters` external JSON URL (Podcasting 2.0) off a feed item: `<podcast:chapters url=…
+/// type="application/json+chapters"/>` → `extensions()["podcast"]["chapters"]`. Keyed on the `chapters` element
+/// so we never confuse it with other `podcast:` elements (transcript, person, …) that also carry a `url`.
+/// Accepts a missing `type`; otherwise requires it to name JSON.
 fn parse_podcast_chapters_url(item: &Item) -> Option<String> {
     let chapters = item.extensions().get("podcast")?.get("chapters")?;
     chapters.iter().find_map(|ext| {
@@ -138,11 +135,10 @@ fn parse_podcast_chapters_url(item: &Item) -> Option<String> {
     })
 }
 
-/// Parse a Normal Play Time value (shared by `<itunes:duration>` and the
-/// `psc:chapter` `start` attribute) into whole seconds. Accepts a plain seconds
-/// count (`"3600"`), `MM:SS` (`"62:03"`), or `HH:MM:SS` (`"1:02:03"`), each with
-/// an optional fractional `.mmm` suffix (truncated — we store whole seconds).
-/// Returns `None` for empty/garbage so callers can skip the value.
+/// Parse a Normal Play Time value (shared by `<itunes:duration>` and the `psc:chapter` `start` attribute) into
+/// whole seconds. Accepts a plain seconds count (`"3600"`), `MM:SS` (`"62:03"`), or `HH:MM:SS` (`"1:02:03"`),
+/// each with an optional fractional `.mmm` suffix (truncated — we store whole seconds). Returns `None` for
+/// empty/garbage so callers can skip the value.
 pub(crate) fn parse_npt_seconds(s: &str) -> Option<i32> {
     let s = s.trim();
     if s.is_empty() {

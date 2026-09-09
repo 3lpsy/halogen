@@ -8,6 +8,8 @@ import Observation
 @MainActor
 @Observable
 final class DeviceDownloads {
+    private let accountStore: LocalStore?
+
     enum State: Equatable {
         case none
         /// Phase 1: the triggered server download is being awaited. Rows
@@ -21,7 +23,7 @@ final class DeviceDownloads {
         case downloaded
     }
 
-    // Web parity constants (crates/ui-svc-sync download.rs).
+    // Web parity constants (webui/sync-engine download.rs).
     /// How long to wait for the SERVER to finish fetching its copy
     /// (tries × interval ≈ 2 minutes).
     private static let serverPollTries = 40
@@ -50,9 +52,9 @@ final class DeviceDownloads {
 
     init(core: HalogenCore, namespace: String) {
         self.core = core
-        let support = try! FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask,
-            appropriateFor: nil, create: true)
+        self.accountStore = core.store
+        let support = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
         dir =
             support
             .appendingPathComponent("halogen-client", isDirectory: true)
@@ -64,7 +66,7 @@ final class DeviceDownloads {
     /// Rebuild state from disk (finished files + partials) and the cached
     /// episode metadata list.
     func load() async {
-        if let cached = await core.store?.load([EpisodeData].self, key: CacheKey.deviceDownloads) {
+        if let cached = await accountStore?.load([EpisodeData].self, key: CacheKey.deviceDownloads) {
             onDevice = cached
         }
         let files = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
@@ -210,7 +212,8 @@ final class DeviceDownloads {
 
         // Phase 2: pull the bytes. On failure the durable partial is KEPT
         // (invisible to localURL) for the next manual retry to resume.
-        let chunkKiB = core.models?.prefs.prefs.downloadChunkKiB
+        let chunkKiB =
+            core.models?.prefs.prefs.downloadChunkKiB
             ?? ClientPrefs.default.downloadChunkKiB
         let parallelism = max(1, core.models?.prefs.prefs.downloadParallelism ?? 1)
         do {
@@ -237,7 +240,10 @@ final class DeviceDownloads {
     /// status, or repeated transport errors (false = failure state was set).
     private func waitForServerCopy(_ id: Int32) async -> Bool {
         // Durable + idempotent server-side; survives offline and restarts.
-        await core.outbox?.enqueue(.triggerDownload(episodeId: id))
+        guard await core.ensureQueued(originStore: accountStore, .triggerDownload(episodeId: id)) else {
+            states[id] = .failed(message: "Couldn't save the download request.")
+            return false
+        }
         // Track the server run too so the waiting row's cloud ring shows the
         // server's live progress (web: the cloud phase of Download & Play).
         core.models?.serverDownloads.watch(id)
@@ -249,7 +255,7 @@ final class DeviceDownloads {
                 return false
             }
             do {
-                let fresh = try await core.episodeDetail(id: id)
+                let fresh = try await core.forAccount(accountStore).episodeDetail(id: id)
                 consecutiveErrors = 0
                 switch fresh.download_status {
                 case .downloaded:
@@ -343,7 +349,7 @@ final class DeviceDownloads {
         // Set when the first chunk came back FULL with no reported total:
         // Phase B′ must pull until a short/empty chunk proves EOF.
         var fullUntotaledFirst = false
-        phaseA: while true {
+        while true {
             try Task.checkCancellation()
             if let t = total {
                 if downloaded == t { break }  // resume partial already complete
@@ -511,7 +517,8 @@ final class DeviceDownloads {
                 total = range.total
             case 200:
                 servedFrom = 0
-                total = http.expectedContentLength > 0
+                total =
+                    http.expectedContentLength > 0
                     ? UInt64(http.expectedContentLength) : nil
             case 416 where downloaded > 0 && stagedMeta?.total == downloaded:
                 return  // the staged partial is already the whole file
@@ -670,7 +677,7 @@ final class DeviceDownloads {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.setValue("bytes=\(start)-\(end)", forHTTPHeaderField: "Range")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await LocalTransport.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw DownloadError.failed("bad server response")
         }
@@ -822,7 +829,7 @@ final class DeviceDownloads {
 
     private func persistList() {
         let snapshot = onDevice
-        Task { [store = core.store] in
+        Task { [store = accountStore] in
             await store?.save(snapshot, key: CacheKey.deviceDownloads)
         }
     }

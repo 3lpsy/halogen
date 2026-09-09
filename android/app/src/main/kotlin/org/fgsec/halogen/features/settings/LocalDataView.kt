@@ -40,6 +40,10 @@ import org.fgsec.halogen.core.HalogenCore
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
+    val accountStore = core.store
+    val accountOutbox = core.outbox
+    val accountModels = core.models
+
     var stats by remember { mutableStateOf(LocalDataStats()) }
     var message by remember { mutableStateOf<String?>(null) }
     var confirmEmbedded by remember { mutableStateOf(false) }
@@ -71,9 +75,9 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
     suspend fun deleteAll() {
         busy = true
         try {
-            core.store?.remove(stats.contentKeys + stats.viewSettingsKeys + stats.prefsKeys)
-            core.outbox?.clearAll()
-            core.models?.device?.removeAll()
+            accountStore?.remove(stats.contentKeys + stats.viewSettingsKeys + stats.prefsKeys)
+            accountOutbox?.clearAll()
+            accountModels?.device?.removeAll()
             ArtLoader.configure(core.appContext, core.apiToken, core.account?.namespace)
             DeviceLog.shared.clear()
             withContext(Dispatchers.IO) {
@@ -130,7 +134,7 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
                         icon = "internaldrive",
                     ) {
                         purge {
-                            core.store?.remove(stats.contentKeys)
+                            accountStore?.remove(stats.contentKeys)
                             core.remountModels()
                             "Cleared the content cache"
                         }
@@ -141,7 +145,7 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
                         icon = "slider.horizontal.3",
                     ) {
                         purge {
-                            core.store?.remove(stats.viewSettingsKeys)
+                            accountStore?.remove(stats.viewSettingsKeys)
                             core.remountModels()
                             "Reset view settings"
                         }
@@ -152,7 +156,7 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
                         icon = "gearshape",
                     ) {
                         purge {
-                            core.store?.remove(stats.prefsKeys)
+                            accountStore?.remove(stats.prefsKeys)
                             core.remountModels()
                             "Reset preferences"
                         }
@@ -163,7 +167,7 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
                         icon = "arrow.triangle.2.circlepath",
                     ) {
                         purge {
-                            core.outbox?.clearAll()
+                            accountOutbox?.clearAll()
                             "Discarded the pending sync queue"
                         }
                     }
@@ -173,7 +177,7 @@ fun LocalDataView(core: HalogenCore, onBack: () -> Unit) {
                         icon = "arrow.down.circle",
                     ) {
                         purge {
-                            core.models?.device?.removeAll()
+                            accountModels?.device?.removeAll()
                             "Deleted device audio"
                         }
                     }
