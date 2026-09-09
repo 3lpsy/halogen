@@ -8,7 +8,7 @@ use rss::{Channel, Enclosure, Guid, Item};
 
 use super::types::{RemoteChapter, RemoteEpisodeData, RemoteFeedData};
 
-/// Parses RSS XML into channel art + episodes.
+/// Parses RSS XML into channel metadata and episodes.
 pub fn parse_feed(xml: &str) -> anyhow::Result<RemoteFeedData> {
     let channel: Channel = Channel::from_str(xml)?;
     let art_url = channel
@@ -19,6 +19,11 @@ pub fn parse_feed(xml: &str) -> anyhow::Result<RemoteFeedData> {
     Ok(RemoteFeedData {
         art_url,
         channel_title,
+        channel_description: std::iter::once(channel.description())
+            .chain(channel.itunes_ext().and_then(|ext| ext.summary()))
+            .map(str::trim)
+            .find(|value| !value.is_empty())
+            .map(|value| value.chars().take(65536).collect()),
         episodes: channel.items().iter().map(to_remote_episode).collect(),
     })
 }

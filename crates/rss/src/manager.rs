@@ -350,8 +350,14 @@ impl RssManager {
         let (mut resp, redirect_chain) = match self
             .fetch_feed_following_redirects(
                 &podcast.feed_url,
-                podcast.etag.as_deref(),
-                podcast.last_modified.as_deref(),
+                podcast
+                    .etag
+                    .as_deref()
+                    .filter(|_| !podcast.description.trim().is_empty()),
+                podcast
+                    .last_modified
+                    .as_deref()
+                    .filter(|_| !podcast.description.trim().is_empty()),
             )
             .await
         {
@@ -372,7 +378,7 @@ impl RssManager {
         // 304: stamp polled_at + validators and stop (no body to parse).
         if resp.status() == reqwest::StatusCode::NOT_MODIFIED {
             info!("Podcast '{}' feed not modified, skipping", podcast.title);
-            self.stamp_polled(podcast, etag, last_modified, redirects_csv, None, None)
+            self.stamp_polled(podcast, etag, last_modified, redirects_csv, None)
                 .await?;
             return Ok(skipped_outcome());
         }
@@ -402,21 +408,10 @@ impl RssManager {
             }
         };
 
-        let channel_art = feed.art_url;
-        let channel_title = feed.channel_title;
-        let remote_episodes = self.filter_by_cutoff(feed.episodes);
-
         // Stamp polled_at (and adopt changed channel art/title). Non-fatal on failure.
         let mut errors = 0usize;
         if let Err(e) = self
-            .stamp_polled(
-                podcast,
-                etag,
-                last_modified,
-                redirects_csv,
-                channel_art,
-                channel_title,
-            )
+            .stamp_polled(podcast, etag, last_modified, redirects_csv, Some(&feed))
             .await
         {
             warn!("{e}");
@@ -424,6 +419,8 @@ impl RssManager {
         } else {
             info!("Updated polled_at for '{}'", podcast.title);
         }
+
+        let remote_episodes = self.filter_by_cutoff(feed.episodes);
 
         // Nothing survived the cutoff — skip the existing-episode query + insert loop.
         if remote_episodes.is_empty() {
@@ -503,18 +500,15 @@ impl RssManager {
         }
     }
 
-    /// Stamp `polled_at` + the conditional-GET validators (and adopt changed
-    /// channel art) onto the podcast row. `channel_art` is `None` on the 304 path.
-    /// Never clears working art with `None` — a transiently broken feed shouldn't
-    /// erase it; the cached file is dropped on a real change (re-fetched lazily).
+    /// Save poll validators and feed metadata without replacing user descriptions.
+    /// A 304 response has no feed metadata to apply.
     async fn stamp_polled(
         &self,
         podcast: &Model,
         etag: Option<String>,
         last_modified: Option<String>,
         redirects_csv: String,
-        channel_art: Option<String>,
-        channel_title: Option<String>,
+        feed: Option<&super::types::RemoteFeedData>,
     ) -> Result<(), String> {
         let mut update = PodcastActiveModel {
             id: Set(podcast.id),
@@ -524,6 +518,8 @@ impl RssManager {
             feed_url_redirects: Set(Some(redirects_csv)),
             ..Default::default()
         };
+        let channel_art = feed.and_then(|feed| feed.art_url.clone());
+        let channel_title = feed.and_then(|feed| feed.channel_title.clone());
         if channel_art.is_some() && channel_art != podcast.art_url {
             update.art_url = Set(channel_art);
             update.art_file_path = Set(None);
@@ -539,6 +535,21 @@ impl RssManager {
             .exec(&self.dbc)
             .await
             .map_err(|e| format!("Failed to update polled_at for '{}': {e}", podcast.title))?;
+        if podcast.description.trim().is_empty()
+            && let Some(description) = feed.and_then(|feed| feed.channel_description.as_ref())
+        {
+            // Compare the old value so a concurrent user edit wins over this fetch.
+            PodcastEntity::update_many()
+                .col_expr(
+                    halogen_orm::podcast::Column::Description,
+                    sea_orm::sea_query::Expr::value(description.clone()),
+                )
+                .filter(halogen_orm::podcast::Column::Id.eq(podcast.id))
+                .filter(halogen_orm::podcast::Column::Description.eq(podcast.description.clone()))
+                .exec(&self.dbc)
+                .await
+                .map_err(|e| format!("Failed to backfill podcast description: {e}"))?;
+        }
         Ok(())
     }
 

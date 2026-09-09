@@ -894,3 +894,146 @@ mod jobs_tests {
         root.mark_success();
     }
 }
+
+#[tokio::test]
+async fn poll_backfills_description_despite_cached_validators_and_preserves_edits() {
+    use sea_orm::IntoActiveModel;
+    let mut root = TestRoot::new("poll_description_backfill");
+    let dbc = connect_and_migrate(&root.path().join("halogen.db"), true)
+        .await
+        .unwrap();
+    create_admin_user(&dbc).await;
+    let server = MockServer::start().await;
+    create_podcast(&dbc, 1, &server.uri()).await;
+    let mut podcast = PodcastEntity::find_by_id(1)
+        .one(&dbc)
+        .await
+        .unwrap()
+        .unwrap()
+        .into_active_model();
+    podcast.description = Set(String::new());
+    podcast.etag = Set(Some("cached".into()));
+    podcast.last_modified = Set(Some("Tue, 08 Sep 2026 00:00:00 GMT".into()));
+    podcast.update(&dbc).await.unwrap();
+    Mock::given(method("GET"))
+        .respond_with(|request: &wiremock::Request| {
+            if request.headers.contains_key("if-none-match") {
+                ResponseTemplate::new(304)
+            } else {
+                ResponseTemplate::new(200).insert_header("ETag", "cached").set_body_string(
+                    "<rss version=\"2.0\"><channel><title>Show</title><description><![CDATA[<p>Feed description</p>]]></description></channel></rss>")
+            }
+        }).mount(&server).await;
+    let handle = PollingHandle::new(dbc.clone(), Duration::ZERO, 1);
+    handle.poll().await.unwrap();
+    let podcast = PodcastEntity::find_by_id(1)
+        .one(&dbc)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(podcast.description, "<p>Feed description</p>");
+    let requests = server.received_requests().await.unwrap();
+    assert!(!requests[0].headers.contains_key("if-none-match"));
+    assert!(!requests[0].headers.contains_key("if-modified-since"));
+    handle.poll().await.unwrap();
+    let requests = server.received_requests().await.unwrap();
+    assert!(requests[1].headers.contains_key("if-none-match"));
+    assert_eq!(
+        PodcastEntity::find_by_id(1)
+            .one(&dbc)
+            .await
+            .unwrap()
+            .unwrap()
+            .description,
+        podcast.description
+    );
+
+    server.reset().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(
+            "<rss version=\"2.0\"><channel><title>Show</title><description>Changed feed description</description></channel></rss>"))
+        .mount(&server).await;
+    let mut edited = podcast.into_active_model();
+    edited.description = Set("User description".into());
+    edited.update(&dbc).await.unwrap();
+    handle.poll().await.unwrap();
+    assert_eq!(
+        PodcastEntity::find_by_id(1)
+            .one(&dbc)
+            .await
+            .unwrap()
+            .unwrap()
+            .description,
+        "User description"
+    );
+    dbc.close().await.unwrap();
+    root.mark_success();
+}
+
+#[tokio::test]
+async fn description_edited_during_feed_fetch_is_not_overwritten() {
+    use sea_orm::IntoActiveModel;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut root = TestRoot::new("poll_description_concurrent_edit");
+    let dbc = connect_and_migrate(&root.path().join("halogen.db"), true)
+        .await
+        .unwrap();
+    create_admin_user(&dbc).await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    create_podcast(
+        &dbc,
+        1,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    )
+    .await;
+    let mut podcast = PodcastEntity::find_by_id(1)
+        .one(&dbc)
+        .await
+        .unwrap()
+        .unwrap()
+        .into_active_model();
+    podcast.description = Set(String::new());
+    podcast.update(&dbc).await.unwrap();
+    let (arrived_tx, arrived_rx) = tokio::sync::oneshot::channel();
+    let (respond_tx, respond_rx) = tokio::sync::oneshot::channel();
+    let feed = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        assert!(socket.read(&mut [0u8; 4096]).await.unwrap() > 0);
+        arrived_tx.send(()).unwrap();
+        respond_rx.await.unwrap();
+        let body = "<rss version=\"2.0\"><channel><title>Show</title><description>Feed description</description></channel></rss>";
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        socket.write_all(response.as_bytes()).await.unwrap();
+    });
+    let handle = PollingHandle::new(dbc.clone(), Duration::ZERO, 1);
+    let poll = tokio::spawn(async move { handle.poll().await });
+    tokio::time::timeout(Duration::from_secs(5), arrived_rx)
+        .await
+        .unwrap()
+        .unwrap();
+    PodcastActiveModel {
+        id: Set(1),
+        description: Set("Edited while fetching".into()),
+        ..Default::default()
+    }
+    .update(&dbc)
+    .await
+    .unwrap();
+    respond_tx.send(()).unwrap();
+    poll.await.unwrap().unwrap();
+    feed.await.unwrap();
+    assert_eq!(
+        PodcastEntity::find_by_id(1)
+            .one(&dbc)
+            .await
+            .unwrap()
+            .unwrap()
+            .description,
+        "Edited while fetching"
+    );
+    dbc.close().await.unwrap();
+    root.mark_success();
+}

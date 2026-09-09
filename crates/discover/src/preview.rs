@@ -3,7 +3,9 @@ use halogen_wire::{
 };
 use std::collections::HashSet;
 
-use crate::{DiscoverService, bounded_body, bounded_text, make_id};
+use crate::{DiscoverService, bounded_text, make_id};
+
+mod body;
 
 impl DiscoverService {
     /// Fetch a bounded feed without creating subscriptions or library records.
@@ -26,7 +28,7 @@ impl DiscoverService {
         if !response.status().is_success() {
             return Err(format!("Feed returned {}", response.status()));
         }
-        let body = bounded_body(response, 4 * 1024 * 1024).await?;
+        let body = body::read_response(response).await?;
         parse_feed(&body, feed_url, provider)
     }
 }
@@ -49,7 +51,14 @@ fn parse_feed(
             512,
         ),
         feed_url: feed_url.to_owned(),
-        description: bounded_text(channel.description(), 65536),
+        description: bounded_text(
+            std::iter::once(channel.description())
+                .chain(channel.itunes_ext().and_then(|ext| ext.summary()))
+                .map(str::trim)
+                .find(|value| !value.is_empty())
+                .unwrap_or_default(),
+            65536,
+        ),
         author: channel
             .itunes_ext()
             .and_then(|ext| ext.author())
@@ -97,7 +106,7 @@ fn parse_feed(
                     .and_then(duration_seconds),
             })
         })
-        .take(200)
+        .take(body::MAX_EPISODES)
         .collect();
     Ok(DiscoverPodcastData { podcast, episodes })
 }

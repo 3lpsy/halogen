@@ -136,7 +136,7 @@ pub struct RemoteChapter {
     pub starts_at_secs: i32,
 }
 
-/// Feed-level data parsed from an RSS document: channel artwork + episodes.
+/// Channel metadata and episodes parsed from an RSS document.
 #[derive(Debug, Clone)]
 pub struct RemoteFeedData {
     /// Channel-level artwork (`<itunes:image href>` first, then RSS
@@ -146,5 +146,6 @@ pub struct RemoteFeedData {
     pub art_url: Option<String>,
     /// Channel `<title>` — heals placeholder podcast titles (subscribe-by-URL).
     pub channel_title: Option<String>,
+    pub channel_description: Option<String>,
     pub episodes: Vec<RemoteEpisodeData>,
 }

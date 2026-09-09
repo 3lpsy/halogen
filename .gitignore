@@ -4,6 +4,8 @@
 **/*.rs.bk
 rustc-ice-*.txt
 
+.claude/settings.local.json
+
 # ── Frontend (dx / node / tailwind) ───────────────────────────────────────────
 .dioxus/
 node_modules/

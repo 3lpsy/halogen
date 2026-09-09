@@ -9,11 +9,14 @@ path = "src/lib.rs"
 [dependencies]
 halogen-wire = { path = "../wire" }
 halogen-net  = { path = "../net" }
-reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip", "stream"] }
 serde = { workspace = true }
 futures-util = { workspace = true }
 serde_json = { workspace = true }
 rss = { workspace = true }
+quick-xml = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
 chrono = { workspace = true }
 rand = { workspace = true }
 

@@ -197,3 +197,25 @@ fn test_parse_empty_feed() {
     let episodes = parse_rss(xml).expect("should parse empty feed");
     assert!(episodes.is_empty(), "empty feed should have no episodes");
 }
+
+#[test]
+fn channel_description_preserves_html_and_falls_back_to_itunes_summary() {
+    for (description, summary, expected) in [
+        (
+            "<![CDATA[<p>About the show</p>]]>",
+            "Fallback",
+            "<p>About the show</p>",
+        ),
+        ("  ", "Fallback", "Fallback"),
+        ("", "", ""),
+    ] {
+        let xml = format!(
+            r#"<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel><title>Show</title><description>{description}</description><itunes:summary>{summary}</itunes:summary></channel></rss>"#
+        );
+        let feed = parse_feed(&xml).unwrap();
+        assert_eq!(
+            feed.channel_description.as_deref().unwrap_or_default(),
+            expected
+        );
+    }
+}

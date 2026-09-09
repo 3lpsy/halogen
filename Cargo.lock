@@ -3234,7 +3234,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-apiclient"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures-util",
  "halogen-wire",
@@ -3251,7 +3251,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-art"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3270,7 +3270,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-auth"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "halogen-orm",
@@ -3287,7 +3287,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-config"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "clap",
@@ -3300,24 +3300,26 @@ dependencies = [
 
 [[package]]
 name = "halogen-discover"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "futures-util",
  "halogen-net",
  "halogen-wire",
+ "quick-xml",
  "rand 0.8.6",
  "reqwest 0.12.28",
  "rss",
  "serde",
  "serde_json",
  "tokio",
+ "tokio-util",
  "wiremock",
 ]
 
 [[package]]
 name = "halogen-download"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3342,7 +3344,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-e2e"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures",
  "halogen-integ",
@@ -3357,7 +3359,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-extractors"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "halogen-auth",
@@ -3371,7 +3373,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-fixture"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "bcrypt",
@@ -3388,7 +3390,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-format"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -3396,7 +3398,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-guards"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "halogen-extractors",
@@ -3409,7 +3411,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-handlers"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "bcrypt",
@@ -3430,7 +3432,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-integ"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "chrono",
@@ -3462,7 +3464,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-local-runtime"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "chrono",
@@ -3486,7 +3488,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-logging"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-config",
@@ -3496,7 +3498,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-logging-client"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "js-sys",
@@ -3509,7 +3511,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-migrations"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "halogen-utils",
@@ -3522,7 +3524,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-mobile-ffi"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "halogen-apiclient",
  "halogen-local-runtime",
@@ -3539,7 +3541,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-net"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "reqwest 0.12.28",
  "tokio",
@@ -3547,7 +3549,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-opml"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-fixture",
@@ -3561,7 +3563,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-orm"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-utils",
@@ -3575,7 +3577,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-polling"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "bcrypt",
  "chrono",
@@ -3595,7 +3597,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-queries"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3613,7 +3615,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-router"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -3662,7 +3664,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-routes"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "bcrypt",
@@ -3705,7 +3707,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-rss"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "bytes",
@@ -3729,14 +3731,14 @@ dependencies = [
 
 [[package]]
 name = "halogen-runtime-control"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "halogen-server"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "halogen-config",
@@ -3763,7 +3765,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "halogen-apiclient",
@@ -3777,7 +3779,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync-enrich"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-apiclient",
@@ -3788,7 +3790,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync-import"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "halogen-sync-enrich",
@@ -3798,7 +3800,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync-journal"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3814,7 +3816,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync-policy"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "halogen-apiclient",
  "halogen-utils",
@@ -3823,7 +3825,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-sync-store"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3839,7 +3841,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-tool-lighthouse"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "halogen-e2e",
@@ -3852,7 +3854,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-tool-screenshot"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "base64",
@@ -3867,7 +3869,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-utils"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "dotenvy",
@@ -3881,7 +3883,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "getrandom 0.3.4",
@@ -3898,7 +3900,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-accounts"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "base64",
@@ -3917,7 +3919,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-app-state"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-wire",
@@ -3926,7 +3928,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-cache-purge"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures",
  "halogen-webui-logging",
@@ -3943,7 +3945,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-commands"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-wire",
@@ -3952,7 +3954,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-component-forms"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "halogen-apiclient",
  "halogen-wire",
@@ -3960,14 +3962,14 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-component-icons"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
 ]
 
 [[package]]
 name = "halogen-webui-component-loading"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -3984,7 +3986,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-component-navigation"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-webui-component-icons",
@@ -3993,7 +3995,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-component-toast"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-apiclient",
@@ -4004,7 +4006,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-component-widgets"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-webui-commands",
@@ -4019,7 +4021,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-config"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "dioxus",
@@ -4039,7 +4041,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-episode-actions"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4060,7 +4062,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-episode-list"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4082,7 +4084,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-episode-list-page"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4096,14 +4098,14 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-auth-redirect"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
 ]
 
 [[package]]
 name = "halogen-webui-hook-confirm-action"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4122,7 +4124,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-context"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4146,7 +4148,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-deep-link-fetch"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4165,7 +4167,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-dom-stream"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4182,7 +4184,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-episodes"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4201,7 +4203,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-form"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4221,7 +4223,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-is-admin"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4239,7 +4241,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-latest-wins"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4256,7 +4258,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-list-view-state"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4277,7 +4279,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-paged-pool"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4299,7 +4301,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-pull-to-refresh"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4321,7 +4323,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-row-memory"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4339,7 +4341,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-scroll-memory"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4359,7 +4361,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hook-window-event"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4377,7 +4379,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-hooks"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "halogen-webui-hook-confirm-action",
  "halogen-webui-hook-context",
@@ -4397,7 +4399,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-library-widgets"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4415,7 +4417,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-listview"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-wire",
@@ -4425,7 +4427,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-logging"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "halogen-logging-client",
@@ -4441,7 +4443,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-media"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4460,7 +4462,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-page-app"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-webui-component-widgets",
@@ -4470,7 +4472,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-page-login"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4492,7 +4494,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-platform"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "directories",
  "futures-channel",
@@ -4505,7 +4507,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4531,7 +4533,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player-backend"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4551,7 +4553,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player-controls"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -4573,7 +4575,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player-media-session"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-webui-config",
@@ -4586,7 +4588,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player-sleep"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-webui-logging",
@@ -4594,7 +4596,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-player-types"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4612,7 +4614,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-accounts"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4633,7 +4635,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-app"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4667,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-config"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4688,7 +4690,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-connection"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4706,7 +4708,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-discover"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4724,7 +4726,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-downloads"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4742,7 +4744,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-episode"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4760,7 +4762,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-history"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4778,7 +4780,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-local"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "dioxus",
  "halogen-apiclient",
@@ -4797,7 +4799,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-playback"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4815,7 +4817,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-player"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4840,7 +4842,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-playlist"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4858,7 +4860,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-podcast"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4876,7 +4878,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-session"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4894,7 +4896,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-sync"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4922,7 +4924,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-toast"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4940,7 +4942,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-provider-webview-media"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4963,7 +4965,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-routes"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5016,7 +5018,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-store"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5036,7 +5038,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-store-idb"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "futures-util",
@@ -5051,7 +5053,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-sync-engine"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5088,7 +5090,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-transport-ws"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "async-trait",
  "futures",
@@ -5104,7 +5106,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-admin-users"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5120,7 +5122,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-cache-control"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5138,7 +5140,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-config"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5154,7 +5156,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-config-overrides"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5170,7 +5172,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-configure-swipes"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5186,7 +5188,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-discover"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5204,7 +5206,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-dock-config"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5221,7 +5223,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-downloads"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5236,7 +5238,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-episode"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5258,7 +5260,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-history"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5273,7 +5275,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-home"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5285,7 +5287,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-latest"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5300,7 +5302,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-logs"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5317,7 +5319,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-menu"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5331,7 +5333,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-not-found"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5344,7 +5346,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-playlists"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5365,7 +5367,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-podcasts"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5388,7 +5390,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-polling"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5403,7 +5405,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-queue"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5420,7 +5422,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-server-errors"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5436,7 +5438,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-settings"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5458,7 +5460,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-view-user-edit"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "dioxus",
@@ -5474,7 +5476,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-webui-worker"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "futures",
  "halogen-webui-commands",
@@ -5491,7 +5493,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-wire"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "chrono",
  "halogen-utils",
@@ -5505,7 +5507,7 @@ dependencies = [
 
 [[package]]
 name = "halogen-wire-meta"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "axum",
  "chrono",
@@ -7815,6 +7817,7 @@ checksum = "cdcc8dd4e2f670d309a5f0e83fe36dfdc05af317008fea29144da1a2ac858e5e"
 dependencies = [
  "encoding_rs",
  "memchr",
+ "tokio",
 ]
 
 [[package]]
